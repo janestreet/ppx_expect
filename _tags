@@ -1,0 +1,14 @@
+<**/*.ml{,i}>: warn(-40), no_alias_deps
+<**/*>: thread
+# This prevents the implicit addition of -ppx options by ocamlfind
+<**/*.ml{,i}>: predicate(ppx_driver)
+<as_ppx/ppx.{byte,native}>: predicate(ppx_driver)
+<evaluator/lib/*.ml>: for-pack(Expect_test_evaluator_lib)
+<src/*.ml>: for-pack(Ppx_expect)
+<src/*>: linkall
+<collector/*.ml{,i}>: ppx-driver(ppx_compare+ppx_custom_printf+ppx_fields_conv+ppx_inline_test+ppx_sexp_conv+ppx_sexp_value+ppx_variants_conv -inline-test-lib ppx_expect.collector)
+<evaluator/lib/*.ml{,i}>: ppx-driver(ppx_assert+ppx_compare+ppx_custom_printf+ppx_inline_test+ppx_sexp_conv+ppx_variants_conv -inline-test-lib ppx_expect.evaluator)
+<namespace_wrappers/*>: warn(-49)
+"namespace_wrappers": include
+# OASIS_START
+# OASIS_STOP

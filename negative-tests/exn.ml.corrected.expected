@@ -1,0 +1,7 @@
+open! Core.Std
+
+let%expect_test _ =
+  [%expect {||}];
+  failwith "hi ho";
+  [%collector_never_triggered]
+;;

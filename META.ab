@@ -1,0 +1,29 @@
+version = "$(pkg_version)"
+description = "Cram like framework for OCaml"
+requires(-ppx_driver) = "ppx_core ppx_driver ppx_expect.collector ppx_inline_test ppx_inline_test.libname"
+requires(ppx_driver) = "ppx_core ppx_driver ppx_inline_test ppx_inline_test.libname"
+archive(ppx_driver, byte          ) = "ppx_expect.cma"
+archive(ppx_driver, native        ) = "ppx_expect.cmxa"
+archive(ppx_driver, native, plugin) = "ppx_expect.cmxs"
+exists_if = "ppx_expect.cma"
+ppx(-ppx_driver) = "./ppx"
+
+package "collector" (
+  version = "$(pkg_version)"
+  description = "Runtime library for ppx_expect"
+  requires = "fieldslib ppx_inline_test.runtime-lib sexplib variantslib"
+  archive(byte          ) = "expect_test_collector.cma"
+  archive(native        ) = "expect_test_collector.cmxa"
+  archive(native, plugin) = "expect_test_collector.cmxs"
+  exists_if = "expect_test_collector.cma"
+)
+
+package "evaluator" (
+  version = "$(pkg_version)"
+  description = ""
+  requires = "ppx_assert.runtime-lib ppx_expect.collector ppx_inline_test.runtime-lib re sexplib variantslib"
+  archive(byte          ) = "expect_test_evaluator_lib.cma"
+  archive(native        ) = "expect_test_evaluator_lib.cmxa"
+  archive(native, plugin) = "expect_test_evaluator_lib.cmxs"
+  exists_if = "expect_test_evaluator_lib.cma"
+)
