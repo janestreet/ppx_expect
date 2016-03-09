@@ -1,7 +1,7 @@
 open! Core.Std
 
 let%expect_test _ =
-  [%expect {||}];
+  [%expect {| |}];
   failwith "hi ho";
-  [%collector_never_triggered]
+  [%expect {| DID NOT REACH THIS PROGRAM POINT |}]
 ;;

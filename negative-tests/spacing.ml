@@ -23,4 +23,13 @@ let%expect_test _ =
     one
   two(2)
     three
+  |}];
+
+  (* Check that it reindents expectation properly *)
+  printf "  one\n blah\n  three";
+  [%expect {|
+      one
+    two
+      three
   |}]
+

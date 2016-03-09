@@ -7,5 +7,4 @@ let%expect_test _ =
   print_string "goodbye\n";
   [%expect {|
     hello
-    goodbye
-  |}]
+    goodbye |}]

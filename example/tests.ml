@@ -5,7 +5,8 @@ type t = int list [@@deriving sexp_of]
 
 let pr s = Printf.printf "%s\n" s
 
-let%expect_test _ =
+
+let%expect_test "foo" =
   pr "line1";
   pr (Sexp.to_string (sexp_of_t [1;2;3]));
   [%expect {|

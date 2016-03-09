@@ -1,7 +1,7 @@
 version = "$(pkg_version)"
 description = "Cram like framework for OCaml"
-requires(-ppx_driver) = "ppx_core ppx_driver ppx_expect.collector ppx_inline_test ppx_inline_test.libname"
-requires(ppx_driver) = "ppx_core ppx_driver ppx_inline_test ppx_inline_test.libname"
+requires(-ppx_driver) = "ppx_core ppx_driver ppx_expect.collector ppx_expect.common ppx_expect.payload ppx_inline_test ppx_inline_test.libname"
+requires(ppx_driver) = "ppx_core ppx_driver ppx_expect.common ppx_expect.payload ppx_inline_test ppx_inline_test.libname"
 archive(ppx_driver, byte          ) = "ppx_expect.cma"
 archive(ppx_driver, native        ) = "ppx_expect.cmxa"
 archive(ppx_driver, native, plugin) = "ppx_expect.cmxs"
@@ -11,19 +11,57 @@ ppx(-ppx_driver) = "./ppx"
 package "collector" (
   version = "$(pkg_version)"
   description = "Runtime library for ppx_expect"
-  requires = "fieldslib ppx_inline_test.runtime-lib sexplib variantslib"
+  requires = "fieldslib ppx_expect.common ppx_expect.config ppx_inline_test.runtime-lib"
   archive(byte          ) = "expect_test_collector.cma"
   archive(native        ) = "expect_test_collector.cmxa"
   archive(native, plugin) = "expect_test_collector.cmxs"
   exists_if = "expect_test_collector.cma"
 )
 
-package "evaluator" (
+package "common" (
+  version = "$(pkg_version)"
+  description = "Shared parts for ppx_expect"
+  requires = "sexplib"
+  archive(byte          ) = "expect_test_common.cma"
+  archive(native        ) = "expect_test_common.cmxa"
+  archive(native, plugin) = "expect_test_common.cmxs"
+  exists_if = "expect_test_common.cma"
+)
+
+package "config" (
+  version = "$(pkg_version)"
+  description = "Runtime configuration for ppx_expect"
+  requires = ""
+  archive(byte          ) = "expect_test_config.cma"
+  archive(native        ) = "expect_test_config.cmxa"
+  archive(native, plugin) = "expect_test_config.cmxs"
+  exists_if = "expect_test_config.cma"
+)
+
+package "matcher" (
   version = "$(pkg_version)"
   description = ""
-  requires = "ppx_assert.runtime-lib ppx_expect.collector ppx_inline_test.runtime-lib re sexplib variantslib"
-  archive(byte          ) = "expect_test_evaluator_lib.cma"
-  archive(native        ) = "expect_test_evaluator_lib.cmxa"
-  archive(native, plugin) = "expect_test_evaluator_lib.cmxs"
-  exists_if = "expect_test_evaluator_lib.cma"
+  requires = "ppx_assert.runtime-lib ppx_expect.common ppx_inline_test.runtime-lib re sexplib variantslib"
+  archive(byte          ) = "expect_test_matcher.cma"
+  archive(native        ) = "expect_test_matcher.cmxa"
+  archive(native, plugin) = "expect_test_matcher.cmxs"
+  exists_if = "expect_test_matcher.cma"
+)
+
+package "payload" (
+  version = "$(pkg_version)"
+  description = ""
+  requires = "ppx_core ppx_expect.common"
+  archive(byte          ) = "ppx_expect_payload.cma"
+  archive(native        ) = "ppx_expect_payload.cmxa"
+  archive(native, plugin) = "ppx_expect_payload.cmxs"
+  exists_if = "ppx_expect_payload.cma"
+
+  package "for_ppx_deriving" (
+    description = "Don't use this directly"
+    error(ppx_driver) = "Cannot use ppx_expect.payload.for_ppx_deriving when ppx_driver is set"
+    requires = "ppx_core.for_ppx_deriving ppx_deriving ppx_expect.common"
+    exists_if = "ppx_expect_payload.cma"
+    ppxopt = "ppx_deriving,./ppx_expect_payload.cma"
+  )
 )

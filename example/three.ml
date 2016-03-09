@@ -10,21 +10,11 @@ let%expect_test _ =
   two
   three|}];
 
-  text_no_final_nl(); [%expect {|one
-  two
-  three|}];
-
   let text() = print_string "one\ntwo\nthree\n" in
 
   (* Base example *)
   text(); [%expect {|
   one
-  two
-  three
-|}];
-
-  (* NL may be omited before first line of expected output *)
-  text(); [%expect {|one
   two
   three
 |}];

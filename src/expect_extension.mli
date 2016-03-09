@@ -1,11 +1,6 @@
+open Expect_test_common.Std
 
-type t =
-  { expected : string
-  ; tag      : string option
-  ; is_exact : bool
-  }
-
-val match_expectation : Parsetree.expression -> t option
+val match_expectation : Parsetree.expression -> Expectation.Raw.t option
 
 val match_expect_test
   :  Parsetree.structure_item

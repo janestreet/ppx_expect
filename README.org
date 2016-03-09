@@ -4,11 +4,11 @@
 
 Expect-test is a framework for writing tests in OCaml, similar to [[https://bitheap.org/cram/][Cram]].
 Expect-tests mimic the existing inline tests framework with the =let%expect_test= construct.
-The body of an expect-test can contain output-generating code, interleaved with =%expect= extension 
+The body of an expect-test can contain output-generating code, interleaved with =%expect= extension
 expressions to denote the expected output.
 
-When run, these tests will pass iff the output matches what was expected. If a test fails, a 
-corrected file with the suffix ".corrected" will be produced with the actual output, and the 
+When run, these tests will pass iff the output matches what was expected. If a test fails, a
+corrected file with the suffix ".corrected" will be produced with the actual output, and the
 =inline_tests_runner= will output a diff.
 
 Here is an example Expect-test program, say in =foo.ml=
@@ -21,7 +21,7 @@ let%expect_test "addition" =
   [%expect {| 4 |}]
 #+end_src
 
-When the test is run (as part of =inline_tests_runner=), =foo.ml.corrected= will be produced with the 
+When the test is run (as part of =inline_tests_runner=), =foo.ml.corrected= will be produced with the
 contents:
 
 #+begin_src ocaml
@@ -38,7 +38,7 @@ let%expect_test "addition" =
 : +++foo.ml.corrected
 : File "foo.ml", line 5, characters 0-1:
 :   open Core.Std
-:     
+:
 :   let%expect_test "addition" =
 :     printf "%d" (1 + 2);
 : -|  [%expect {| 4 |}]
@@ -75,19 +75,83 @@ printf "foo*bar (regexp)";
 [%expect {| foo*bar (regexp) (literal) |}]
 #+end_src
 
-The =(escaped)= tag will treat the line as an escaped literal string, which can be useful 
+The =(escaped)= tag will treat the line as an escaped literal string, which can be useful
 for matching unprintable characters. It doesn't support escaped newlines right now.
 
 If there's no tag is specified, a literal match is expected.
 
 *** Whitespace
 
-If an =%expect= node starts with a line break, it is stripped.
-The rest of the lines can be indented by any amount; the amount of indentation is decided by
-the minimum indentation on any given line. Extra whitespace after the indentation is 
-considered part of the expected output.
+Inside =%expect= nodes, whitespace around patterns are ignored, and
+the user is free to put any amount for formatting purposes. The same
+goes for the actual output.
 
-All leading/trailing whitespace on single-line expectations is ignored.
+Ignoring surrounding whitespace allows to write nicely formatted
+expectation and focus only on matching the bits that matter.
+
+To do this, ppx_expect strips patterns and outputs by taking the
+smallest rectangle of text that contains the non-whitespace
+material. All end of line whitespace are ignored as well. So for
+instance all these lines are equivalent:
+
+#+begin_src ocaml
+  print blah;
+  [%expect {|
+abc
+defg
+  hij|}]
+
+  print blah;
+  [%expect {|
+                abc
+                defg
+                  hij
+  |}]
+
+  print blah;
+  [%expect {|
+    abc
+    defg
+      hij
+  |}]
+#+end_src
+
+However, the last one is nicer to read.
+
+For the rare cases where one does care about what the exact output is,
+ppx_expect provides the =%expect_exact= extension point, which only
+succeed when the untouched output is exactly equal to the untouched
+pattern.
+
+When producing a correction, ppx_expect tries to respect as much as
+possible the formatting of the pattern.
+
+** Integration with Async, Lwt or other cooperative libraries
+
+If you are writing expect tests for a system using Async, Lwt or any
+other libraries for cooperative threading, you need some preparation
+so that everything works well. For instance, you probably need to
+flush some =stdout= channel. The expect test runtime takes care of
+flushing =Pervasives.stdout= but it doesn't know about
+=Async.Std.Writer.stdout=, =Lwt_io.stdout= or anything else.
+
+To deal with this, expect\_test provides some hooks in the form of a
+condifuration module =Expect_test_config=. The default module in scope
+define no-op hooks that the user can override. =Async.Std= redefines
+this module so when =Async.Std= is opened you can write async-aware
+expect test.
+
+This is what you would need to write to do the same with Lwt:
+
+#+begin_src ocaml
+module Expect_test_config
+  : Expect_test_config.S with module IO = Lwt =
+struct
+  module IO = Lwt
+  let flush () = Lwt_io.(flush stdout)
+  let run = Lwt_main.run
+end
+#+end_src
 
 ** Comparing Expect-test and unit testing (e.g. =let%test_unit=)
 
@@ -155,6 +219,6 @@ additional empty =%%expect= attributes to collect debug messages.
 
 Every =%expect= node in an Expect-test program becomes a point at which
 the program output is captured. Once the program terminates, the
-captured outputs are matched against the expected outputs, and interleaved with 
-the original source code to produce the corrected file. Trailing output is appended in a 
+captured outputs are matched against the expected outputs, and interleaved with
+the original source code to produce the corrected file. Trailing output is appended in a
 new =%expect= node.

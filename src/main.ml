@@ -1,64 +1,69 @@
+open Expect_test_common.Std
+open StdLabels
 open Ppx_core.Std
 open Ast_builder.Default
 open Parsetree
 
 [@@@metaloc loc]
 
-module Location = struct
-  include Location
-
-  let compare c1 c2 =
-    compare c1.loc_start.pos_cnum c2.loc_start.pos_cnum
-  ;;
-end
-
-module List = struct
-  include ListLabels
-
-  let filter_map l ~f =
-    let rec loop accum = function
-      | [] -> accum
-      | x::xs ->
-        match f x with
-        | None -> loop accum xs
-        | Some y -> loop (y :: accum) xs
+let lifter ~loc =
+  let make_longident typ_name name : Longident.t Located.t =
+    let id =
+      match String.rindex typ_name '.' with
+      | exception Not_found -> Lident name
+      | i -> Longident.parse (String.sub typ_name ~pos:0 ~len:(i + 1) ^ name)
     in
-    rev (loop [] l)
-  ;;
+    Located.mk ~loc id
+  in object
+  inherit [expression] Expectation_lifter.lifter
+  method constr typ_name (name, args) =
+    pexp_construct ~loc (make_longident typ_name name)
+      (match args with
+       | [] -> None
+       | _  -> Some (pexp_tuple ~loc args))
+  method string s = estring ~loc s
+  method int x = eint ~loc x
+  method record typ_name fields =
+    pexp_record ~loc
+      (List.map fields ~f:(fun (name, expr) ->
+         (make_longident typ_name name, expr)))
+      None
+  method lift_Expect_test_common__File_Name_t file_name =
+    eapply ~loc (evar ~loc "Expect_test_common.Std.File.Name.of_string")
+      [ estring ~loc (File.Name.to_string file_name) ]
+  [@@@ocaml.warning "-7"]
+  method lift_Expect_test_common_File_Name_t file_name =
+    eapply ~loc (evar ~loc "Expect_test_common.Std.File.Name.of_string")
+      [ estring ~loc (File.Name.to_string file_name) ]
+  [@@@ocaml.warning "+7"]
 end
 
-let lift_location ~loc (of_loc : Location.t) =
-  [%expr
-    { filename    = Expect_test_collector.File.Name.of_string
-                      [%e estring ~loc loc.loc_start.pos_fname]
-    ; line_start  = [%e eint ~loc of_loc.loc_start.pos_bol ]
-    ; line_number = [%e eint ~loc of_loc.loc_start.pos_lnum]
-    ; start_pos   = [%e eint ~loc of_loc.loc_start.pos_cnum]
-    ; end_pos     = [%e eint ~loc of_loc.loc_end.pos_cnum  ]
-    }
-  ]
+let lift_location ~loc of_loc =
+  (lifter ~loc)#lift_Expect_test_common_File_Location_t of_loc
 ;;
 
-let lift_expectation ~loc { Expect_extension. expected; tag; is_exact } =
-  [%expr
-    { expected = [%e estring ~loc expected]
-    ; tag =
-        [%e
-          match tag with
-          | None -> pexp_construct ~loc (Located.mk ~loc (lident "None")) None
-          | Some s -> pexp_construct ~loc (Located.mk ~loc (lident "Some")) (Some (estring ~loc s))
-        ]
-    ; is_exact = [%e ebool   ~loc is_exact]
-    }
-  ]
+let lift_expectation ~loc expect =
+  (lifter ~loc)#lift_Expect_test_common_Std_Expectation_Raw_t expect
+;;
+
+let estring_option ~loc x =
+  match x with
+  | None -> pexp_construct ~loc (Located.mk ~loc (lident "None")) None
+  | Some s ->
+    pexp_construct ~loc (Located.mk ~loc (lident "Some")) (Some (estring ~loc s))
 ;;
 
 (* Grab a list of all the output expressions *)
-let collect_expressions = object
-  inherit [expression list] Ast_traverse.fold as super
+let collect_expectations = object
+  inherit [(Location.t * Expectation.Raw.t) list] Ast_traverse.fold as super
 
-  method! expression expr expressions =
-    expr :: super#expression expr expressions
+  method! expression expr acc =
+    match Expect_extension.match_expectation expr with
+    | None ->
+      super#expression expr acc
+    | Some ext ->
+      assert_no_attributes expr.pexp_attributes;
+      (expr.pexp_loc, ext) :: acc
 end
 
 let replace_expects = object
@@ -67,13 +72,14 @@ let replace_expects = object
   method! expression instance_var ({ pexp_attributes; pexp_loc; _ } as expr) =
     match Expect_extension.match_expectation expr with
     | None -> super#expression instance_var expr
-    | Some _ ->
+    | Some ext ->
       let loc = { pexp_loc with loc_end = pexp_loc.loc_start } in
       let expr =
-        eapply ~loc (evar ~loc "Expect_test_collector.Instance.save_output")
-          [ evar ~loc instance_var
-          ; lift_location ~loc pexp_loc
-          ]
+        [%expr
+          Expect_test_collector.Instance.save_output
+            [%e evar ~loc instance_var]
+            [%e lift_location ~loc ext.extid_location]
+        ]
       in
       { expr with pexp_attributes }
 end
@@ -88,34 +94,12 @@ let file_digest =
       Hashtbl.add cache fname hash;
       hash
 
-let rewrite_test_body pstr_loc body =
+let rewrite_test_body ~descr pstr_loc body =
   let loc = pstr_loc in
-  let expressions = collect_expressions#expression body [] in
   let expectations =
-    List.filter_map expressions
-      ~f:(fun ({ pexp_loc; pexp_attributes; _ } as expr) ->
-        match Expect_extension.match_expectation expr with
-        | None -> None
-        | Some expect_extension -> begin
-            assert_no_attributes pexp_attributes;
-            Some (
-              pexp_tuple ~loc
-                [ lift_location    ~loc pexp_loc
-                ; lift_expectation ~loc expect_extension
-                ]
-            )
-          end
-      )
-    |> fun expectations ->
-    elist ~loc expectations
-  in
-  let default_indent =
-    let { pexp_loc; _ } =
-      expressions
-      |> List.sort ~cmp:(fun x y -> Location.compare x.pexp_loc y.pexp_loc)
-      |> List.hd
-    in
-    pexp_loc.loc_start.pos_cnum - pexp_loc.loc_start.pos_bol
+    List.map (collect_expectations#expression body [])
+      ~f:(fun (loc, expect_extension) -> lift_expectation ~loc expect_extension)
+    |> elist ~loc
   in
 
   let instance_var = gen_symbol ~prefix:"_ppx_expect_instance" () in
@@ -123,11 +107,13 @@ let rewrite_test_body pstr_loc body =
 
   let hash = file_digest loc.loc_start.pos_fname in
   [%expr
+    let module Expect_test_collector = Expect_test_collector.Make(Expect_test_config) in
     Expect_test_collector.run
-      ~file_digest:   (Expect_test_collector.File.Digest.of_string [%e estring ~loc hash])
-      ~location:      [%e lift_location ~loc pstr_loc]
-      ~expectations:  [%e expectations]
-      ~default_indent:[%e eint ~loc default_indent]
+      ~file_digest:  (Expect_test_common.Std.File.Digest.of_string [%e estring ~loc hash])
+      ~location:     [%e lift_location ~loc (Ppx_expect_payload.transl_loc pstr_loc)]
+      ~description:  [%e estring_option ~loc descr]
+      ~expectations: [%e expectations]
+      ~inline_test_config:(module Inline_test_config)
       (fun [%p pvar ~loc instance_var] -> [%e body])
   ]
 
@@ -138,9 +124,9 @@ let rec rewrite_structure str =
   | [] -> []
   | item :: str ->
     match Expect_extension.match_expect_test item with
-    | Some (_, body) ->
+    | Some (descr, body) ->
       let items =
-        rewrite_test_body item.pstr_loc body
+        rewrite_test_body ~descr item.pstr_loc body
         |> Ppx_inline_test.maybe_drop item.pstr_loc
       in
       items @ rewrite_structure str

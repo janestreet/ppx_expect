@@ -7,9 +7,7 @@ let%expect_test _ =
   [%expect {| hello |}];
 
   print_string "goodbye\n";
-  [%expect {|
-    goodbye
-  |}]
+  [%expect {| goodbye |}]
 
 let%expect_test _ =
   print_string "foo";
