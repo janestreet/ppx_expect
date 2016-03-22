@@ -24,9 +24,8 @@ let opt_name_and_expr expr =
   pstr ((
     pstr_value nonrecursive (
       value_binding
-        ~pat:(map (pstring __) ~f:(fun f x -> f (Some x)))
+        ~pat:(alt_option (pstring __) ppat_any)
         ~expr ^:: nil)
-    ||| map (pstr_eval expr nil) ~f:(fun f -> f None)
   ) ^:: nil)
 
 let expect_test =
