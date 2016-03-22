@@ -41,7 +41,7 @@ package "config" (
 package "matcher" (
   version = "$(pkg_version)"
   description = ""
-  requires = "ppx_assert.runtime-lib ppx_expect.common ppx_inline_test.runtime-lib re sexplib variantslib"
+  requires = "ppx_assert.runtime-lib ppx_expect.common ppx_inline_test.runtime-lib re re.emacs sexplib variantslib"
   archive(byte          ) = "expect_test_matcher.cma"
   archive(native        ) = "expect_test_matcher.cmxa"
   archive(native, plugin) = "expect_test_matcher.cmxs"

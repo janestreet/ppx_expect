@@ -1,3 +1,7 @@
+## 113.33.01
+
+- Add dependency on `re.emacs`
+
 ## 113.33.00
 
 - Don't remove trailing semicolons when producing a correction.
