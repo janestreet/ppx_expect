@@ -222,3 +222,9 @@ the program output is captured. Once the program terminates, the
 captured outputs are matched against the expected outputs, and interleaved with
 the original source code to produce the corrected file. Trailing output is appended in a
 new =%expect= node.
+
+** Build system integration
+
+Follow the same rules as for [[https://github.com/janestreet/ppx_inline_test][ppx_inline_test]]. Just make sure to
+include =ppx_expect.evaluator= as a dependency of the test runner. The
+[[https://github.com/janestreet/jane-street-test][Jane Street tests]] contains a few working examples using oasis.

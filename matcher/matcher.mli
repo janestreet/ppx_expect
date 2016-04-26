@@ -45,6 +45,13 @@ val write_corrected
   -> Test_correction.t list
   -> unit
 
-(** Diff two files, using [patdiff] with a fallback to [diff] if [patdiff] produces no
+(** Diff two files. Use [diff_command] to specify what command to use. If not specified
+    [patdiff] is used, with a fallback to [diff -u] if [patdiff] produces no
     differences. *)
-val print_diff : file1:string -> file2:string -> use_color:bool -> unit
+val print_diff
+  :  ?diff_command:string
+  -> file1:string
+  -> file2:string
+  -> use_color:bool
+  -> unit
+  -> unit

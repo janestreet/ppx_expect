@@ -108,7 +108,8 @@ let process_group ~use_color { filename; file_contents; tests } =
   | _ ->
     Matcher.write_corrected bad_outcomes
       ~file:target ~file_contents ~mode:Inline_expect_test;
-    Matcher.print_diff ~file1:(File.Name.to_string filename) ~file2:target ~use_color;
+    Matcher.print_diff ?diff_command:Ppx_inline_test_lib.Runtime.diff_command
+      ~file1:(File.Name.to_string filename) ~file2:target ~use_color ();
     Test_result.Failure
 ;;
 
@@ -119,7 +120,6 @@ let evaluate_tests ~use_color =
 ;;
 
 let () =
-  Ppx_inline_test_lib.Runtime.Test_result.record
-    (evaluate_tests
-       ~use_color:(Ppx_inline_test_lib.Runtime.use_color))
+  Ppx_inline_test_lib.Runtime.add_evaluator ~f:(fun () ->
+    evaluate_tests ~use_color:Ppx_inline_test_lib.Runtime.use_color)
 ;;

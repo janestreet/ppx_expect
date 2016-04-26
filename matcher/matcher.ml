@@ -170,7 +170,7 @@ let patdiff_cmd ~use_color =
   String.concat ~sep:" " ("patdiff" :: args)
 ;;
 
-let print_diff ~file1 ~file2 ~use_color =
+let print_diff ?diff_command ~file1 ~file2 ~use_color () =
   let exec cmd =
     let cmd =
       Printf.sprintf "%s %s %s 1>&2" cmd (Filename.quote file1) (Filename.quote file2)
@@ -180,6 +180,9 @@ let print_diff ~file1 ~file2 ~use_color =
     | 1 -> false
     | n -> Printf.eprintf "%S exited with code %d\n" cmd n; exit 2
   in
-  if exec (patdiff_cmd ~use_color) then
-    ignore (exec "diff -u" : bool)
+  match diff_command with
+  | Some s -> ignore (exec s : bool)
+  | None ->
+    if exec (patdiff_cmd ~use_color) then
+      ignore (exec "diff -u" : bool)
 ;;
