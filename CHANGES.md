@@ -1,3 +1,31 @@
+## 113.43.00
+
+- Always flush Pervasives.stdout in the ppx_expect runtime.
+
+  We already do this, but it was missing in one place.
+
+- Made the test framework resilient to user changing the current working directory during the test.
+
+- Print newlines in `"`-strings as real newlines, not `\n`
+
+- The expect test runtime breaks any executable that wants to work even if
+  cwd doesn't exist, like fe does. Fix that.
+
+  It also brings expect tests in line with what ppx\_inline\_test does, and removes the diff
+  due to absolute paths I was seeing in the output of `./inline_tests_runner -log` in some
+  other features. Concretely, here is what changes:
+
+- Use the new context-free API
+
+- Change the check in ppx\_expect to be a dynamic check. Instead of
+  checking that expect tests appears only at toplevel, we test that
+  they are run in the library they appear.
+
+  This has several consquence:
+
+  - ppx\_expect can use `Context_free` as well and doesn't require two extra passes
+  - expect tests can appear inside let%test_module
+
 ## 113.33.01
 
 - Add dependency on `re.emacs`

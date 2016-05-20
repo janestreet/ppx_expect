@@ -43,7 +43,7 @@ let dispatch = function
                  ; A "ppx_driver"
                  ; A "-package"
                  ; A "ppx_tools.metaquot,ppx_driver,ppx_core,ppx_inline_test,\
-                      ppx_inline_test.libname,sexplib"
+                      ppx_inline_test.libname,ppx_here.expander,sexplib"
                  ; S (List.map (fun s -> A s) ordered)
                  ; A "-o"
                  ; A ("as_ppx/ppx" ^ ext)]))
