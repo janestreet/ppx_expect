@@ -20,9 +20,55 @@ let protect ~finally ~f =
   | exception e -> finally (); raise e
 ;;
 
+module Current_file = struct
+  let current = ref None
+
+  (* Tests in the current file *)
+  let tests : (File.Location.t, unit) Hashtbl.t = Hashtbl.create 64
+
+  let set ~absolute_filename =
+    match !current with
+    | None -> current := Some absolute_filename
+    | Some _ ->
+      failwith "Expect_test_collector.set: already set"
+  ;;
+
+  let unset () =
+    match !current with
+    | Some _ -> current := None; Hashtbl.clear tests
+    | None ->
+      failwith "Expect_test_collector.unset: not set"
+  ;;
+
+  let get () =
+    match !current with
+    | Some fn -> fn
+    | None ->
+      failwith "Expect_test_collector.get: not set"
+  ;;
+
+  let add_test loc =
+    if Hashtbl.mem tests loc then
+      Printf.ksprintf failwith
+        !"Trying to run the same expect test too many times.\n\
+          Expect tests can only run once as they can have only one correction.\n\
+          The test is defined at %{File.Name}:%d"
+        loc.filename loc.line_number
+    else
+      Hashtbl.add tests loc ()
+end
+
 module Make(C : Expect_test_config.S) = struct
   let ( >>= ) = C.IO.bind
   let return = C.IO.return
+
+  module C = struct
+    include C
+    let flush () =
+      (* Always flush [Pervasives.stdout] *)
+      Pervasives.flush Pervasives.stdout;
+      C.flush ()
+  end
 
   module Instance : sig
     type t
@@ -48,8 +94,6 @@ module Make(C : Expect_test_config.S) = struct
         let stdout_backup = Unix.dup Unix.stdout in
         let filename = Filename.temp_file "expect-test" "stdout" in
         let fd = Unix.openfile filename [O_WRONLY; O_CREAT; O_TRUNC] 0o600 in
-        (* To avoid capturing not-yet flushed data of the stdout buffer *)
-        flush stdout;
         Unix.dup2 fd Unix.stdout;
         { stdout_backup
         ; fd
@@ -59,7 +103,6 @@ module Make(C : Expect_test_config.S) = struct
       ;;
 
       let get_position t =
-        flush stdout;
         Unix.lseek t.fd 0 SEEK_CUR;
       ;;
 
@@ -69,7 +112,7 @@ module Make(C : Expect_test_config.S) = struct
         Unix.dup2 t.stdout_backup Unix.stdout;
         Unix.close t.stdout_backup;
 
-        let fname = File.Name.to_string t.filename in
+        let fname = File.Name.relative_to ~dir:(File.initial_dir ()) t.filename in
         protect ~finally:(fun () -> Unix.unlink fname) ~f:(fun () ->
           let ic = open_in fname in
           protect ~finally:(fun () -> close_in ic) ~f:(fun () ->
@@ -125,22 +168,36 @@ module Make(C : Expect_test_config.S) = struct
   let run
         ~file_digest
         ~(location:File.Location.t)
+        ~absolute_filename:defined_in
         ~description
+        ~tags
         ~expectations
         ~inline_test_config
         f
     =
+    let registering_tests_for = Current_file.get () in
     Ppx_inline_test_lib.Runtime.test
-      inline_test_config
-      (match description with None -> "" | Some s -> ": " ^ s)
-      (File.Name.to_string location.filename)
-      location.line_number
-      (location.start_pos - location.line_start)
-      (location.end_pos   - location.line_start)
+      ~config:inline_test_config
+      ~descr:(match description with None -> "" | Some s -> ": " ^ s)
+      ~tags
+      ~filename:(File.Name.to_string location.filename)
+      ~line_number:location.line_number
+      ~start_pos:(location.start_pos - location.line_start)
+      ~end_pos:(location.end_pos   - location.line_start)
       (fun () ->
-         C.run C.flush;
-         Instance.exec ~file_digest ~location ~expectations ~f;
-         true
+         Current_file.add_test location;
+         if defined_in <> registering_tests_for then
+           Printf.ksprintf failwith
+             "Trying to run an expect test from the wrong file.\n\
+              - test declared at %s:%d\n\
+              - trying to run it from %s\n"
+             defined_in location.line_number registering_tests_for
+         else begin
+           (* To avoid capturing not-yet flushed data of the stdout buffer *)
+           C.run C.flush;
+           Instance.exec ~file_digest ~location ~expectations ~f;
+           true
+         end
       );
   ;;
 end

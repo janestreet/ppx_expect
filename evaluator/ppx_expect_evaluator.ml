@@ -55,7 +55,7 @@ let create_group (filename, tests) =
         filename digests
   in
   let file_contents =
-    let ic = open_in (File.Name.to_string filename) in
+    let ic = open_in (File.Name.relative_to ~dir:(File.initial_dir ()) filename) in
     match really_input_string ic (in_channel_length ic) with
     | s           -> close_in ic; s
     | exception e -> close_in ic; raise e
@@ -92,8 +92,8 @@ let convert_collector_tests tests : group list =
   |> List.map ~f:create_group
 ;;
 
-let process_group ~use_color { filename; file_contents; tests } =
-  let target = File.Name.to_string filename ^ ".corrected" in
+let process_group ~use_color ~in_place ~diff_command { filename; file_contents; tests }
+  : Test_result.t =
   let bad_outcomes =
     File.Location.Map.fold tests ~init:[] ~f:(fun ~key:location ~data:test acc ->
       match Matcher.evaluate_test ~file_contents ~location test with
@@ -101,25 +101,38 @@ let process_group ~use_color { filename; file_contents; tests } =
       | Correction c -> c :: acc)
     |> List.rev
   in
+  let filename = File.Name.relative_to ~dir:(File.initial_dir ()) filename in
+  let dot_corrected = filename ^ ".corrected" in
+  let remove_dot_corrected () =
+    if Sys.file_exists dot_corrected then Sys.remove dot_corrected
+  in
   match bad_outcomes with
   | [] ->
-    if Sys.file_exists target then Sys.remove target;
-    Test_result.Success
+    remove_dot_corrected ();
+    Success
   | _ ->
     Matcher.write_corrected bad_outcomes
-      ~file:target ~file_contents ~mode:Inline_expect_test;
-    Matcher.print_diff ?diff_command:Ppx_inline_test_lib.Runtime.diff_command
-      ~file1:(File.Name.to_string filename) ~file2:target ~use_color ();
-    Test_result.Failure
+      ~file:(if in_place then filename else dot_corrected)
+      ~file_contents ~mode:Inline_expect_test;
+    if in_place then begin
+      remove_dot_corrected ();
+      Success
+    end else begin
+      Matcher.print_diff ~file1:filename ~file2:dot_corrected ~use_color ?diff_command ();
+      Failure
+    end
 ;;
 
-let evaluate_tests ~use_color =
+let evaluate_tests ~use_color ~in_place ~diff_command =
   convert_collector_tests (Expect_test_collector.tests_run ())
-  |> List.map ~f:(process_group ~use_color)
+  |> List.map ~f:(process_group ~use_color ~in_place ~diff_command)
   |> Test_result.combine_all
 ;;
 
 let () =
   Ppx_inline_test_lib.Runtime.add_evaluator ~f:(fun () ->
-    evaluate_tests ~use_color:Ppx_inline_test_lib.Runtime.use_color)
+    evaluate_tests
+      ~use_color:Ppx_inline_test_lib.Runtime.use_color
+      ~in_place:Ppx_inline_test_lib.Runtime.in_place
+      ~diff_command:Ppx_inline_test_lib.Runtime.diff_command)
 ;;

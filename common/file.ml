@@ -5,12 +5,30 @@ open Sexplib.Std
 module Name : sig
   type t [@@deriving sexp, compare]
   val to_string : t -> string
+  val relative_to : dir:string -> t -> string
   val of_string : string -> t
 end = struct
   type t = string [@@deriving sexp, compare]
   let to_string t = t
+  let relative_to ~dir t =
+    if not (Filename.is_relative t)
+    then t
+    else
+      Filename.concat dir t
   let of_string s = s
 end
+
+let initial_dir =
+  let dir_or_error =
+    match Sys.getcwd () with
+    | v -> `Ok v
+    | exception exn -> `Exn exn
+  in
+  fun () ->
+    match dir_or_error with
+    | `Ok v -> v
+    | `Exn exn -> raise exn
+;;
 
 module Location = struct
   module T = struct

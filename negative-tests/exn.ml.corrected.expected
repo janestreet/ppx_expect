@@ -2,6 +2,7 @@ open! Core.Std
 
 let%expect_test _ =
   [%expect {| |}];
+  Printexc.record_backtrace false;
   failwith "hi ho";
   [%expect {| DID NOT REACH THIS PROGRAM POINT |}]
 ;;

@@ -97,6 +97,16 @@ let rec output_semi_colon_if_needed oc file_contents pos =
     | _ -> output_char oc ';'
 ;;
 
+let split_lines s =
+  let len = String.length s in
+  let rec loop i =
+    match String.index_from s i '\n' with
+    | j -> String.sub s ~pos:i ~len:(j - i) :: loop (j + 1)
+    | exception _ -> [String.sub s ~pos:i ~len:(len - i)]
+  in
+  loop 0
+;;
+
 let output_corrected oc ~file_contents ~mode test_corrections =
   let id_and_string_of_body : _ Expectation.Body.t -> string * string = function
     | Exact  x -> ("expect_exact", x)
@@ -104,7 +114,9 @@ let output_corrected oc ~file_contents ~mode test_corrections =
   in
   let output_body oc tag body =
     match tag with
-    | None -> fprintf oc "%S" body
+    | None ->
+      fprintf oc "\"%s\""
+        (String.concat ~sep:"\n" (split_lines body |> List.map ~f:String.escaped))
     | Some tag ->
       let tag = Choose_tag.choose ~default:tag body in
       fprintf oc "{%s|%s|%s}" tag body tag

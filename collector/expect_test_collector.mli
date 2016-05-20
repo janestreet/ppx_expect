@@ -28,7 +28,9 @@ module Make(Config : Expect_test_config.S) : sig
   val run
     :  file_digest        : File.Digest.t
     -> location           : File.Location.t
+    -> absolute_filename  : string
     -> description        : string option
+    -> tags               : string list
     -> expectations       : Expectation.Raw.t list
     -> inline_test_config : Ppx_inline_test_lib.Runtime.config
     -> (Instance.t -> unit Config.IO.t)
@@ -36,3 +38,8 @@ module Make(Config : Expect_test_config.S) : sig
 end
 
 val tests_run : unit -> Test_outcome.t list
+
+module Current_file : sig
+  val set : absolute_filename:string -> unit
+  val unset : unit -> unit
+end
