@@ -13,5 +13,4 @@ generate ~package:"ppx_expect"
   ; oasis_lib "ppx_expect_payload"
   ; file "META" ~section:"lib"
   ; oasis_exe "ppx" ~dest:"../lib/ppx_expect/ppx"
-  ; file "_build/namespace_wrappers/ocaml_re.cmi" ~section:"lib"
   ]

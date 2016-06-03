@@ -11,7 +11,5 @@
 <common/*.ml{,i}>: ppx-driver(ppx_compare+ppx_sexp_conv)
 <evaluator/*.ml{,i}>: ppx-driver(ppx_custom_printf)
 <matcher/*.ml{,i}>: ppx-driver(ppx_assert+ppx_compare+ppx_custom_printf+ppx_inline_test+ppx_sexp_conv+ppx_variants_conv -inline-test-drop -inline-test-lib fake_for_drop)
-<namespace_wrappers/*>: warn(-49)
-"namespace_wrappers": include
 # OASIS_START
 # OASIS_STOP

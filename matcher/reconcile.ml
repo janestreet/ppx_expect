@@ -1,7 +1,6 @@
 open Expect_test_common.Std
 open StdLabels
 open Sexplib.Std
-open Ocaml_re
 
 module Result = struct
   (* Either match with an explicit success, or (lazily) produce a correction. *)
