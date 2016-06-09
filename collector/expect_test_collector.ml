@@ -130,22 +130,35 @@ module Make(C : Expect_test_config.S) = struct
     type state = Running of Running.t | Ended
     type t = { mutable state : state }
 
+    let rec final_flush ?(count=0) k =
+      let max_attempts = 10 in
+      C.flush () >>= fun () ->
+      if C.flushed () then
+        k ~append:""
+      else if count = max_attempts then
+        k ~append:(Printf.sprintf
+                     "\nSTOPPED COLLECTING OUTPUT AFTER %d FLUSHING ATTEMPS\n\
+                      THERE MUST BE A BACKGROUND JOB PRINTING TO STDOUT\n"
+                     max_attempts)
+      else
+        final_flush ~count:(count + 1) k
+
     let exec ~file_digest ~location ~expectations ~f =
       let running = Running.create () in
       let t = { state = Running running } in
       let finally () =
         C.run (fun () ->
-          C.flush () >>= fun () ->
-          t.state <- Ended;
-          let saved_output, trailing_output = Running.get_outputs_and_cleanup running in
-          tests_run :=
-            { file_digest
-            ; location
-            ; expectations
-            ; saved_output
-            ; trailing_output
-            } :: !tests_run;
-          return ())
+          final_flush (fun ~append ->
+            t.state <- Ended;
+            let saved_output, trailing_output = Running.get_outputs_and_cleanup running in
+            tests_run :=
+              { file_digest
+              ; location
+              ; expectations
+              ; saved_output
+              ; trailing_output = trailing_output ^ append
+              } :: !tests_run;
+            return ()))
       in
       protect ~finally ~f:(fun () -> C.run (fun () -> f t))
     ;;

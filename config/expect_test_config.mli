@@ -27,6 +27,11 @@ module type S = sig
 
   (** Run an IO operation until completion *)
   val run : (unit -> unit IO.t) -> unit
+
+  (** Synchronous check that there is no pending output on file description 0. With async,
+      there is no guarantee that on the rhs of a [IO.bind (flush ()) ...] the output is
+      completely flushed, that's why we need this. *)
+  val flushed : unit -> bool
 end
 
 include S with type 'a IO.t = 'a

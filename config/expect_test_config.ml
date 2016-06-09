@@ -6,6 +6,7 @@ module type S = sig
   end
   val flush : unit -> unit IO.t
   val run : (unit -> unit IO.t) -> unit
+  val flushed : unit -> bool
 end
 
 module IO = struct
@@ -16,4 +17,4 @@ end
 
 let flush () = () (* the runtime already flushes [stdout] *)
 let run f = f ()
-
+let flushed () = true (* the runtime flushed [stdout] before calling this function *)
