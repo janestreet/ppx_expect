@@ -59,7 +59,7 @@ module Current_file = struct
 end
 
 module Make(C : Expect_test_config.S) = struct
-  let ( >>= ) = C.IO.bind
+  let ( >>= ) t f = C.IO.bind t ~f
   let return = C.IO.return
 
   module C = struct

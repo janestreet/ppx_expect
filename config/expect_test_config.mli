@@ -19,7 +19,7 @@ module type S = sig
   module IO : sig
     type 'a t
     val return : 'a -> 'a t
-    val bind : 'a t -> ('a -> 'b t) -> 'b t
+    val bind : 'a t -> f:('a -> 'b t) -> 'b t
   end
 
   (** Flush whatever need to be to get pending output out on file descriptor 0. *)
