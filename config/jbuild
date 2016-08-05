@@ -1,0 +1,7 @@
+(library
+ ((name    expect_test_config)
+  (public_name ppx_expect.config)
+  (public_release ((desc "Runtime configuration for ppx_expect")))
+  (wrapped false)
+  (libraries ())
+  (preprocess ((no_preprocessing All)))))

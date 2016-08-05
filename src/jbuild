@@ -1,0 +1,23 @@
+
+(library (
+  (name ppx_expect)
+  (public_name ppx_expect)
+  (public_release ((kind ppx_rewriter)))
+  (libraries (expect_test_common
+              ocamlcommon
+              ppx_expect_payload
+              ppx_core
+              ppx_driver
+              ppx_inline_test
+              ppx_inline_test_libname
+              ppx_here_expander))
+  (extra_disabled_warnings (17))
+  (preprocess ((metaquot All)))
+))
+
+(rule
+ ((targets (expectation_lifter.ml))
+  (deps (${ROOT}/external/ppx_tools_0.99.2/syntax/genlifter.exe
+         (glob_files ../common/*.cmi)))
+  (action "${ROOT}/external/ppx_tools_0.99.2/syntax/genlifter.exe -I ../common \
+  Expect_test_common.Std.Expectation.Raw.t > ${@}")))
