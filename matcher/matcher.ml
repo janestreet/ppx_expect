@@ -176,7 +176,7 @@ let patdiff_cmd ~use_color =
     List.concat [
       ["-keep-whitespace"];
       ["-location-style omake"];
-      (if use_color then [] else ["-ascii"]);
+      (if use_color then ["-unrefined"] else ["-ascii"]);
     ]
   in
   String.concat ~sep:" " ("patdiff" :: args)
