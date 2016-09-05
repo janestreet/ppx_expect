@@ -195,6 +195,8 @@ let print_diff ?diff_command ~file1 ~file2 ~use_color () =
   match diff_command with
   | Some s -> ignore (exec s : bool)
   | None ->
-    if exec (patdiff_cmd ~use_color) then
-      ignore (exec "diff -u" : bool)
+    if exec (patdiff_cmd ~use_color) then (
+      Printf.eprintf "File \"%s\", line 1, characters 0-0:\n%!" file1;
+      ignore (exec "diff -u" : bool);
+    )
 ;;
