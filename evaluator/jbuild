@@ -10,3 +10,5 @@
               expect_test_matcher))
   (preprocess (((pps (ppx_custom_printf)) All)))
 ))
+
+(provides ppx_expect:ppx_expect_evaluator.cmx)

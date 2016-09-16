@@ -88,7 +88,7 @@ module Make(C : Expect_test_config.S) = struct
         ; stdout_backup : Unix.file_descr
         ; fd            : Unix.file_descr
         ; filename      : File.Name.t
-        } [@@deriving fields]
+        }
 
       let create () =
         let stdout_backup = Unix.dup Unix.stdout in
