@@ -227,4 +227,4 @@ new =%expect= node.
 
 Follow the same rules as for [[https://github.com/janestreet/ppx_inline_test][ppx_inline_test]]. Just make sure to
 include =ppx_expect.evaluator= as a dependency of the test runner. The
-[[https://github.com/janestreet/jane-street-test][Jane Street tests]] contains a few working examples using oasis.
+[[https://github.com/janestreet/jane-street-tests][Jane Street tests]] contains a few working examples using oasis.
