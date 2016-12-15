@@ -3,23 +3,20 @@
 (library (
   (name expect_test_matcher)
   (public_name ppx_expect.matcher)
-  (public_release ())
-  (c_names (fnmatch_stub))
   ;; We don't use core in libraries we don't use JANE in
   ;; preprocess. This would be fine internally but it would create a
   ;; recursive dependency for the public release.
   (libraries (
     re
-    re_emacs
+    re.emacs
+    re.glob
     expect_test_common
   ))
-  (preprocess (((pps (ppx_assert
-                      ppx_compare
-                      ppx_custom_printf
-                      ppx_inline_test
-                      ppx_sexp_conv
-                      ppx_variants_conv))
-                All)))
-  ))
+  (preprocess (pps (ppx_assert
+                    ppx_compare
+                    ppx_custom_printf
+                    ppx_inline_test
+                    ppx_sexp_conv
+                    ppx_variants_conv)))))
 
 (ocamllex (lexer))

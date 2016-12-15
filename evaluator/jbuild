@@ -3,12 +3,12 @@
 (executables (
   ;; Use long names for the public release
   (names (ppx_expect_evaluator))
-  (public_release ((build_and_install_as_objects
-                    ((ppx_expect_evaluator ppx_expect.evaluator)))))
+  (object_public_name ppx_expect.evaluator)
   (libraries (expect_test_common
               expect_test_collector
-              expect_test_matcher))
-  (preprocess (((pps (ppx_custom_printf)) All)))
+              expect_test_matcher
+              ppx_driver.print_diff))
+  (preprocess (pps (ppx_custom_printf)))
 ))
 
 (provides ppx_expect:ppx_expect_evaluator.cmx)

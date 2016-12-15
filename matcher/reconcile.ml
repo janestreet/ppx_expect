@@ -26,14 +26,14 @@ let matches_regexp ~(pat : Re.t) s =
   Re.execp (Re.compile (Re.whole_string pat)) s
 ;;
 
-external matches_glob : glob:string -> string -> bool = "ppx_expect_matches_glob"
+let glob = Re_glob.glob ~anchored:true ~pathname:false ~expand_braces:true
 
 let line_matches ~(expect : Fmt.t) ~actual =
   match expect with
   | Literal expect ->
     expect = actual
   | Glob expect ->
-    matches_glob ~glob:expect actual
+    matches_regexp ~pat:(glob expect) actual
   | Regexp expect ->
     matches_regexp ~pat:(Re_emacs.re expect) actual
 ;;

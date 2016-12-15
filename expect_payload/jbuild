@@ -1,9 +1,8 @@
 (library (
   (name ppx_expect_payload)
   (public_name ppx_expect.payload)
-  (wrapped false)
   (libraries (expect_test_common
-              ocamlcommon
+              compiler-libs.common
               ppx_core))
-  (preprocess ((metaquot All)))
+  (preprocess metaquot)
 ))

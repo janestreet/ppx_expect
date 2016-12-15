@@ -118,7 +118,7 @@ let process_group ~use_color ~in_place ~diff_command { filename; file_contents; 
       remove_dot_corrected ();
       Success
     end else begin
-      Matcher.print_diff ~file1:filename ~file2:dot_corrected ~use_color ?diff_command ();
+      Print_diff.print ~file1:filename ~file2:dot_corrected ~use_color ?diff_command ();
       Failure
     end
 ;;

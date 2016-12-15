@@ -5,11 +5,9 @@
 (library (
   (name expect_test_collector)
   (public_name ppx_expect.collector)
-  (public_release ((desc "Runtime library for ppx_expect")))
+  (synopsis "Runtime library for ppx_expect")
   (libraries (expect_test_common expect_test_config unix))
-  (wrapped false)
-  (preprocess (((pps (ppx_inline_test
-                      ppx_fields_conv
-                      ppx_custom_printf
-                     )) All)))
-))
+  (preprocess (pps (ppx_inline_test
+                    ppx_fields_conv
+                    ppx_custom_printf
+                    )))))
