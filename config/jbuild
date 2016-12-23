@@ -3,4 +3,5 @@
   (public_name ppx_expect.config)
   (synopsis "Runtime configuration for ppx_expect")
   (libraries ())
+  (js_of_ocaml ())
   (preprocess no_preprocessing)))

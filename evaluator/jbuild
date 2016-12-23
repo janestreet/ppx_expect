@@ -8,6 +8,7 @@
               expect_test_collector
               expect_test_matcher
               ppx_driver.print_diff))
+  (js_of_ocaml ())
   (preprocess (pps (ppx_custom_printf)))
 ))
 

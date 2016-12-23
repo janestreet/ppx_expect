@@ -132,6 +132,17 @@ let expect_test =
          Location.raise_errorf ~loc
            "ppx_expect: extension is disabled as no -inline-test-lib was given"
        | Some _ ->
+         List.iter tags ~f:(fun tag ->
+           match Ppx_inline_test.validate_tag tag with
+           | Ok () -> ()
+           | Error hint ->
+             let hint = match hint with
+               | None      -> ""
+               | Some hint -> "\n"^hint
+             in
+             Location.raise_errorf ~loc
+               "ppx_expect: %S is not a valid tag for expect tests.%s" tag hint
+         );
          rewrite_test_body ~descr:name ~tags loc code
          |> Ppx_inline_test.maybe_drop loc)
 ;;

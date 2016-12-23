@@ -82,38 +82,41 @@ module Make(C : Expect_test_config.S) = struct
       f              : (t -> unit C.IO.t) ->
       unit
   end = struct
-    module Running = struct
+    module Running : sig
+      type t
+      val create : unit -> t
+      val get_outputs_and_cleanup : t -> (File.Location.t * string) list  * string
+      val save_output : t -> File.Location.t -> unit
+    end = struct
       type t =
         { mutable saved : (File.Location.t * int) list
-        ; stdout_backup : Unix.file_descr
-        ; fd            : Unix.file_descr
+        ; chan          : out_channel
         ; filename      : File.Name.t
         }
 
+      external swap : out_channel -> out_channel -> unit = "caml_out_channel_swap_fd"
+      external pos_out : out_channel -> int = "caml_out_channel_pos_fd"
+
+      let get_position () = pos_out stdout
+      ;;
+
       let create () =
-        let stdout_backup = Unix.dup Unix.stdout in
         let filename = Filename.temp_file "expect-test" "stdout" in
-        let fd = Unix.openfile filename [O_WRONLY; O_CREAT; O_TRUNC] 0o600 in
-        Unix.dup2 fd Unix.stdout;
-        { stdout_backup
-        ; fd
+        let chan = open_out filename in
+        swap chan stdout;
+        { chan
         ; filename = File.Name.of_string filename
         ; saved    = []
         }
       ;;
 
-      let get_position t =
-        Unix.lseek t.fd 0 SEEK_CUR;
-      ;;
-
       let get_outputs_and_cleanup t =
-        let last_ofs = get_position t in
-        Unix.close t.fd;
-        Unix.dup2 t.stdout_backup Unix.stdout;
-        Unix.close t.stdout_backup;
+        let last_ofs = get_position () in
+        swap t.chan stdout;
+        close_out t.chan;
 
         let fname = File.Name.relative_to ~dir:(File.initial_dir ()) t.filename in
-        protect ~finally:(fun () -> Unix.unlink fname) ~f:(fun () ->
+        protect ~finally:(fun () -> Sys.remove fname) ~f:(fun () ->
           let ic = open_in fname in
           protect ~finally:(fun () -> close_in ic) ~f:(fun () ->
             let ofs, outputs =
@@ -125,6 +128,11 @@ module Make(C : Expect_test_config.S) = struct
             let trailing_output = really_input_string ic (last_ofs - ofs) in
             (outputs, trailing_output)))
       ;;
+
+      let save_output running location =
+        let pos = get_position () in
+        running.saved <- (location, pos) :: running.saved
+
     end
 
     type state = Running of Running.t | Ended
@@ -167,8 +175,7 @@ module Make(C : Expect_test_config.S) = struct
       match t.state with
       | Running running ->
         C.flush () >>= fun () ->
-        let pos = Running.get_position running in
-        running.saved <- (location, pos) :: running.saved;
+        Running.save_output running location;
         return ()
       | Ended ->
         Printf.ksprintf failwith

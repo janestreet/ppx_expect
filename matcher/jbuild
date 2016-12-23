@@ -11,7 +11,8 @@
     re.emacs
     re.glob
     expect_test_common
-  ))
+    ))
+  (js_of_ocaml ())
   (preprocess (pps (ppx_assert
                     ppx_compare
                     ppx_custom_printf

@@ -1,5 +1,6 @@
 open Expect_test_common.Std
 open StdLabels
+open Import
 
 let fprintf = Printf.fprintf
 

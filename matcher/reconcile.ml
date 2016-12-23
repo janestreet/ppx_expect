@@ -110,27 +110,40 @@ let%test_module _ =
         ~corrected:"b"
   end)
 
-let rec reconcile_lines
+let rec lines_match
     ~(expect_lines : Fmt.t Cst.Line.t list)
     ~(actual_lines : string list)
-    : Fmt.t Cst.Line.t list Result.t =
+    : bool =
   match expect_lines, actual_lines with
-  | [], [] -> Match
-  | [], actual_lines ->
-    Correction (List.map actual_lines ~f:literal_line)
-  | _, [] -> Correction []
+  | [], [] -> true
+  | [], _  -> false
+  | _ , [] -> false
   | (expect::expect_lines), (actual::actual_lines) ->
     let format = Cst.Line.data expect ~blank:(Literal "") in
     let line = reconcile_line ~expect:format ~actual in
-    let rest = reconcile_lines ~expect_lines ~actual_lines in
-    match line, rest with
-    | Match, Match -> Match
-    | _ ->
-      Correction (
-        let line = Result.value line ~success:expect in
-        line :: Result.value rest ~success:expect_lines
-      )
+    match line with
+    | Match -> lines_match ~expect_lines ~actual_lines
+    | _ -> false
 ;;
+let rec corrected_rev acc
+    ~(expect_lines : Fmt.t Cst.Line.t list)
+    ~(actual_lines : string list)
+    : Fmt.t Cst.Line.t list =
+  match expect_lines, actual_lines with
+  | [], [] -> acc
+  | [], actual_lines ->
+    ListLabels.fold_left actual_lines ~f:(fun acc x -> literal_line x :: acc) ~init:acc
+  | _, [] -> acc
+  | (expect::expect_lines), (actual::actual_lines) ->
+    let format = Cst.Line.data expect ~blank:(Literal "") in
+    let line = reconcile_line ~expect:format ~actual |> Result.value ~success:expect in
+    corrected_rev ~expect_lines ~actual_lines (line :: acc)
+;;
+
+let reconcile_lines ~expect_lines ~actual_lines : Fmt.t Cst.Line.t list Result.t =
+  if lines_match ~expect_lines ~actual_lines
+  then Match
+  else Correction (List.rev (corrected_rev [] ~expect_lines ~actual_lines))
 
 let expectation_body_internal
       ~(expect : Fmt.t Cst.t Expectation.Body.t)
