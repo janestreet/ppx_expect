@@ -1,6 +1,7 @@
 open StdLabels
 open MoreLabels
 open Sexplib.Std
+open Ppx_compare_lib.Builtin
 
 module Name : sig
   type t [@@deriving sexp, compare]

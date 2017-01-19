@@ -1,4 +1,5 @@
 open Sexplib.Std
+open Ppx_compare_lib.Builtin
 
 type t =
   | Regexp  of string

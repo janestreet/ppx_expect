@@ -1,5 +1,6 @@
 open StdLabels
 open Sexplib.Std
+open Ppx_compare_lib.Builtin
 open Import
 
 let for_all_string s ~f =

@@ -3,7 +3,7 @@
 (library (
   (name expect_test_matcher)
   (public_name ppx_expect.matcher)
-  ;; We don't use core in libraries we don't use JANE in
+  ;; We don't use core in libraries we don't use ppx_jane in
   ;; preprocess. This would be fine internally but it would create a
   ;; recursive dependency for the public release.
   (libraries (

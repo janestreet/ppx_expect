@@ -1,3 +1,4 @@
+open Ppx_compare_lib.Builtin
 open Sexplib.Std
 open StdLabels
 
