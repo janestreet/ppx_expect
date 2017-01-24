@@ -1,7 +1,4 @@
-open StdLabels
-open Sexplib.Std
-open Ppx_compare_lib.Builtin
-open Import
+open Base
 
 let for_all_string s ~f =
   let b = ref true in
@@ -20,7 +17,7 @@ let is_space = function
 
 let is_blanks s = for_all_string s ~f:is_blank
 let is_spaces s = for_all_string s ~f:is_space
-let no_nl s = for_all_string s ~f:(fun c -> c <> '\n')
+let no_nl s = for_all_string s ~f:(fun c -> Char.(<>) c '\n')
 let has_nl s = not (no_nl s)
 
 module Line = struct
@@ -104,21 +101,21 @@ let invariant inv t =
   | Multi_lines m ->
     assert (is_spaces m.leading_spaces);
     let ld_len = String.length m.leading_spaces in
-    assert (ld_len = 0 || m.leading_spaces.[ld_len - 1] = '\n');
+    assert (ld_len = 0 || Char.equal m.leading_spaces.[ld_len - 1] '\n');
     let tr_has_nl = has_nl m.trailing_spaces in
     assert (is_spaces m.trailing_spaces &&
-            (not tr_has_nl || m.trailing_spaces.[0] = '\n'));
+            (not tr_has_nl || Char.equal m.trailing_spaces.[0] '\n'));
     assert (is_blanks m.indentation);
     List.iter m.lines ~f:(Line.invariant inv);
     match m.lines with
     | [] -> assert false
     | Blank _ :: _ -> assert false
-    | [Not_blank n] -> assert (ld_len > 0 && (tr_has_nl || n.trailing_blanks = ""))
+    | [Not_blank n] -> assert (ld_len > 0 && (tr_has_nl || String.is_empty n.trailing_blanks))
     | l ->
       let rec check_last = function
         | []                 -> assert false
         | [Line.Blank     _] -> assert false
-        | [Line.Not_blank n] -> assert (tr_has_nl || n.trailing_blanks = "")
+        | [Line.Not_blank n] -> assert (tr_has_nl || String.is_empty n.trailing_blanks)
         | _ :: l             -> check_last l
       in
       check_last l
@@ -227,14 +224,14 @@ let longest_common_prefix a b =
   let len_b = String.length b in
   let len = min len_a len_b in
   let i = ref 0 in
-  while !i < len && a.[!i] = b.[!i] do incr i done;
+  while !i < len && Char.equal a.[!i] b.[!i] do Int.incr i done;
   String.sub a ~pos:0 ~len:!i
 ;;
 
 let indentation s =
   let len = String.length s in
   let i = ref 0 in
-  while !i < len && is_blank s.[!i] do incr i done;
+  while !i < len && is_blank s.[!i] do Int.incr i done;
   String.sub s ~pos:0 ~len:!i
 ;;
 
@@ -257,10 +254,7 @@ let extract_indentation lines =
     (indent, List.map lines ~f:update_line)
 ;;
 
-let break s at =
-  (String.sub s ~pos:0 ~len:at,
-   String.sub s ~pos:at ~len:(String.length s - at))
-;;
+let break s at = (String.prefix s at, String.drop_prefix s at)
 
 let reconcile (type a) t ~lines ~default_indentation ~pad_single_line =
   let module M = struct
@@ -287,7 +281,7 @@ let reconcile (type a) t ~lines ~default_indentation ~pad_single_line =
     | Empty       e , Multi_lines l ->
       let ld, tr =
         if has_nl e then
-          let ld, tr = break e (String.index e '\n') in
+          let ld, tr = break e (String.index_exn e '\n') in
           (ld ^ "\n", tr)
         else
           ("\n", padding)

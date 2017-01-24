@@ -1,5 +1,4 @@
-open Parsetree
-open Ppx_core.Std
+open Ppx_core
 open Extension
 
 (* An expect declaration resembles [%%expect {tag|...|tag}]. We allow arbitrary tags so

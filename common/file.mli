@@ -1,9 +1,10 @@
+open Base
+
 module Name : sig
   (** Strongly-typed filename *)
   type t [@@deriving sexp, compare]
-  val to_string : t -> string
   val relative_to : dir:string -> t -> string
-  val of_string : string -> t
+  include Identifiable.S with type t := t
 end
 
 val initial_dir : unit -> string
@@ -20,10 +21,7 @@ module Location : sig
 
   val beginning_of_file : Name.t -> t
 
-  module Map : sig
-    include MoreLabels.Map.S with type key = t
-    val of_alist : (key * 'a) list -> 'a t
-  end
+  include Comparable.S with type t := t
 end
 
 module Digest : sig

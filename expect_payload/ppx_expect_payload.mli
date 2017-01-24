@@ -1,4 +1,4 @@
-open Ppx_core.Std
+open Ppx_core
 open Expect_test_common.Std
 
 (** Translate a compile time location to a runtime location *)

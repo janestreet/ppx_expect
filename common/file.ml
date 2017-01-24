@@ -1,27 +1,21 @@
-open StdLabels
-open MoreLabels
-open Sexplib.Std
-open Ppx_compare_lib.Builtin
+open Base
 
 module Name : sig
   type t [@@deriving sexp, compare]
-  val to_string : t -> string
   val relative_to : dir:string -> t -> string
-  val of_string : string -> t
+  include Identifiable.S with type t := t
 end = struct
-  type t = string [@@deriving sexp, compare]
-  let to_string t = t
+  include String
   let relative_to ~dir t =
-    if not (Filename.is_relative t)
+    if not (Caml.Filename.is_relative t)
     then t
     else
-      Filename.concat dir t
-  let of_string s = s
+      Caml.Filename.concat dir t
 end
 
 let initial_dir =
   let dir_or_error =
-    match Sys.getcwd () with
+    match Caml.Sys.getcwd () with
     | v -> `Ok v
     | exception exn -> `Exn exn
   in
@@ -43,7 +37,7 @@ module Location = struct
     [@@deriving sexp, compare]
 
     let compare a b =
-      if a.filename <> b.filename then
+      if not ([%compare.equal: Name.t] a.filename b.filename) then
         invalid_arg "Expect_test_collector.File.Location.compare"
       else
         compare a b
@@ -51,15 +45,7 @@ module Location = struct
   end
   include T
 
-  module Map = struct
-    include Map.Make(T)
-
-    let of_alist l =
-      List.fold_left l ~init:empty ~f:(fun acc (loc, x) ->
-        if mem loc acc then
-          invalid_arg "Expect_test_collector.File.Location.Map.of_alist_exn";
-        add ~key:loc ~data:x acc)
-  end
+  include Comparable.Make(T)
 
   let beginning_of_file filename =
     { filename

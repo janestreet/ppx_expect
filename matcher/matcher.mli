@@ -1,11 +1,12 @@
+open Base
 open Expect_test_common.Std
 
 module Test_outcome : sig
   (** Outcome of a group of test. Either a single [let%expect_test], or a whole file for
       toplevel expect test. *)
   type t =
-    { expectations    : Fmt.t Cst.t Expectation.t File.Location.Map.t
-    ; saved_output    : string File.Location.Map.t
+    { expectations    : Fmt.t Cst.t Expectation.t Map.M(File.Location).t
+    ; saved_output    : string Map.M(File.Location).t
     ; trailing_output : string
     }
 end

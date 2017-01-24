@@ -1,8 +1,7 @@
+open Base
+open Stdio
 open Expect_test_common.Std
 open Expect_test_matcher.Std
-open StdLabels
-open MoreLabels
-open Sexplib.Std
 
 module Test_result = Ppx_inline_test_lib.Runtime.Test_result
 module Collector_test_outcome = Expect_test_collector.Test_outcome
@@ -10,25 +9,24 @@ module Collector_test_outcome = Expect_test_collector.Test_outcome
 type group =
   { filename      : File.Name.t
   ; file_contents : string
-  ; tests         : Matcher.Test_outcome.t File.Location.Map.t
+  ; tests         : Matcher.Test_outcome.t Map.M(File.Location).t
   }
 
 let convert_collector_test ~filename (test : Collector_test_outcome.t)
   : File.Location.t * Matcher.Test_outcome.t =
   let saved_output =
-    List.fold_left test.saved_output ~init:File.Location.Map.empty ~f:(fun acc (loc, x) ->
-      if File.Location.Map.mem loc acc then
-        Printf.ksprintf failwith !"Output collector at %{File.Name}:%d ran more than once"
-          filename loc.line_number ()
-      else
-        File.Location.Map.add ~key:loc ~data:x acc)
+    match Map.of_alist (module File.Location) test.saved_output with
+    | `Ok x -> x
+    | `Duplicate_key loc ->
+      Printf.ksprintf failwith !"Output collector at %{File.Name}:%d ran more than once"
+        filename loc.line_number ()
   in
   let expectations =
     List.map test.expectations ~f:(fun (expect : Expectation.Raw.t) ->
       (expect.extid_location,
        Expectation.map_pretty expect ~f:Lexer.parse_pretty)
     )
-    |> File.Location.Map.of_alist
+    |> Map.of_alist_exn (module File.Location)
   in
   (test.location,
    { expectations
@@ -40,11 +38,9 @@ let convert_collector_test ~filename (test : Collector_test_outcome.t)
 let create_group (filename, tests) =
   let module D = File.Digest in
   let expected_digest =
-    let module DSet = Set.Make(D) in
     match
-      List.fold_left tests ~init:DSet.empty ~f:(fun acc (t : Collector_test_outcome.t) ->
-        DSet.add t.file_digest acc)
-      |> DSet.elements
+      List.map tests ~f:(fun (t : Collector_test_outcome.t) -> t.file_digest)
+      |> List.dedup ~compare:D.compare
     with
     | [digest] -> digest
     | [] -> assert false
@@ -55,12 +51,11 @@ let create_group (filename, tests) =
         filename digests
   in
   let file_contents =
-    let ic = open_in (File.Name.relative_to ~dir:(File.initial_dir ()) filename) in
-    match really_input_string ic (in_channel_length ic) with
-    | s           -> close_in ic; s
-    | exception e -> close_in ic; raise e
+    In_channel.read_all (File.Name.relative_to ~dir:(File.initial_dir ()) filename)
   in
-  let current_digest = Digest.string file_contents |> Digest.to_hex |> D.of_string in
+  let current_digest =
+    Caml.Digest.string file_contents |> Caml.Digest.to_hex |> D.of_string
+  in
   if D.compare expected_digest current_digest <> 0 then
     Printf.ksprintf failwith
       !"File \"%{File.Name}\" changed, you need rebuild inline_test_runner \
@@ -69,7 +64,7 @@ let create_group (filename, tests) =
       filename expected_digest current_digest;
   let tests =
     List.map tests ~f:(convert_collector_test ~filename)
-    |> File.Location.Map.of_alist
+    |> Map.of_alist_exn (module File.Location)
   in
   { filename
   ; file_contents
@@ -78,24 +73,17 @@ let create_group (filename, tests) =
 ;;
 
 let convert_collector_tests tests : group list =
-  let module M = Map.Make(File.Name) in
-  List.fold_left tests ~init:M.empty
-    ~f:(fun acc (test : Collector_test_outcome.t) ->
-      let key = test.location.filename in
-      let l =
-        match M.find key acc with
-        | l -> l
-        | exception Not_found -> []
-      in
-      M.add ~key ~data:(test :: l) acc)
-  |> M.bindings
+  List.map tests ~f:(fun (test : Collector_test_outcome.t) ->
+    (test.location.filename, test))
+  |> Map.of_alist_multi (module File.Name)
+  |> Map.to_alist
   |> List.map ~f:create_group
 ;;
 
 let process_group ~use_color ~in_place ~diff_command { filename; file_contents; tests }
   : Test_result.t =
   let bad_outcomes =
-    File.Location.Map.fold tests ~init:[] ~f:(fun ~key:location ~data:test acc ->
+    Map.fold tests ~init:[] ~f:(fun ~key:location ~data:test acc ->
       match Matcher.evaluate_test ~file_contents ~location test with
       | Match -> acc
       | Correction c -> c :: acc)
@@ -104,7 +92,7 @@ let process_group ~use_color ~in_place ~diff_command { filename; file_contents; 
   let filename = File.Name.relative_to ~dir:(File.initial_dir ()) filename in
   let dot_corrected = filename ^ ".corrected" in
   let remove_dot_corrected () =
-    if Sys.file_exists dot_corrected then Sys.remove dot_corrected
+    if Caml.Sys.file_exists dot_corrected then Caml.Sys.remove dot_corrected
   in
   match bad_outcomes with
   | [] ->

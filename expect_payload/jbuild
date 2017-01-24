@@ -2,7 +2,7 @@
   (name ppx_expect_payload)
   (public_name ppx_expect.payload)
   (libraries (expect_test_common
-              compiler-libs.common
+              
               ppx_core))
-  (preprocess metaquot)
+  (preprocess (pps (ppx_metaquot)))
 ))

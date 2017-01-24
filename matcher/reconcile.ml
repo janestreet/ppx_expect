@@ -1,5 +1,4 @@
 open Expect_test_common.Std
-open StdLabels
 open Sexplib.Std
 open Ppx_compare_lib.Builtin
 

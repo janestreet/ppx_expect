@@ -7,6 +7,8 @@
     In the following names, blank means ' ' or '\t', while space means blank or newline.
 *)
 
+open Base
+
 module Line : sig
   type 'a not_blank =
     { trailing_blanks : string (** regexp: "[ \t]*" *)

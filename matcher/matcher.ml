@@ -1,13 +1,13 @@
+open Base
+open Stdio
 open Expect_test_common.Std
-open StdLabels
-open Import
 
-let fprintf = Printf.fprintf
+let fprintf = Out_channel.fprintf
 
 module Test_outcome = struct
   type t =
-    { expectations    : Fmt.t Cst.t Expectation.t File.Location.Map.t
-    ; saved_output    : string File.Location.Map.t
+    { expectations    : Fmt.t Cst.t Expectation.t Map.M(File.Location).t
+    ; saved_output    : string Map.M(File.Location).t
     ; trailing_output : string
     }
 end
@@ -38,7 +38,10 @@ module Test_correction = struct
   let compare_locations a b = compare a.location.line_number b.location.line_number
 
   let make ~location ~corrections ~trailing_output : t Reconcile.Result.t =
-    if corrections = [] && trailing_output = Reconcile.Result.Match then
+    if List.is_empty corrections &&
+       match trailing_output with
+       | Reconcile.Result.Match -> true
+       | _ -> false then
       Match
     else
       Correction { location; corrections; trailing_output }
@@ -47,24 +50,24 @@ end
 
 let indentation_at file_contents (loc : File.Location.t) =
   let n = ref loc.line_start in
-  while file_contents.[!n] = ' ' do incr n done;
+  while Char.equal file_contents.[!n] ' ' do Int.incr n done;
   !n - loc.line_start
 ;;
 
 let evaluate_test ~file_contents ~(location : File.Location.t) (test : Test_outcome.t) =
   let corrections =
-    File.Location.Map.fold test.expectations ~init:[]
+    Map.fold test.expectations ~init:[]
       ~f:(fun ~key:location ~data:(expect:Fmt.t Cst.t Expectation.t) corrections ->
-        match File.Location.Map.find location test.saved_output with
-        | exception Not_found -> (expect, Collector_never_triggered) :: corrections
-        | actual ->
+        match Map.find test.saved_output location with
+        | None -> (expect, Test_correction.Collector_never_triggered) :: corrections
+        | Some actual ->
           let default_indent = indentation_at file_contents expect.body_location in
           match
             Reconcile.expectation_body
               ~expect:expect.body
               ~actual
               ~default_indent
-              ~pad_single_line:(expect.tag <> None)
+              ~pad_single_line:(Option.is_some expect.tag)
           with
           | Match -> corrections
           | Correction c -> (expect, Test_correction.Correction c) :: corrections)
@@ -86,7 +89,7 @@ let evaluate_test ~file_contents ~(location : File.Location.t) (test : Test_outc
 type mode = Inline_expect_test | Toplevel_expect_test
 
 let output_slice out s a b =
-  output_string out (String.sub s ~pos:a ~len:(b - a))
+  Out_channel.output_string out (String.sub s ~pos:a ~len:(b - a))
 ;;
 
 let rec output_semi_colon_if_needed oc file_contents pos =
@@ -95,18 +98,10 @@ let rec output_semi_colon_if_needed oc file_contents pos =
     | '\t' | '\n' | '\011' | '\012' | '\r' | ' ' ->
       output_semi_colon_if_needed oc file_contents (pos - 1)
     | ';' -> ()
-    | _ -> output_char oc ';'
+    | _ -> Out_channel.output_char oc ';'
 ;;
 
-let split_lines s =
-  let len = String.length s in
-  let rec loop i =
-    match String.index_from s i '\n' with
-    | j -> String.sub s ~pos:i ~len:(j - i) :: loop (j + 1)
-    | exception _ -> [String.sub s ~pos:i ~len:(len - i)]
-  in
-  loop 0
-;;
+let split_lines s = String.split s ~on:'\n'
 
 let output_corrected oc ~file_contents ~mode test_corrections =
   let id_and_string_of_body : _ Expectation.Body.t -> string * string = function
@@ -136,7 +131,7 @@ let output_corrected oc ~file_contents ~mode test_corrections =
               | Correction c ->
                 let id, body = id_and_string_of_body c in
                 output_slice oc file_contents ofs e.extid_location.start_pos;
-                output_string oc id;
+                Out_channel.output_string oc id;
                 output_slice oc file_contents e.extid_location.end_pos
                   e.body_location.start_pos;
                 output_body oc e.tag body;
@@ -147,7 +142,7 @@ let output_corrected oc ~file_contents ~mode test_corrections =
         | Correction c ->
           let loc = test_correction.location in
           output_slice oc file_contents ofs loc.end_pos;
-          if mode = Inline_expect_test then
+          if match mode with Inline_expect_test -> true | _ -> false then
             output_semi_colon_if_needed oc file_contents loc.end_pos;
           let id, body = id_and_string_of_body c in
           (match mode with
@@ -155,8 +150,8 @@ let output_corrected oc ~file_contents ~mode test_corrections =
              let indent = loc.start_pos - loc.line_start + 2 in
              fprintf oc "\n%*s[%%%s " indent "" id
            | Toplevel_expect_test ->
-             if loc.end_pos = 0 || file_contents.[loc.end_pos - 1] <> '\n' then
-               output_char oc '\n';
+             if loc.end_pos = 0 || Char.(<>) file_contents.[loc.end_pos - 1] '\n' then
+               Out_channel.output_char oc '\n';
              fprintf oc "[%%%%%s" id);
           output_body oc (Some "") body;
           fprintf oc "]";
@@ -166,8 +161,7 @@ let output_corrected oc ~file_contents ~mode test_corrections =
 ;;
 
 let write_corrected ~file ~file_contents ~mode test_corrections =
-  let oc = open_out file in
-  output_corrected oc ~file_contents ~mode
-    (List.sort test_corrections ~cmp:Test_correction.compare_locations);
-  close_out oc;
+  Out_channel.with_file file ~f:(fun oc ->
+    output_corrected oc ~file_contents ~mode
+      (List.sort test_corrections ~cmp:Test_correction.compare_locations))
 ;;

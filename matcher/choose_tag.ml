@@ -1,17 +1,15 @@
-open Ppx_compare_lib.Builtin
-open Sexplib.Std
-open StdLabels
+open Base
 
 let choose ~default body =
   let terminators = Lexer.extract_quoted_string_terminators body in
   let rec loop tag =
-    if List.mem tag ~set:terminators then
+    if List.mem terminators tag ~equal:String.equal then
       loop (tag ^ "x")
     else
       tag
   in
-  if List.mem default ~set:terminators then
-    loop (if default = "" then "xxx" else default ^ "_xxx")
+  if List.mem terminators default ~equal:String.equal then
+    loop (if String.is_empty default then "xxx" else default ^ "_xxx")
   else
     default
 ;;

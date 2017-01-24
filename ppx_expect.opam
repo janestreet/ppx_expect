@@ -9,6 +9,7 @@ build: [
   ["jbuilder" "build-package" "ppx_expect" "-j" jobs]
 ]
 depends: [
+  "base"
   "jbuilder"
   "ppx_assert"
   "ppx_compare"
@@ -18,10 +19,11 @@ depends: [
   "ppx_fields_conv"
   "ppx_here"
   "ppx_inline_test"
+  "ppx_metaquot"
   "ppx_sexp_conv"
+  "ppx_traverse"
   "ppx_variants_conv"
-  "sexplib"
-  "ppx_tools"         {>= "0.99.3"}
+  "stdio"
   "re"
 ]
 available: [ ocaml-version >= "4.03.0" ]

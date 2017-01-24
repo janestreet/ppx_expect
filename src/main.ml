@@ -1,49 +1,22 @@
 open Expect_test_common.Std
-open StdLabels
-open Ppx_core.Std
+open Ppx_core
 open Ast_builder.Default
-open Parsetree
 
-[@@@metaloc loc]
+let lifter ~loc = object
+  inherit [expression] Expectation_lifter.lift
+  inherit Ppx_metaquot_lifters.expression_lifters loc
 
-let lifter ~loc =
-  let make_longident typ_name name : Longident.t Located.t =
-    let id =
-      match String.rindex typ_name '.' with
-      | exception Not_found -> Lident name
-      | i -> Longident.parse (String.sub typ_name ~pos:0 ~len:(i + 1) ^ name)
-    in
-    Located.mk ~loc id
-  in object
-  inherit [expression] Expectation_lifter.lifter
-  method constr typ_name (name, args) =
-    pexp_construct ~loc (make_longident typ_name name)
-      (match args with
-       | [] -> None
-       | _  -> Some (pexp_tuple ~loc args))
-  method string s = estring ~loc s
-  method int x = eint ~loc x
-  method record typ_name fields =
-    pexp_record ~loc
-      (List.map fields ~f:(fun (name, expr) ->
-         (make_longident typ_name name, expr)))
-      None
-  method lift_Expect_test_common__File_Name_t file_name =
+  method filename file_name =
     eapply ~loc (evar ~loc "Expect_test_common.Std.File.Name.of_string")
       [ estring ~loc (File.Name.to_string file_name) ]
-  [@@@ocaml.warning "-7"]
-  method lift_Expect_test_common_File_Name_t file_name =
-    eapply ~loc (evar ~loc "Expect_test_common.Std.File.Name.of_string")
-      [ estring ~loc (File.Name.to_string file_name) ]
-  [@@@ocaml.warning "+7"]
 end
 
 let lift_location ~loc of_loc =
-  (lifter ~loc)#lift_Expect_test_common_File_Location_t of_loc
+  (lifter ~loc)#location of_loc
 ;;
 
 let lift_expectation ~loc expect =
-  (lifter ~loc)#lift_Expect_test_common_Std_Expectation_Raw_t expect
+  (lifter ~loc)#raw expect
 ;;
 
 let estring_option ~loc x =
@@ -85,14 +58,10 @@ let replace_expects = object
 end
 
 let file_digest =
-  let cache = Hashtbl.create 32 in
+  let cache = Hashtbl.create (module String) ~size:32 () in
   fun fname ->
-    match Hashtbl.find cache fname with
-    | hash -> hash
-    | exception Not_found ->
-      let hash = Digest.file fname |> Digest.to_hex in
-      Hashtbl.add cache fname hash;
-      hash
+    Hashtbl.find_or_add cache fname ~default:(fun () ->
+      Caml.Digest.file fname |> Caml.Digest.to_hex)
 
 let rewrite_test_body ~descr ~tags pstr_loc body =
   let loc = pstr_loc in

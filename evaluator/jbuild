@@ -4,7 +4,9 @@
   ;; Use long names for the public release
   (names (ppx_expect_evaluator))
   (object_public_name ppx_expect.evaluator)
-  (libraries (expect_test_common
+  (libraries (base
+              stdio
+              expect_test_common
               expect_test_collector
               expect_test_matcher
               ppx_driver.print_diff))

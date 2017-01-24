@@ -7,6 +7,8 @@
   ;; preprocess. This would be fine internally but it would create a
   ;; recursive dependency for the public release.
   (libraries (
+    base
+    stdio
     re
     re.emacs
     re.glob

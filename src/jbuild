@@ -5,19 +5,13 @@
   (kind ppx_rewriter)
   (ppx_runtime_libraries (ppx_expect.collector))
   (libraries (expect_test_common
-              compiler-libs.common
               ppx_expect_payload
               ppx_core
               ppx_driver
               ppx_inline_test
               ppx_inline_test.libname
-              ppx_here.expander))
+              ppx_here.expander
+              ppx_metaquot.lifters))
   (extra_disabled_warnings (17))
-  (preprocess metaquot)
+  (preprocess (pps (ppx_metaquot ppx_traverse)))
 ))
-
-(rule
- ((targets (expectation_lifter.ml))
-  (deps ((glob_files ../common/*.cmi)))
-  (action "${findlib:ppx_tools:genlifter} -I ../common \
-  Expect_test_common.Std.Expectation.Raw.t | sed 's/Expect_test_common__\(.\)File/Expect_test_common\\1File/g' > ${@}")))
