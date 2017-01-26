@@ -1,4 +1,4 @@
-open! Core.Std
+open! Core
 
 (* Example with trailing output after last [%expect] node *)
 

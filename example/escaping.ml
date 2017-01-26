@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 
 let%expect_test _ =
   print_string "alas, poor Yorick";

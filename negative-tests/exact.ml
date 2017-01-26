@@ -1,4 +1,4 @@
-open! Core.Std
+open! Core
 
 (* Check that [%expect_exact] does not strip leading/trailing newlines *)
 let%expect_test _ =

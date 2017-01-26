@@ -1,5 +1,5 @@
 
-open! Core.Std
+open! Core
 
 (* The generated expectation should follow user formatting when present, otherwise it
    should follow a sensible default *)

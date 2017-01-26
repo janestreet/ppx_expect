@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 let%expect_test _ =
   let text_no_final_nl() = print_string "one\ntwo(no newline)\nthree" in
 

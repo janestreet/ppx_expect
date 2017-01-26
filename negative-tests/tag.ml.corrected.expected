@@ -1,4 +1,4 @@
-open! Core.Std
+open! Core
 
 let%expect_test _ =
   (* Correction should include a string tag *)

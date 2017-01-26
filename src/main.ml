@@ -3,7 +3,7 @@ open Ppx_core
 open Ast_builder.Default
 
 let lifter ~loc = object
-  inherit [expression] Expectation_lifter.lift
+  inherit [expression] Lifter.lift
   inherit Ppx_metaquot_lifters.expression_lifters loc
 
   method filename file_name =

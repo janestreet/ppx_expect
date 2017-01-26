@@ -1,4 +1,4 @@
-open Core.Std
+open Core
 
 (* We may use other syntax extensions when writing expect tests. *)
 type t = int list [@@deriving sexp_of]

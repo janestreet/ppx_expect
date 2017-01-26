@@ -1,4 +1,4 @@
-open! Core.Std
+open! Core
 
 (* Example with no [%expect] node at all *)
 

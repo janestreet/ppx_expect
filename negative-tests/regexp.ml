@@ -1,4 +1,4 @@
-open! Core.Std
+open! Core
 
 let%expect_test _ =
   (* A literal match shouldn't succeed here! *)
