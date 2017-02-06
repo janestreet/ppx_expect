@@ -1,5 +1,5 @@
 open Core
-open Async.Std
+open Async
 
 let%expect_test _ =
   List.iter ["hello, "; "world"; "!"] ~f:(fun s ->
