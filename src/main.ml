@@ -96,24 +96,10 @@ let expect_test =
   Extension.declare_inline "expect_test" Structure_item
     Ast_pattern.(Ppx_inline_test.opt_name_and_expr __)
     (fun ~loc ~path:_ ~name ~tags code ->
-       match Ppx_inline_test_libname.get () with
-       | None ->
-         Location.raise_errorf ~loc
-           "ppx_expect: extension is disabled as no -inline-test-lib was given"
-       | Some _ ->
-         List.iter tags ~f:(fun tag ->
-           match Ppx_inline_test.validate_tag tag with
-           | Ok () -> ()
-           | Error hint ->
-             let hint = match hint with
-               | None      -> ""
-               | Some hint -> "\n"^hint
-             in
-             Location.raise_errorf ~loc
-               "ppx_expect: %S is not a valid tag for expect tests.%s" tag hint
-         );
-         rewrite_test_body ~descr:name ~tags loc code
-         |> Ppx_inline_test.maybe_drop loc)
+       Ppx_inline_test.validate_extension_point_exn
+         ~name_of_ppx_rewriter:"ppx_expect" ~loc ~tags;
+       rewrite_test_body ~descr:name ~tags loc code
+       |> Ppx_inline_test.maybe_drop loc)
 ;;
 
 let () =
