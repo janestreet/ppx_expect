@@ -15,3 +15,5 @@
   (extra_disabled_warnings (17))
   (preprocess (pps (ppx_metaquot ppx_traverse)))
 ))
+
+(jbuild_version jane_street)

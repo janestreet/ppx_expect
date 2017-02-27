@@ -6,3 +6,5 @@
               ppx_core))
   (preprocess (pps (ppx_metaquot)))
 ))
+
+(jbuild_version jane_street)

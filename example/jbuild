@@ -8,3 +8,5 @@
 (rule ((targets (tabs.ml)) (deps (tabs.ml.in)) (action "cp ${^} ${@}")))
 
 (alias ((name DEFAULT) (deps (tests.ml.pp))))
+
+(jbuild_version jane_street)

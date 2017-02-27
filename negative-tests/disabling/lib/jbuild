@@ -1,3 +1,5 @@
 (library (
   (name expect_test_disabling_test_lib)
 ))
+
+(jbuild_version jane_street)

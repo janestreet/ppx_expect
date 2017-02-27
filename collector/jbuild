@@ -13,3 +13,5 @@
                     ppx_fields_conv
                     ppx_custom_printf
                     )))))
+
+(jbuild_version jane_street)

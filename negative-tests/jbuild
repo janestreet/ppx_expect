@@ -111,3 +111,5 @@
   (deps (test-output.expected test-output))
   (action "diff -a $(^)")
 ))
+
+(jbuild_version jane_street)

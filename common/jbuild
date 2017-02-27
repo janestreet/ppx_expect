@@ -9,3 +9,5 @@
   (preprocess (pps (ppx_compare
                     ppx_sexp_conv
                     )))))
+
+(jbuild_version jane_street)

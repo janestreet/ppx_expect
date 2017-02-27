@@ -8,3 +8,5 @@
   (deps (./main.exe))
   (action "$(^)")
 ))
+
+(jbuild_version jane_street)

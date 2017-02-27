@@ -5,3 +5,5 @@
   (libraries ())
   (js_of_ocaml ())
   (preprocess no_preprocessing)))
+
+(jbuild_version jane_street)

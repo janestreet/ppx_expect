@@ -15,3 +15,5 @@
 ))
 
 (provides ppx_expect:ppx_expect_evaluator.cmx)
+
+(jbuild_version jane_street)

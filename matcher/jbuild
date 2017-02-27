@@ -23,3 +23,5 @@
                     ppx_variants_conv)))))
 
 (ocamllex (lexer))
+
+(jbuild_version jane_street)
