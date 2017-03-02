@@ -5,7 +5,8 @@
  ((name expect_test_negative_tests)
   (libraries (core
               async))
-  (inline_tests ((native build_but_dont_run)))))
+  (preprocess (pps (ppx_jane)))
+))
 
 (rule (
   (deps (./inline_tests_runner ./inline_tests_runner.exe (glob_files *.ml)))
