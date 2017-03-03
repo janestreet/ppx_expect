@@ -7,7 +7,7 @@
 (alias (
   (name runtest)
   (deps (./main.exe))
-  (action "$(^)")
+  (action (bash "$(^)"))
 ))
 
 (jbuild_version jane_street)
