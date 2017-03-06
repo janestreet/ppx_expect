@@ -5,7 +5,7 @@
  ((name expect_test_negative_tests)
   (libraries (core
               async))
-  (preprocess (pps (ppx_jane)))
+  (preprocess (pps (ppx_jane ppx_driver.runner)))
 ))
 
 (rule (
