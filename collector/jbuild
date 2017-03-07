@@ -13,4 +13,4 @@
                     ppx_custom_printf
                      ppx_driver.runner)))))
 
-(jbuild_version jane_street)
+(jbuild_version 1)
