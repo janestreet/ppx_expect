@@ -13,4 +13,6 @@
                     ppx_custom_printf
                      ppx_driver.runner)))))
 
+(install ((section lib) (files (runtime.js))))
+
 (jbuild_version 1)
