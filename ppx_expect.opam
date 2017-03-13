@@ -10,7 +10,7 @@ build: [
 ]
 depends: [
   "base"
-  "jbuilder"                {build}
+  "jbuilder"                {build & >= "1.0+beta2"}
   "ppx_assert"
   "ppx_compare"
   "ppx_core"
@@ -24,7 +24,7 @@ depends: [
   "ppx_traverse"
   "ppx_variants_conv"
   "stdio"
-  "ocaml-migrate-parsetree"
+  "ocaml-migrate-parsetree" {>= "0.4"}
   "re"                      {>= "1.5.0"}
 ]
 available: [ ocaml-version >= "4.03.0" ]
