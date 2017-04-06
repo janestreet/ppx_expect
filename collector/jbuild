@@ -13,6 +13,8 @@
                     ppx_custom_printf
                      ppx_driver.runner)))))
 
+(ocamllex (check_backtraces))
+
 (install ((section lib) (files (runtime.js))))
 
 (jbuild_version 1)

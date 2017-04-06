@@ -110,6 +110,24 @@ module Make(C : Expect_test_config.S) = struct
         }
       ;;
 
+      let extract_output ic len =
+        let s = really_input_string ic len in
+        if not (Check_backtraces.contains_backtraces s) then
+          s
+        else
+          let with_prefix_comment cr_prefix =
+            Printf.sprintf "\n\
+                            (* %sexpect_test_collector: This test expectation appears to \
+                            contain a backtrace.\n\
+                           \   This is strongly discouraged as backtraces are fragile.\n\
+                           \   Please change this test to not include a backtrace. *)\n\
+                            \n\
+                            %s" cr_prefix s
+          in
+          match C.upon_backtrace_found with
+          | `CR                            -> with_prefix_comment "CR "
+          | `Warning_for_collector_testing -> with_prefix_comment ""
+
       let get_outputs_and_cleanup t =
         let last_ofs = get_position () in
         swap t.chan stdout;
@@ -122,10 +140,10 @@ module Make(C : Expect_test_config.S) = struct
             let ofs, outputs =
               List.fold_left (List.rev t.saved) ~init:(0, [])
                 ~f:(fun (ofs, acc) (loc, next_ofs) ->
-                  let s = really_input_string ic (next_ofs - ofs) in
+                  let s = extract_output ic (next_ofs - ofs) in
                   (next_ofs, ((loc, s) :: acc)))
             in
-            let trailing_output = really_input_string ic (last_ofs - ofs) in
+            let trailing_output = extract_output ic (last_ofs - ofs) in
             (outputs, trailing_output)))
       ;;
 

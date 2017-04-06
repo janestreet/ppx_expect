@@ -7,6 +7,7 @@ module type S = sig
   val flush : unit -> unit IO.t
   val run : (unit -> unit IO.t) -> unit
   val flushed : unit -> bool
+  val upon_backtrace_found : [ `CR | `Warning_for_collector_testing ]
 end
 
 module IO = struct
@@ -18,3 +19,5 @@ end
 let flush () = () (* the runtime already flushes [stdout] *)
 let run f = f ()
 let flushed () = true (* the runtime flushed [stdout] before calling this function *)
+
+let upon_backtrace_found = `CR

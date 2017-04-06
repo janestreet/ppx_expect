@@ -32,6 +32,13 @@ module type S = sig
       there is no guarantee that on the rhs of a [IO.bind (flush ()) ...] the output is
       completely flushed, that's why we need this. *)
   val flushed : unit -> bool
+
+  (** [upon_backtrace_found] specifies how to deal with backtraces in the test
+      expectation. The default is [`CR].  *)
+  val upon_backtrace_found :
+    [ `CR     (** Leaves a CR, so that features with backtraces cannot be released. *)
+    | `Warning_for_collector_testing  (** Only for ppx_expect testing; do not use. *)
+    ]
 end
 
 include S with type 'a IO.t = 'a
