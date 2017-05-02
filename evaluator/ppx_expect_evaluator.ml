@@ -40,7 +40,7 @@ let create_group (filename, tests) =
   let expected_digest =
     match
       List.map tests ~f:(fun (t : Collector_test_outcome.t) -> t.file_digest)
-      |> List.dedup ~compare:D.compare
+      |> List.dedup_and_sort ~compare:D.compare
     with
     | [digest] -> digest
     | [] -> assert false
