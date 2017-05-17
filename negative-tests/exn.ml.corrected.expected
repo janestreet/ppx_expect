@@ -3,6 +3,6 @@ open! Core
 let%expect_test _ =
   [%expect {| |}];
   Printexc.record_backtrace false;
-  failwith "hi ho";
+  ignore (failwith "hi ho");
   [%expect {| DID NOT REACH THIS PROGRAM POINT |}]
 ;;
