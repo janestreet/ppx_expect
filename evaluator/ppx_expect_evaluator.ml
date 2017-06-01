@@ -91,22 +91,31 @@ let process_group ~use_color ~in_place ~diff_command { filename; file_contents; 
   in
   let filename = File.Name.relative_to ~dir:(File.initial_dir ()) filename in
   let dot_corrected = filename ^ ".corrected" in
-  let remove_dot_corrected () =
-    if Caml.Sys.file_exists dot_corrected then Caml.Sys.remove dot_corrected
+  let remove file =
+    if Caml.Sys.file_exists file then Caml.Sys.remove file
   in
   match bad_outcomes with
   | [] ->
-    remove_dot_corrected ();
+    remove dot_corrected;
     Success
   | _ ->
+    (* We need a temporary file for corrections to allow [Print_diff] to work when
+       multiple inline_tests_runner are run simultaneously. Otherwise one copy may remove
+       the corrected file before the other can print the diff. *)
+    let tmp_corrected =
+      Caml.Filename.temp_file (Caml.Filename.basename filename) ".tmp_corrected"
+        ~temp_dir:(Caml.Filename.dirname filename)
+    in
     Matcher.write_corrected bad_outcomes
-      ~file:(if in_place then filename else dot_corrected)
+      ~file:(if in_place then filename else tmp_corrected)
       ~file_contents ~mode:Inline_expect_test;
     if in_place then begin
-      remove_dot_corrected ();
+      remove dot_corrected;
+      remove tmp_corrected;
       Success
     end else begin
-      Print_diff.print ~file1:filename ~file2:dot_corrected ~use_color ?diff_command ();
+      Print_diff.print ~file1:filename ~file2:tmp_corrected ~use_color ?diff_command ();
+      Caml.Sys.rename tmp_corrected dot_corrected;
       Failure
     end
 ;;

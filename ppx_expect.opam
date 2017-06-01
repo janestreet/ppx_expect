@@ -6,7 +6,7 @@ bug-reports: "https://github.com/janestreet/ppx_expect/issues"
 dev-repo: "git+https://github.com/janestreet/ppx_expect.git"
 license: "Apache-2.0"
 build: [
-  ["jbuilder" "build" "--only-packages" "ppx_expect" "--root" "." "-j" jobs "@install"]
+  ["jbuilder" "build" "-p" name "-j" jobs]
 ]
 depends: [
   "base"
