@@ -14,6 +14,17 @@
     also applies to all expect test.
 *)
 
+module Upon_unreleasable_issue : sig
+  type t =
+    [ `CR     (** Leaves a CR, so that features cannot be released. *)
+    | `Warning_for_collector_testing  (** Only for ppx_expect testing; do not use. *)
+    ]
+
+  val equal : t -> t -> bool
+
+  val comment_prefix : t -> string
+end
+
 module type S = sig
   (** IO monad *)
   module IO : sig
@@ -33,12 +44,9 @@ module type S = sig
       completely flushed, that's why we need this. *)
   val flushed : unit -> bool
 
-  (** [upon_backtrace_found] specifies how to deal with backtraces in the test
-      expectation. The default is [`CR].  *)
-  val upon_backtrace_found :
-    [ `CR     (** Leaves a CR, so that features with backtraces cannot be released. *)
-    | `Warning_for_collector_testing  (** Only for ppx_expect testing; do not use. *)
-    ]
+  (** [upon_unreleasable_issue] specifies how to deal with output that should not be
+      released even if it is accepted (e.g. backtraces). The default is [`CR].  *)
+  val upon_unreleasable_issue : Upon_unreleasable_issue.t
 end
 
 include S with type 'a IO.t = 'a

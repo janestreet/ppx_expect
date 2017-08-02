@@ -24,6 +24,9 @@
     flexible.ml.corrected
     normal_strings.ml.corrected
     pending_output.ml.corrected
+    functor.ml.corrected
+    function_with_distinct_outputs.ml.corrected
+    function_with_pattern_outputs.ml.corrected
     test-output
   ))
   (action (bash "rm -f *.ml.corrected 2>/dev/null; ! ${<} -diff-cmd true 2> test-output"))
@@ -104,6 +107,24 @@
 (alias (
   (name runtest)
   (deps (pending_output.ml.corrected.expected pending_output.ml.corrected))
+  (action (bash "diff -a $(^)"))
+))
+
+(alias (
+  (name runtest)
+  (deps (functor.ml.corrected.expected functor.ml.corrected))
+  (action (bash "diff -a $(^)"))
+))
+
+(alias (
+  (name runtest)
+  (deps (function_with_distinct_outputs.ml.corrected.expected function_with_distinct_outputs.ml.corrected))
+  (action (bash "diff -a $(^)"))
+))
+
+(alias (
+  (name runtest)
+  (deps (function_with_pattern_outputs.ml.corrected.expected function_with_pattern_outputs.ml.corrected))
   (action (bash "diff -a $(^)"))
 ))
 

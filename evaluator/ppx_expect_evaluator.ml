@@ -12,26 +12,22 @@ type group =
   ; tests         : Matcher.Test_outcome.t Map.M(File.Location).t
   }
 
-let convert_collector_test ~filename (test : Collector_test_outcome.t)
+let convert_collector_test (test : Collector_test_outcome.t)
   : File.Location.t * Matcher.Test_outcome.t =
   let saved_output =
-    match Map.of_alist (module File.Location) test.saved_output with
-    | `Ok x -> x
-    | `Duplicate_key loc ->
-      Printf.ksprintf failwith !"Output collector at %{File.Name}:%d ran more than once"
-        filename loc.line_number ()
+    Map.of_alist_multi (module File.Location) test.saved_output
+    |> Map.map ~f:Matcher.Saved_output.of_nonempty_list_exn
   in
   let expectations =
     List.map test.expectations ~f:(fun (expect : Expectation.Raw.t) ->
-      (expect.extid_location,
-       Expectation.map_pretty expect ~f:Lexer.parse_pretty)
-    )
+      (expect.extid_location, Expectation.map_pretty expect ~f:Lexer.parse_pretty))
     |> Map.of_alist_exn (module File.Location)
   in
   (test.location,
    { expectations
    ; saved_output
-   ; trailing_output = test.trailing_output
+   ; trailing_output = Matcher.Saved_output.of_nonempty_list_exn [test.trailing_output]
+   ; upon_unreleasable_issue = test.upon_unreleasable_issue
    })
 ;;
 
@@ -63,13 +59,10 @@ let create_group (filename, tests) =
         (expected digest: %{D}, current digest: %{D})"
       filename expected_digest current_digest;
   let tests =
-    List.map tests ~f:(convert_collector_test ~filename)
-    |> Map.of_alist_exn (module File.Location)
+    List.map tests ~f:convert_collector_test
+    |> Map.of_alist_reduce (module File.Location) ~f:Matcher.Test_outcome.merge_exn
   in
-  { filename
-  ; file_contents
-  ; tests = tests
-  }
+  { filename; file_contents; tests }
 ;;
 
 let convert_collector_tests tests : group list =

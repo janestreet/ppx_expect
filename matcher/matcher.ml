@@ -4,12 +4,66 @@ open Expect_test_common.Std
 
 let fprintf = Out_channel.fprintf
 
-module Test_outcome = struct
+module Saved_output = struct
   type t =
-    { expectations    : Fmt.t Cst.t Expectation.t Map.M(File.Location).t
-    ; saved_output    : string Map.M(File.Location).t
-    ; trailing_output : string
+    | One of string
+    | Many_distinct of string list
+
+  let of_nonempty_list_exn outputs =
+    let (_, rev_deduped_preserving_order) =
+      List.fold outputs ~init:(Set.empty (module String), [])
+        ~f:(fun (as_set, as_list) output ->
+          if Set.mem as_set output
+          then (as_set, as_list)
+          else (Set.add as_set output, output::as_list)
+        )
+    in
+    match List.rev rev_deduped_preserving_order with
+    | []       -> failwith "Saved_output.of_nonempty_list_exn got an empty list"
+    | [output] -> One output
+    | outputs  -> Many_distinct outputs
+  ;;
+
+  let to_list = function
+    | One s              -> [s]
+    | Many_distinct many -> many
+  ;;
+
+  let merge t1 t2 = of_nonempty_list_exn (to_list t1 @ to_list t2)
+end
+
+module Test_outcome = struct
+  module Expectations = struct
+    type t = Fmt.t Cst.t Expectation.t Map.M(File.Location).t
+    [@@deriving compare]
+
+    let equal = [%compare.equal: t]
+  end
+
+  type t =
+    { expectations            : Expectations.t
+    ; saved_output            : Saved_output.t Map.M(File.Location).t
+    ; trailing_output         : Saved_output.t
+    ; upon_unreleasable_issue : Expect_test_config.Upon_unreleasable_issue.t
     }
+
+  let merge_exn t { expectations; saved_output; trailing_output; upon_unreleasable_issue } =
+    if not (Expectations.equal t.expectations expectations)
+    then failwith "merging tests of different expectations";
+    if not (Expect_test_config.Upon_unreleasable_issue.equal
+              t.upon_unreleasable_issue
+              upon_unreleasable_issue)
+    then failwith "merging tests of different [Upon_unreleasable_issue]";
+    { expectations
+    ; saved_output =
+        Map.merge t.saved_output saved_output ~f:(fun ~key:_ -> function
+          | `Left x      -> Some x
+          | `Right x     -> Some x
+          | `Both (x, y) -> Some (Saved_output.merge x y))
+    ; trailing_output = Saved_output.merge t.trailing_output trailing_output
+    ; upon_unreleasable_issue
+    }
+  ;;
 end
 
 module Test_correction = struct
@@ -55,12 +109,20 @@ let indentation_at file_contents (loc : File.Location.t) =
 ;;
 
 let evaluate_test ~file_contents ~(location : File.Location.t) (test : Test_outcome.t) =
+  let cr_for_multiple_outputs ~cr_body outputs =
+    let prefix =
+      Expect_test_config.Upon_unreleasable_issue.comment_prefix
+        test.upon_unreleasable_issue
+    in
+    let cr = Printf.sprintf "(* %sexpect_test: %s *)" prefix cr_body in
+    let sep = String.init (String.length cr) ~f:(fun _ -> '=') in
+    List.intersperse (cr::outputs) ~sep
+    |> String.concat ~sep:"\n"
+  in
   let corrections =
     Map.fold test.expectations ~init:[]
       ~f:(fun ~key:location ~data:(expect:Fmt.t Cst.t Expectation.t) corrections ->
-        match Map.find test.saved_output location with
-        | None -> (expect, Test_correction.Collector_never_triggered) :: corrections
-        | Some actual ->
+        let reconcile_with actual =
           let default_indent = indentation_at file_contents expect.body_location in
           match
             Reconcile.expectation_body
@@ -70,15 +132,30 @@ let evaluate_test ~file_contents ~(location : File.Location.t) (test : Test_outc
               ~pad_single_line:(Option.is_some expect.tag)
           with
           | Match -> corrections
-          | Correction c -> (expect, Test_correction.Correction c) :: corrections)
+          | Correction c -> (expect, Test_correction.Correction c) :: corrections
+        in
+        match Map.find test.saved_output location with
+        | None -> (expect, Test_correction.Collector_never_triggered) :: corrections
+        | Some (One actual) -> reconcile_with actual
+        | Some (Many_distinct outputs) ->
+          cr_for_multiple_outputs outputs
+            ~cr_body:"Collector ran multiple times with different outputs"
+          |> reconcile_with)
     |> List.rev
   in
 
   let trailing_output =
     let indent = location.start_pos - location.line_start + 2 in
+    let actual =
+      match test.trailing_output with
+      | One actual -> actual
+      | Many_distinct outputs ->
+        cr_for_multiple_outputs outputs
+          ~cr_body:"Test ran multiple times with different trailing outputs"
+    in
     Reconcile.expectation_body
       ~expect:(Pretty Cst.empty)
-      ~actual:test.trailing_output
+      ~actual
       ~default_indent:indent
       ~pad_single_line:true
   in

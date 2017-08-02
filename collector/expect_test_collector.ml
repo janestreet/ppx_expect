@@ -4,11 +4,12 @@ module List = ListLabels
 
 module Test_outcome = struct
   type t =
-    { file_digest     : File.Digest.t
-    ; location        : File.Location.t
-    ; expectations    : Expectation.Raw.t list
-    ; saved_output    : (File.Location.t * string) list
-    ; trailing_output : string
+    { file_digest             : File.Digest.t
+    ; location                : File.Location.t
+    ; expectations            : Expectation.Raw.t list
+    ; saved_output            : (File.Location.t * string) list
+    ; trailing_output         : string
+    ; upon_unreleasable_issue : Expect_test_config.Upon_unreleasable_issue.t
     }
 end
 
@@ -23,9 +24,6 @@ let protect ~finally ~f =
 module Current_file = struct
   let current = ref None
 
-  (* Tests in the current file *)
-  let tests : (File.Location.t, unit) Hashtbl.t = Hashtbl.create 64
-
   let set ~absolute_filename =
     match !current with
     | None -> current := Some absolute_filename
@@ -35,7 +33,7 @@ module Current_file = struct
 
   let unset () =
     match !current with
-    | Some _ -> current := None; Hashtbl.clear tests
+    | Some _ -> current := None
     | None ->
       failwith "Expect_test_collector.unset: not set"
   ;;
@@ -46,16 +44,6 @@ module Current_file = struct
     | None ->
       failwith "Expect_test_collector.get: not set"
   ;;
-
-  let add_test loc =
-    if Hashtbl.mem tests loc then
-      Printf.ksprintf failwith
-        !"Trying to run the same expect test too many times.\n\
-          Expect tests can only run once as they can have only one correction.\n\
-          The test is defined at %{File.Name}:%d"
-        loc.filename loc.line_number
-    else
-      Hashtbl.add tests loc ()
 end
 
 module Make(C : Expect_test_config.S) = struct
@@ -115,18 +103,17 @@ module Make(C : Expect_test_config.S) = struct
         if not (Check_backtraces.contains_backtraces s) then
           s
         else
-          let with_prefix_comment cr_prefix =
-            Printf.sprintf "\n\
-                            (* %sexpect_test_collector: This test expectation appears to \
-                            contain a backtrace.\n\
-                           \   This is strongly discouraged as backtraces are fragile.\n\
-                           \   Please change this test to not include a backtrace. *)\n\
-                            \n\
-                            %s" cr_prefix s
+          let cr_prefix =
+            Expect_test_config.Upon_unreleasable_issue.comment_prefix
+              C.upon_unreleasable_issue
           in
-          match C.upon_backtrace_found with
-          | `CR                            -> with_prefix_comment "CR "
-          | `Warning_for_collector_testing -> with_prefix_comment ""
+          Printf.sprintf "\n\
+                          (* %sexpect_test_collector: This test expectation appears to \
+                          contain a backtrace.\n\
+                         \   This is strongly discouraged as backtraces are fragile.\n\
+                         \   Please change this test to not include a backtrace. *)\n\
+                          \n\
+                          %s" cr_prefix s
 
       let get_outputs_and_cleanup t =
         let last_ofs = get_position () in
@@ -144,7 +131,7 @@ module Make(C : Expect_test_config.S) = struct
                   (next_ofs, ((loc, s) :: acc)))
             in
             let trailing_output = extract_output ic (last_ofs - ofs) in
-            (outputs, trailing_output)))
+            (List.rev outputs, trailing_output)))
       ;;
 
       let save_output running location =
@@ -183,6 +170,7 @@ module Make(C : Expect_test_config.S) = struct
               ; expectations
               ; saved_output
               ; trailing_output = trailing_output ^ append
+              ; upon_unreleasable_issue = C.upon_unreleasable_issue
               } :: !tests_run;
             return ()))
       in
@@ -223,7 +211,6 @@ module Make(C : Expect_test_config.S) = struct
       ~start_pos:(location.start_pos - location.line_start)
       ~end_pos:(location.end_pos   - location.line_start)
       (fun () ->
-         Current_file.add_test location;
          if defined_in <> registering_tests_for then
            Printf.ksprintf failwith
              "Trying to run an expect test from the wrong file.\n\
@@ -240,4 +227,6 @@ module Make(C : Expect_test_config.S) = struct
   ;;
 end
 
-let tests_run () = !tests_run
+let tests_run () =
+  (* We prepend tests when we encounter them, so reverse the list to reinstate order *)
+  List.rev !tests_run

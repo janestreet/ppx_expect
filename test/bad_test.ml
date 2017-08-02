@@ -1,7 +1,7 @@
 module A = struct
   module Expect_test_config = struct
     include Expect_test_config
-    let upon_backtrace_found = `Warning_for_collector_testing
+    let upon_unreleasable_issue = `Warning_for_collector_testing
   end
 
   let get_a_trace () =

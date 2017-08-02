@@ -1,14 +1,24 @@
 open Base
 open Expect_test_common.Std
 
+module Saved_output : sig
+  type t
+
+  val of_nonempty_list_exn : string list -> t
+end
+
 module Test_outcome : sig
   (** Outcome of a group of test. Either a single [let%expect_test], or a whole file for
       toplevel expect test. *)
   type t =
-    { expectations    : Fmt.t Cst.t Expectation.t Map.M(File.Location).t
-    ; saved_output    : string Map.M(File.Location).t
-    ; trailing_output : string
+    { expectations            : Fmt.t Cst.t Expectation.t Map.M(File.Location).t
+    ; saved_output            : Saved_output.t Map.M(File.Location).t
+    ; trailing_output         : Saved_output.t
+    ; upon_unreleasable_issue : Expect_test_config.Upon_unreleasable_issue.t
     }
+
+  (* Merge two [t]s with the same expectations *)
+  val merge_exn : t -> t -> t
 end
 
 module Test_correction : sig

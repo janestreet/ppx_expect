@@ -13,6 +13,7 @@
     re.emacs
     re.glob
     expect_test_common
+    expect_test_config
     ))
   (preprocess (pps (ppx_assert
                     ppx_compare
