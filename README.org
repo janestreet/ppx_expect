@@ -47,6 +47,36 @@ let%expect_test "addition" =
 
 Diffs will be shown in color if the =-use-color= flag is passed to the test runner executable.
 
+** Expects reached from multiple places
+
+A [%expect] can exist in a way that it is encountered multiple times, e.g. in a
+functor or a function:
+
+#+begin_src ocaml
+let%expect_test _ =
+  let f output =
+    print_string output;
+    [%expect {| hello world |}]
+  in
+  f "hello world";
+  f "hello world";
+;;
+#+end_src
+
+The =[%expect]= should capture the exact same output (i.e. up to string equality) at every
+invocation. In particular, this does **not** work:
+
+#+begin_src ocaml
+let%expect_test _ =
+  let f output =
+    print_string output;
+    [%expect {| \(foo\|bar\) (regexp) |}]
+  in
+  f "foo";
+  f "bar";
+;;
+#+end_src
+
 ** Matching, globs, and regexps
 
 Matching is done on a line-by-line basis. If any output line fails to
