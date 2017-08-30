@@ -120,28 +120,31 @@ let evaluate_test ~file_contents ~(location : File.Location.t) (test : Test_outc
     |> String.concat ~sep:"\n"
   in
   let corrections =
-    Map.fold test.expectations ~init:[]
-      ~f:(fun ~key:location ~data:(expect:Fmt.t Cst.t Expectation.t) corrections ->
-        let reconcile_with actual =
-          let default_indent = indentation_at file_contents expect.body_location in
-          match
-            Reconcile.expectation_body
-              ~expect:expect.body
-              ~actual
-              ~default_indent
-              ~pad_single_line:(Option.is_some expect.tag)
-          with
-          | Match -> corrections
-          | Correction c -> (expect, Test_correction.Correction c) :: corrections
-        in
-        match Map.find test.saved_output location with
-        | None -> (expect, Test_correction.Collector_never_triggered) :: corrections
-        | Some (One actual) -> reconcile_with actual
-        | Some (Many_distinct outputs) ->
+    Map.to_alist test.expectations
+    |> List.filter_map ~f:(fun (location, (expect:Fmt.t Cst.t Expectation.t)) ->
+      let correction_for actual =
+        let default_indent = indentation_at file_contents expect.body_location in
+        match
+          Reconcile.expectation_body
+            ~expect:expect.body
+            ~actual
+            ~default_indent
+            ~pad_single_line:(Option.is_some expect.tag)
+        with
+        | Match        -> None
+        | Correction c -> Some (expect, Test_correction.Correction c)
+      in
+      match Map.find test.saved_output location with
+      | None -> Some (expect, Test_correction.Collector_never_triggered)
+      | Some (One actual) -> correction_for actual
+      | Some (Many_distinct outputs) ->
+        let matches_expectation output = Option.is_none (correction_for output) in
+        if List.for_all outputs ~f:matches_expectation
+        then None
+        else
           cr_for_multiple_outputs outputs
             ~cr_body:"Collector ran multiple times with different outputs"
-          |> reconcile_with)
-    |> List.rev
+          |> correction_for)
   in
 
   let trailing_output =
