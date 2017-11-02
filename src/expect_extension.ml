@@ -2,7 +2,7 @@ open Ppx_core
 open Extension
 
 (* An expect declaration resembles [%%expect {tag|...|tag}]. We allow arbitrary tags so
-  that users can escape their strings properly if need be. *)
+   that users can escape their strings properly if need be. *)
 let expect =
   Expert.declare "expect"
     Context.expression

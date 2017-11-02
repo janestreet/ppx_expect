@@ -5,7 +5,7 @@ module Body = struct
   type 'a t =
     | Exact  of string
     | Pretty of 'a
-    [@@deriving sexp_of, compare]
+  [@@deriving sexp_of, compare]
 
   let map_pretty t ~f =
     match t with

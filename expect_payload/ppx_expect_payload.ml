@@ -29,8 +29,8 @@ let make ~is_exact payload ~(extension_id_loc:Location.t) =
   (* Check that we are not in this case:
      {[
        [%expect {|foo
-          bar
-       |}]
+                  bar
+                |}]
      ]}
   *)
   match body with

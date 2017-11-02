@@ -1,6 +1,7 @@
 
 (library (
   (name expect_test_examples)
+  (flags (:standard -safe-string))
   (libraries (core async))
   (preprocess (pps (ppx_jane ppx_driver.runner)))
 ))
@@ -9,5 +10,6 @@
 (rule ((targets (tabs.ml)) (deps (tabs.ml.in)) (action (bash "cp ${^} ${@}"))))
 
 (alias ((name DEFAULT) (deps (tests.ml.pp))))
+
 
 (jbuild_version 1)

@@ -11,7 +11,7 @@ let%expect_test _ =
   |}];
 
   (* take an integer tag to [text] help the different tests be distinguished somewhat in the
-    .expected.patdiff *)
+     .expected.patdiff *)
   let text n = Printf.printf "one\ntwo(%d)\nthree\n" n in
 
   text 1; [%expect {|

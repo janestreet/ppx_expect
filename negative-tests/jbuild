@@ -3,6 +3,7 @@
 
 (library
  ((name expect_test_negative_tests)
+  (flags (:standard -safe-string))
   (libraries (core
               async))
   (preprocess (pps (ppx_jane ppx_driver.runner)))
@@ -126,5 +127,6 @@
   (deps (test-output.expected test-output))
   (action (bash "diff -a $(^)"))
 ))
+
 
 (jbuild_version 1)

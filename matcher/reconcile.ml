@@ -111,9 +111,9 @@ let%test_module _ =
   end)
 
 let rec lines_match
-    ~(expect_lines : Fmt.t Cst.Line.t list)
-    ~(actual_lines : string list)
-    : bool =
+          ~(expect_lines : Fmt.t Cst.Line.t list)
+          ~(actual_lines : string list)
+  : bool =
   match expect_lines, actual_lines with
   | [], [] -> true
   | [], _  -> false
@@ -126,9 +126,9 @@ let rec lines_match
     | _ -> false
 ;;
 let rec corrected_rev acc
-    ~(expect_lines : Fmt.t Cst.Line.t list)
-    ~(actual_lines : string list)
-    : Fmt.t Cst.Line.t list =
+          ~(expect_lines : Fmt.t Cst.Line.t list)
+          ~(actual_lines : string list)
+  : Fmt.t Cst.Line.t list =
   match expect_lines, actual_lines with
   | [], [] -> acc
   | [], actual_lines ->

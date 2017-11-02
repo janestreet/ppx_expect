@@ -3,6 +3,7 @@
 (library
  ((name        ppx_expect_evaluator)
   (public_name ppx_expect.evaluator)
+ (flags (:standard -safe-string))
   (libraries (base
               stdio
               expect_test_common
@@ -12,6 +13,7 @@
   (preprocess (pps (ppx_custom_printf ppx_driver.runner)))
   (library_flags (-linkall))
   ))
+
 
 
 (jbuild_version 1)

@@ -25,7 +25,7 @@ let%expect_test _ =
 let%expect_test _ =
   print_string "hello";
   [%expect {|  WRONG
-  |}]
+           |}]
 
 let%expect_test _ =
   print_string "hello";
@@ -63,7 +63,7 @@ let%expect_test _ =
 let%expect_test _ =
   print_string "one4\ntwo";
   [%expect {|  WRONG
-  |}]
+           |}]
 
 let%expect_test _ =
   print_string "one5\ntwo";
