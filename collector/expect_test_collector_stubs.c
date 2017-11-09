@@ -46,17 +46,38 @@ struct channel {
 CAMLextern void caml_sys_error (value);
 /* End of duplicated code from caml/sys.h */
 
-CAMLprim value caml_out_channel_swap_fd (value vchan1, value vchan2) {
-  struct channel* chan1 = Channel(vchan1);
-  struct channel * chan2 = Channel(vchan2);
+static int expect_test_collector_saved_stdout;
+static int expect_test_collector_saved_stderr;
+
+CAMLprim value expect_test_collector_before_test (value voutput, value vstdout, value vstderr) {
+  struct channel* output = Channel(voutput);
+  struct channel* stdout = Channel(vstdout);
+  struct channel* stderr = Channel(vstderr);
   int fd, ret;
-  fd = dup(chan1->fd);
+  fd = dup(stdout->fd);
   if(fd == -1) caml_sys_error(NO_ARG);
-  ret = dup2(chan2->fd, chan1->fd);
+  expect_test_collector_saved_stdout = fd;
+  fd = dup(stderr->fd);
+  if(fd == -1) caml_sys_error(NO_ARG);
+  expect_test_collector_saved_stderr = fd;
+  ret = dup2(output->fd, stdout->fd);
   if(ret == -1) caml_sys_error(NO_ARG);
-  ret = dup2(fd, chan2->fd);
+  ret = dup2(output->fd, stderr->fd);
   if(ret == -1) caml_sys_error(NO_ARG);
-  ret = close(fd);
+  return Val_unit;
+}
+
+CAMLprim value expect_test_collector_after_test (value vstdout, value vstderr) {
+  struct channel* stdout = Channel(vstdout);
+  struct channel* stderr = Channel(vstderr);
+  int ret;
+  ret = dup2(expect_test_collector_saved_stdout, stdout->fd);
+  if(ret == -1) caml_sys_error(NO_ARG);
+  ret = dup2(expect_test_collector_saved_stderr, stderr->fd);
+  if(ret == -1) caml_sys_error(NO_ARG);
+  ret = close(expect_test_collector_saved_stdout);
+  if(ret == -1) caml_sys_error(NO_ARG);
+  ret = close(expect_test_collector_saved_stderr);
   if(ret == -1) caml_sys_error(NO_ARG);
   return Val_unit;
 }

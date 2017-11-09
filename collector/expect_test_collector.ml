@@ -53,8 +53,9 @@ module Make(C : Expect_test_config.S) = struct
   module C = struct
     include C
     let flush () =
-      (* Always flush [Pervasives.stdout] *)
+      (* Always flush [Pervasives.stdout] and [Pervasives.stderr]. *)
       Pervasives.flush Pervasives.stdout;
+      Pervasives.flush Pervasives.stderr;
       C.flush ()
   end
 
@@ -82,16 +83,21 @@ module Make(C : Expect_test_config.S) = struct
         ; filename      : File.Name.t
         }
 
-      external swap : out_channel -> out_channel -> unit = "caml_out_channel_swap_fd"
+      external before_test
+        : output:out_channel -> stdout:out_channel -> stderr:out_channel -> unit
+        = "expect_test_collector_before_test"
+      external after_test
+        : stdout:out_channel -> stderr:out_channel -> unit
+        = "expect_test_collector_after_test"
       external pos_out : out_channel -> int = "caml_out_channel_pos_fd"
 
       let get_position () = pos_out stdout
       ;;
 
       let create () =
-        let filename = Filename.temp_file "expect-test" "stdout" in
+        let filename = Filename.temp_file "expect-test" "output" in
         let chan = open_out filename in
-        swap chan stdout;
+        before_test ~output:chan ~stdout ~stderr;
         { chan
         ; filename = File.Name.of_string filename
         ; saved    = []
@@ -117,7 +123,7 @@ module Make(C : Expect_test_config.S) = struct
 
       let get_outputs_and_cleanup t =
         let last_ofs = get_position () in
-        swap t.chan stdout;
+        after_test ~stdout ~stderr;
         close_out t.chan;
 
         let fname = File.Name.relative_to ~dir:(File.initial_dir ()) t.filename in
@@ -174,7 +180,9 @@ module Make(C : Expect_test_config.S) = struct
               } :: !tests_run;
             return ()))
       in
-      protect ~finally ~f:(fun () -> C.run (fun () -> f t))
+      protect ~finally ~f:(fun () ->
+        C.run (fun () ->
+          f t))
     ;;
 
     let save_output t location =
