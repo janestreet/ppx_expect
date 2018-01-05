@@ -209,7 +209,6 @@ module Make(C : Expect_test_config.S) = struct
         ~inline_test_config
         f
     =
-    let registering_tests_for = Current_file.get () in
     Ppx_inline_test_lib.Runtime.test
       ~config:inline_test_config
       ~descr:(match description with None -> "" | Some s -> ": " ^ s)
@@ -219,6 +218,7 @@ module Make(C : Expect_test_config.S) = struct
       ~start_pos:(location.start_pos - location.line_start)
       ~end_pos:(location.end_pos   - location.line_start)
       (fun () ->
+         let registering_tests_for = Current_file.get () in
          if defined_in <> registering_tests_for then
            Printf.ksprintf failwith
              "Trying to run an expect test from the wrong file.\n\

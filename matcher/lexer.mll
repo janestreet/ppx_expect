@@ -1,7 +1,7 @@
 {
   open Expect_test_common.Std
-  open Sexplib.Std
-open Ppx_compare_lib.Builtin
+  open Ppx_compare_lib.Builtin
+  open Ppx_sexp_conv_lib.Conv
 
   let escaped s =
     let unescaped = Scanf.unescaped s in
