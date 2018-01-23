@@ -39,7 +39,7 @@ let%expect_test "addition" =
 : +++foo.ml.corrected
 : File "foo.ml", line 5, characters 0-1:
 :   open Core
-:
+: 
 :   let%expect_test "addition" =
 :     printf "%d" (1 + 2);
 : -|  [%expect {| 4 |}]
