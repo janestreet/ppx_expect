@@ -149,6 +149,24 @@ module Make(C : Expect_test_config.S) = struct
     type state = Running of Running.t | Ended
     type t = { mutable state : state }
 
+    let current_test : (File.Location.t * t) option ref = ref None
+
+    let () =
+      Caml.at_exit (fun () ->
+        match !current_test with
+        | None | Some (_, { state = Ended }) -> ()
+        | Some (loc, { state = Running running }) ->
+          let blocks, trailing = Running.get_outputs_and_cleanup running in
+          Printf.eprintf "File %S, line %d, characters %d-%d:\n\
+                          Error: program exited while expect test was running!\n\
+                          Output captured so far:\n%!"
+            (File.Name.to_string loc.filename)
+            loc.line_number
+            (loc.start_pos - loc.line_start)
+            (loc.end_pos   - loc.line_start);
+          List.iter blocks ~f:(fun (_, s) -> Printf.eprintf "%s%!" s);
+          Printf.eprintf "%s%!" trailing)
+
     let rec final_flush ?(count=0) k =
       let max_attempts = 10 in
       C.flush () >>= fun () ->
@@ -165,7 +183,9 @@ module Make(C : Expect_test_config.S) = struct
     let exec ~file_digest ~location ~expectations ~f =
       let running = Running.create () in
       let t = { state = Running running } in
+      current_test := Some (location, t);
       let finally () =
+        current_test := None;
         C.run (fun () ->
           final_flush (fun ~append ->
             t.state <- Ended;

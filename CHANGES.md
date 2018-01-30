@@ -1,3 +1,27 @@
+## v0.10
+
+- In `[%expect]` expressions, disallowed backtraces, which can vary across
+  compilation configurations (X_LIBRARY_INLINING, flambda, etc.)
+
+- Improved `ppx_expect` to support simultaneous runs of `inline_tests_runner` on
+  the same file.
+
+- Added expect-test support for reaching a single `[%expect]` multiple times,
+  where the test only fails if the output was distinct
+
+- For expect tests, relaxed the rule for `%expects` that are reached multiple
+  times. Instead of requiring all outputs to be identical, require only that
+  each output individually match the `%expect`.
+
+- In synchronous expect tests, `[%expect]` now captures stderr in addition to
+  stdout. Previously, there was code that did this for Async expect tests. Now,
+  stderr is captured in all expect tests.
+
+- Improved expect tests to get the current file when the test runs, rather than
+  when it is registered.
+
+## v0.9
+
 ## 113.43.00
 
 - Always flush Pervasives.stdout in the ppx_expect runtime.
