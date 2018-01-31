@@ -43,6 +43,7 @@ end
 val evaluate_test
   :  file_contents:string
   -> location:File.Location.t
+  -> allow_output_patterns:bool
   -> Test_outcome.t
   -> Test_correction.t Reconcile.Result.t
 

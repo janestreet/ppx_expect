@@ -1,3 +1,17 @@
+## git version
+
+- Change `ppx_expect` so that when `-diff-cmd -` is passed, they write the
+  .corrected file but don't diff it or exit with a non-zero exit code.
+
+  This is to make expect tests work with jbuilder. Jbuilder uses a separate
+  build tree, so the current behavior of `ppx_expect` doesn't work well with
+  jbuilder, especially the in-place behavior.
+
+  What is done instead in jbuilder is that after running the test runner, it
+  checks whether a .corrected file was created. If yes, jbuilder does the
+  diffing itself, and by default also replaces the source file by the
+  correction.'
+
 ## v0.10
 
 - In `[%expect]` expressions, disallowed backtraces, which can vary across

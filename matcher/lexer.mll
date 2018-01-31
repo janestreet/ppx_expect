@@ -27,6 +27,12 @@ rule pretty_line = parse
   | space*                                       eof { Literal "" }
   | _* as s { Printf.ksprintf invalid_arg "Lexer.pretty_line %S" s }
 
+and pretty_line_no_output_patterns = parse
+  | space* line_contents as s eof { Fmt.Literal s  }
+  | space*                    eof { Literal "" }
+  | _* as s { Printf.ksprintf invalid_arg
+                "Lexer.pretty_line_no_output_patterns %S" s }
+
 and leading_spaces = parse
   | (space* '\n')* as s { s }
 
@@ -97,18 +103,25 @@ and quoted_string_terminators acc = parse
     Cst.invariant ignore contents;
     contents
 
-  let parse_pretty_line s = pretty_line (Lexing.from_string s)
+  let parse_pretty_line ~allow_output_patterns s =
+    let lexbuf = Lexing.from_string s in
+    if allow_output_patterns then
+      pretty_line lexbuf
+    else
+      pretty_line_no_output_patterns lexbuf
 
-  let parse_pretty s =
+  let parse_pretty ~allow_output_patterns s =
     let res =
-      Cst.map (strip_surrounding_whitespaces s) ~f:(fun orig () ->
-        parse_pretty_line orig)
+      Cst.map (strip_surrounding_whitespaces s)
+        ~f:(fun s () ->
+          parse_pretty_line ~allow_output_patterns s)
     in
     if Ppx_inline_test_lib.Runtime.testing then
       [%test_result: string] (Cst.to_string res) ~expect:s;
     res
 
-  let parse_body = Expectation.Body.map_pretty ~f:parse_pretty
+  let parse_body ~allow_output_patterns body =
+    Expectation.Body.map_pretty body ~f:(parse_pretty ~allow_output_patterns)
 
   let extract_quoted_string_terminators s =
     quoted_string_terminators [] (Lexing.from_string s)

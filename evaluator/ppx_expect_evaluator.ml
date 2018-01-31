@@ -12,7 +12,7 @@ type group =
   ; tests         : Matcher.Test_outcome.t Map.M(File.Location).t
   }
 
-let convert_collector_test (test : Collector_test_outcome.t)
+let convert_collector_test  ~allow_output_patterns (test : Collector_test_outcome.t)
   : File.Location.t * Matcher.Test_outcome.t =
   let saved_output =
     Map.of_alist_multi (module File.Location) test.saved_output
@@ -20,7 +20,9 @@ let convert_collector_test (test : Collector_test_outcome.t)
   in
   let expectations =
     List.map test.expectations ~f:(fun (expect : Expectation.Raw.t) ->
-      (expect.extid_location, Expectation.map_pretty expect ~f:Lexer.parse_pretty))
+      (expect.extid_location,
+       Expectation.map_pretty expect
+         ~f:(Lexer.parse_pretty ~allow_output_patterns)))
     |> Map.of_alist_exn (module File.Location)
   in
   (test.location,
@@ -31,7 +33,7 @@ let convert_collector_test (test : Collector_test_outcome.t)
    })
 ;;
 
-let create_group (filename, tests) =
+let create_group ~allow_output_patterns (filename, tests) =
   let module D = File.Digest in
   let expected_digest =
     match
@@ -59,25 +61,28 @@ let create_group (filename, tests) =
         (expected digest: %{D}, current digest: %{D})"
       filename expected_digest current_digest;
   let tests =
-    List.map tests ~f:convert_collector_test
+    List.map tests ~f:(convert_collector_test ~allow_output_patterns)
     |> Map.of_alist_reduce (module File.Location) ~f:Matcher.Test_outcome.merge_exn
   in
   { filename; file_contents; tests }
 ;;
 
-let convert_collector_tests tests : group list =
+let convert_collector_tests ~allow_output_patterns tests : group list =
   List.map tests ~f:(fun (test : Collector_test_outcome.t) ->
     (test.location.filename, test))
   |> Map.of_alist_multi (module File.Name)
   |> Map.to_alist
-  |> List.map ~f:create_group
+  |> List.map ~f:(create_group ~allow_output_patterns)
 ;;
 
-let process_group ~use_color ~in_place ~diff_command { filename; file_contents; tests }
+let process_group ~use_color ~in_place ~diff_command ~allow_output_patterns
+      { filename; file_contents; tests }
   : Test_result.t =
   let bad_outcomes =
     Map.fold tests ~init:[] ~f:(fun ~key:location ~data:test acc ->
-      match Matcher.evaluate_test ~file_contents ~location test with
+      match
+        Matcher.evaluate_test ~file_contents ~location test ~allow_output_patterns
+      with
       | Match -> acc
       | Correction c -> c :: acc)
     |> List.rev
@@ -113,9 +118,10 @@ let process_group ~use_color ~in_place ~diff_command { filename; file_contents; 
     end
 ;;
 
-let evaluate_tests ~use_color ~in_place ~diff_command =
+let evaluate_tests ~use_color ~in_place ~diff_command ~allow_output_patterns =
   convert_collector_tests (Expect_test_collector.tests_run ())
-  |> List.map ~f:(process_group ~use_color ~in_place ~diff_command)
+    ~allow_output_patterns
+  |> List.map ~f:(process_group ~use_color ~in_place ~diff_command ~allow_output_patterns)
   |> Test_result.combine_all
 ;;
 
@@ -124,5 +130,6 @@ let () =
     evaluate_tests
       ~use_color:Ppx_inline_test_lib.Runtime.use_color
       ~in_place:Ppx_inline_test_lib.Runtime.in_place
-      ~diff_command:Ppx_inline_test_lib.Runtime.diff_command)
+      ~diff_command:Ppx_inline_test_lib.Runtime.diff_command
+      ~allow_output_patterns:Ppx_inline_test_lib.Runtime.allow_output_patterns)
 ;;

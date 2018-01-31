@@ -108,7 +108,8 @@ let indentation_at file_contents (loc : File.Location.t) =
   !n - loc.line_start
 ;;
 
-let evaluate_test ~file_contents ~(location : File.Location.t) (test : Test_outcome.t) =
+let evaluate_test ~file_contents ~(location : File.Location.t)
+      ~allow_output_patterns (test : Test_outcome.t) =
   let cr_for_multiple_outputs ~cr_body outputs =
     let prefix =
       Expect_test_config.Upon_unreleasable_issue.comment_prefix
@@ -130,6 +131,7 @@ let evaluate_test ~file_contents ~(location : File.Location.t) (test : Test_outc
             ~actual
             ~default_indent
             ~pad_single_line:(Option.is_some expect.tag)
+            ~allow_output_patterns
         with
         | Match        -> None
         | Correction c -> Some (expect, Test_correction.Correction c)
@@ -161,6 +163,7 @@ let evaluate_test ~file_contents ~(location : File.Location.t) (test : Test_outc
       ~actual
       ~default_indent:indent
       ~pad_single_line:true
+      ~allow_output_patterns
   in
 
   Test_correction.make ~location ~corrections ~trailing_output
