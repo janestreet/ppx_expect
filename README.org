@@ -35,15 +35,17 @@ let%expect_test "addition" =
 
 =inline_tests_runner= will also output the diff:
 
-: ---foo.ml
-: +++foo.ml.corrected
-: File "foo.ml", line 5, characters 0-1:
-:   open Core
-:
-:   let%expect_test "addition" =
-:     printf "%d" (1 + 2);
-: -|  [%expect {| 4 |}]
-: +|  [%expect {| 3 |}]
+#+begin_src
+---foo.ml
++++foo.ml.corrected
+File "foo.ml", line 5, characters 0-1:
+  open Core
+
+  let%expect_test "addition" =
+    printf "%d" (1 + 2);
+-|  [%expect {| 4 |}]
++|  [%expect {| 3 |}]
+#+end_src
 
 Diffs will be shown in color if the =-use-color= flag is passed to the test runner executable.
 
