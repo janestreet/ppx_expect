@@ -97,25 +97,39 @@ let process_group ~use_color ~in_place ~diff_command ~allow_output_patterns
     remove dot_corrected;
     Success
   | _ ->
-    (* We need a temporary file for corrections to allow [Print_diff] to work when
-       multiple inline_tests_runner are run simultaneously. Otherwise one copy may remove
-       the corrected file before the other can print the diff. *)
-    let tmp_corrected =
-      Caml.Filename.temp_file (Caml.Filename.basename filename) ".tmp_corrected"
-        ~temp_dir:(Caml.Filename.dirname filename)
+    let no_diff =
+      match diff_command with
+      | Some "-" -> true
+      | None | Some _ -> false
     in
-    Matcher.write_corrected bad_outcomes
-      ~file:(if in_place then filename else tmp_corrected)
-      ~file_contents ~mode:Inline_expect_test;
-    if in_place then begin
+    let write_corrected ~file =
+      Matcher.write_corrected bad_outcomes
+        ~file
+        ~file_contents
+        ~mode:Inline_expect_test
+    in
+    match in_place with
+    | true ->
+      write_corrected ~file:filename;
       remove dot_corrected;
-      remove tmp_corrected;
       Success
-    end else begin
-      Print_diff.print ~file1:filename ~file2:tmp_corrected ~use_color ?diff_command ();
-      Caml.Sys.rename tmp_corrected dot_corrected;
-      Failure
-    end
+    | false ->
+      match no_diff with
+      | true ->
+        write_corrected ~file:dot_corrected;
+        Success
+      | false ->
+        let tmp_corrected =
+          (* We need a temporary file for corrections to allow [Print_diff] to work when
+             multiple inline_tests_runner are run simultaneously. Otherwise one copy may
+             remove the corrected file before the other can print the diff. *)
+          Caml.Filename.temp_file (Caml.Filename.basename filename) ".tmp_corrected"
+            ~temp_dir:(Caml.Filename.dirname filename)
+        in
+        write_corrected ~file:tmp_corrected;
+        Print_diff.print ~file1:filename ~file2:tmp_corrected ~use_color ?diff_command ();
+        Caml.Sys.rename tmp_corrected dot_corrected;
+        Failure
 ;;
 
 let evaluate_tests ~use_color ~in_place ~diff_command ~allow_output_patterns =
