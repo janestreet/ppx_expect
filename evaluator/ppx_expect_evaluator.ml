@@ -33,6 +33,27 @@ let convert_collector_test  ~allow_output_patterns (test : Collector_test_outcom
    })
 ;;
 
+let dir_seps = '/' :: if Sys.win32 then ['\\'; ':'] else []
+
+let resolve_filename filename =
+  let relative_to =
+    match Ppx_inline_test_lib.Runtime.source_tree_root with
+    | None -> File.initial_dir ()
+    | Some root ->
+      if Caml.Filename.is_relative root then
+        let initial_dir = File.initial_dir () in
+        (* Simplification for the common case where [root] is of the form [(../)*..] *)
+        let l = String.split_on_chars root ~on:dir_seps in
+        if List.for_all l ~f:(String.equal Caml.Filename.parent_dir_name) then
+          List.fold_left l ~init:initial_dir ~f:(fun dir _ ->
+            Caml.Filename.dirname dir)
+        else
+          Caml.Filename.concat initial_dir root
+      else
+        root
+  in
+  File.Name.relative_to ~dir:relative_to filename
+
 let create_group ~allow_output_patterns (filename, tests) =
   let module D = File.Digest in
   let expected_digest =
@@ -49,7 +70,7 @@ let create_group ~allow_output_patterns (filename, tests) =
         filename digests
   in
   let file_contents =
-    In_channel.read_all (File.Name.relative_to ~dir:(File.initial_dir ()) filename)
+    In_channel.read_all (resolve_filename filename)
   in
   let current_digest =
     Caml.Digest.string file_contents |> Caml.Digest.to_hex |> D.of_string
@@ -87,7 +108,7 @@ let process_group ~use_color ~in_place ~diff_command ~allow_output_patterns
       | Correction c -> c :: acc)
     |> List.rev
   in
-  let filename = File.Name.relative_to ~dir:(File.initial_dir ()) filename in
+  let filename = resolve_filename filename in
   let dot_corrected = filename ^ ".corrected" in
   let remove file =
     if Caml.Sys.file_exists file then Caml.Sys.remove file

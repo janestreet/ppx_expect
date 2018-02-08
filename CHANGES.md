@@ -12,6 +12,10 @@
   diffing itself, and by default also replaces the source file by the
   correction.'
 
+- Regexp and glob matching in the output is now deprecated. This gets in the
+  way of the "promote" workflow.
+  People are instead encouraged to prefilter the output before displaying it.
+
 ## v0.10
 
 - In `[%expect]` expressions, disallowed backtraces, which can vary across
