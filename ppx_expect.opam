@@ -15,10 +15,10 @@ depends: [
   "ppx_compare"             {>= "v0.10" & < "v0.11"}
   "ppx_core"                {>= "v0.10" & < "v0.11"}
   "ppx_custom_printf"       {>= "v0.10" & < "v0.11"}
-  "ppx_driver"              {>= "v0.10" & < "v0.11"}
+  "ppx_driver"              {>= "v0.10.3" & < "v0.11"}
   "ppx_fields_conv"         {>= "v0.10" & < "v0.11"}
   "ppx_here"                {>= "v0.10" & < "v0.11"}
-  "ppx_inline_test"         {>= "v0.10" & < "v0.11"}
+  "ppx_inline_test"         {>= "v0.10.1" & < "v0.11"}
   "ppx_metaquot"            {>= "v0.10" & < "v0.11"}
   "ppx_sexp_conv"           {>= "v0.10" & < "v0.11"}
   "ppx_traverse"            {>= "v0.10" & < "v0.11"}
