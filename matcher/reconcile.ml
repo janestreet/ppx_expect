@@ -1,6 +1,6 @@
+open Sexplib.Std
 open Expect_test_common.Std
 open Ppx_compare_lib.Builtin
-open Ppx_sexp_conv_lib.Conv
 
 module Result = struct
   (* Either match with an explicit success, or (lazily) produce a correction. *)

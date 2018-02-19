@@ -1,5 +1,5 @@
+open Sexplib.Std
 open Ppx_compare_lib.Builtin
-open Ppx_sexp_conv_lib.Conv
 
 module Body = struct
   type 'a t =
