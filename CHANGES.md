@@ -1,4 +1,4 @@
-## git version
+## v0.10.1
 
 - Change `ppx_expect` so that when `-diff-cmd -` is passed, they write the
   .corrected file but don't diff it or exit with a non-zero exit code.
