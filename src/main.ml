@@ -92,10 +92,17 @@ let rewrite_test_body ~descr ~tags pstr_loc body =
       (fun [%p pvar ~loc instance_var] -> [%e body])
   ]
 
+(* Set to [true] when we see a [%expect_test] extension *)
+module Has_tests =
+  Ppx_driver.Create_file_property
+    (struct let name = "ppx_expect.has_tests" end)
+    (Bool)
+
 let expect_test =
   Extension.declare_inline "expect_test" Structure_item
     Ast_pattern.(Ppx_inline_test.opt_name_and_expr __)
     (fun ~loc ~path:_ ~name ~tags code ->
+       Has_tests.set true;
        Ppx_inline_test.validate_extension_point_exn
          ~name_of_ppx_rewriter:"ppx_expect" ~loc ~tags;
        rewrite_test_body ~descr:name ~tags loc code
