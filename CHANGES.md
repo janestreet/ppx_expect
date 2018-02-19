@@ -1,3 +1,45 @@
+## git version
+
+- Change `ppx_expect` so that when `-diff-cmd -` is passed, they write the
+  .corrected file but don't diff it or exit with a non-zero exit code.
+
+  This is to make expect tests work with jbuilder. Jbuilder uses a separate
+  build tree, so the current behavior of `ppx_expect` doesn't work well with
+  jbuilder, especially the in-place behavior.
+
+  What is done instead in jbuilder is that after running the test runner, it
+  checks whether a .corrected file was created. If yes, jbuilder does the
+  diffing itself, and by default also replaces the source file by the
+  correction.'
+
+- Regexp and glob matching in the output is now deprecated. This gets in the
+  way of the "promote" workflow.
+  People are instead encouraged to prefilter the output before displaying it.
+
+## v0.10
+
+- In `[%expect]` expressions, disallowed backtraces, which can vary across
+  compilation configurations (X_LIBRARY_INLINING, flambda, etc.)
+
+- Improved `ppx_expect` to support simultaneous runs of `inline_tests_runner` on
+  the same file.
+
+- Added expect-test support for reaching a single `[%expect]` multiple times,
+  where the test only fails if the output was distinct
+
+- For expect tests, relaxed the rule for `%expects` that are reached multiple
+  times. Instead of requiring all outputs to be identical, require only that
+  each output individually match the `%expect`.
+
+- In synchronous expect tests, `[%expect]` now captures stderr in addition to
+  stdout. Previously, there was code that did this for Async expect tests. Now,
+  stderr is captured in all expect tests.
+
+- Improved expect tests to get the current file when the test runs, rather than
+  when it is registered.
+
+## v0.9
+
 ## 113.43.00
 
 - Always flush Pervasives.stdout in the ppx_expect runtime.

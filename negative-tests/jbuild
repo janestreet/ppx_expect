@@ -29,7 +29,8 @@
     function_with_distinct_outputs.ml.corrected
     test-output
   ))
-  (action (bash "rm -f *.ml.corrected 2>/dev/null; ! ${<} -diff-cmd true 2> test-output"))
+  (action (bash "rm -f *.ml.corrected 2>/dev/null; ! ${<} -diff-cmd true \
+             -allow-output-patterns 2> test-output"))
 ))
 
 (alias (
