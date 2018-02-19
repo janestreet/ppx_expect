@@ -16,6 +16,8 @@
   way of the "promote" workflow.
   People are instead encouraged to prefilter the output before displaying it.
 
+- Tell the build system via output metadata when a file contains tests
+
 ## v0.10
 
 - In `[%expect]` expressions, disallowed backtraces, which can vary across
