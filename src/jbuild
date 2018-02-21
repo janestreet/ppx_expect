@@ -14,7 +14,8 @@
               ppx_here.expander
               ppx_metaquot.lifters))
   (preprocess (pps (ppx_metaquot ppx_traverse ppx_driver.runner)))
+  (inline_tests.backend
+   ((runner_libraries (ppx_expect.evaluator))))
 ))
-
 
 (jbuild_version 1)
