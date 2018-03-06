@@ -78,7 +78,7 @@ type 'a single_line =
     ]}
 
     - all trailing spaces from the newline character (inclusive) on the last non-blank
-    line to the end if of the form:
+      line to the end if of the form:
 
     {[
       [%expect {|
