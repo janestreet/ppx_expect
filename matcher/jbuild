@@ -21,7 +21,7 @@
                     ppx_custom_printf
                     ppx_inline_test
                     ppx_sexp_conv
-                    ppx_variants_conv ppx_driver.runner)))))
+                    ppx_variants_conv ppxlib.runner)))))
 
 (ocamllex (lexer))
 

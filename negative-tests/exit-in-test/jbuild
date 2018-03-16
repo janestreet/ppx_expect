@@ -1,6 +1,6 @@
 (library
  ((name expect_test_test_exit_in_test)
-(preprocess (pps (ppx_jane ppx_driver.runner)))
+(preprocess (pps (ppx_jane ppxlib.runner)))
 ))
 
 

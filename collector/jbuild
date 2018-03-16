@@ -13,7 +13,7 @@
   (preprocess (pps (ppx_inline_test
                     ppx_fields_conv
                     ppx_custom_printf
-                     ppx_driver.runner)))))
+                     ppxlib.runner)))))
 
 (ocamllex (check_backtraces))
 

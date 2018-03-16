@@ -9,8 +9,8 @@
               expect_test_common
               expect_test_collector
               expect_test_matcher
-              ppx_driver.print_diff))
-  (preprocess (pps (ppx_custom_printf ppx_driver.runner)))
+              ppxlib.print_diff))
+  (preprocess (pps (ppx_custom_printf ppxlib.runner)))
   (library_flags (-linkall))
   ))
 

@@ -16,6 +16,12 @@
   way of the "promote" workflow.
   People are instead encouraged to prefilter the output before displaying it.
 
+- Tell the build system via output metadata whether a file contains
+  tests or not
+
+- Depend on ppxlib instead of (now deprecated) ppx\_core, ppx\_driver,
+  ppx\_metaquot, ppx\_traverse and ppx\_type\_conv.
+
 ## v0.10
 
 - In `[%expect]` expressions, disallowed backtraces, which can vary across

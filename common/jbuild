@@ -8,7 +8,7 @@
   (libraries (base))
   (preprocess (pps (ppx_compare
                     ppx_sexp_conv
-                     ppx_driver.runner)))))
+                     ppxlib.runner)))))
 
 
 (jbuild_version 1)

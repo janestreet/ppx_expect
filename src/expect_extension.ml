@@ -1,4 +1,4 @@
-open Ppx_core
+open Ppxlib
 open Extension
 
 (* An expect declaration resembles [%%expect {tag|...|tag}]. We allow arbitrary tags so

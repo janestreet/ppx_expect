@@ -3,7 +3,7 @@
   (name expect_test_examples)
   (flags (:standard -safe-string))
   (libraries (core async))
-  (preprocess (pps (ppx_jane ppx_driver.runner)))
+  (preprocess (pps (ppx_jane ppxlib.runner)))
 ))
 
 ;; hydra doesn't like .ml files containing tab chars

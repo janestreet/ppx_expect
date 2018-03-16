@@ -246,5 +246,5 @@ let output_corrected oc ~file_contents ~mode test_corrections =
 let write_corrected ~file ~file_contents ~mode test_corrections =
   Out_channel.with_file file ~f:(fun oc ->
     output_corrected oc ~file_contents ~mode
-      (List.sort test_corrections ~cmp:Test_correction.compare_locations))
+      (List.sort test_corrections ~compare:Test_correction.compare_locations))
 ;;

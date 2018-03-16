@@ -5,7 +5,7 @@
   (libraries (expect_test_common
               
               ppx_core))
-  (preprocess (pps (ppx_metaquot ppx_driver.runner)))
+  (preprocess (pps (ppxlib.metaquot ppxlib.runner)))
 ))
 
 
