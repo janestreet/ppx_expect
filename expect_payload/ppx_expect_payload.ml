@@ -1,5 +1,5 @@
 open Expect_test_common.Std
-open Ppx_core
+open Ppxlib
 
 let transl_loc (loc : Location.t) : File.Location.t =
   { filename    = File.Name.of_string loc.loc_start.pos_fname

@@ -148,7 +148,7 @@ let process_group ~use_color ~in_place ~diff_command ~allow_output_patterns
             ~temp_dir:(Caml.Filename.dirname filename)
         in
         write_corrected ~file:tmp_corrected;
-        Print_diff.print ~file1:filename ~file2:tmp_corrected ~use_color ?diff_command ();
+        Ppxlib_print_diff.print ~file1:filename ~file2:tmp_corrected ~use_color ?diff_command ();
         Caml.Sys.rename tmp_corrected dot_corrected;
         Failure
 ;;

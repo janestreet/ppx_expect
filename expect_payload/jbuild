@@ -3,8 +3,7 @@
   (public_name ppx_expect.payload)
   (flags (:standard -safe-string))
   (libraries (expect_test_common
-              
-              ppx_core))
+              ppxlib))
   (preprocess (pps (ppxlib.metaquot ppxlib.runner)))
 ))
 

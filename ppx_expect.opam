@@ -12,7 +12,6 @@ depends: [
   "base"
   "ppx_assert"
   "ppx_compare"
-  "ppx_core"
   "ppx_custom_printf"
   "ppx_fields_conv"
   "ppx_here"
