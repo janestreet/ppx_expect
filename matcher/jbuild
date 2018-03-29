@@ -6,7 +6,6 @@
   ;; We don't use core in libraries we don't use ppx_jane in
   ;; preprocess. This would be fine internally but it would create a
   ;; recursive dependency for the public release.
-  (flags (:standard -safe-string))
   (libraries (
     base
     stdio

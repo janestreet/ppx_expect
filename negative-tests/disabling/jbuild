@@ -1,6 +1,5 @@
 (executables (
   (names (main))
-  (flags (:standard -safe-string))
   (libraries (expect_test_disabling_test_lib))
   (preprocess (pps (ppx_jane ppxlib.runner)))
 ))

@@ -17,7 +17,10 @@ let lift_location ~loc of_loc =
 ;;
 
 let lift_expectation ~loc expect =
-  (lifter ~loc)#raw expect
+  let exp = (lifter ~loc)#raw expect in
+  (* the constraint is added in order to avoid warnings if the code
+     is compiled with -principal. *)
+  [%expr ([%e exp] : string Expect_test_common.Std.Expectation.t)]
 ;;
 
 let estring_option ~loc x =

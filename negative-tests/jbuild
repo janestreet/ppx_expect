@@ -3,7 +3,6 @@
 
 (library
  ((name expect_test_negative_tests)
-  (flags (:standard -safe-string))
   (libraries (core
               async))
   (preprocess (pps (ppx_jane ppxlib.runner)))

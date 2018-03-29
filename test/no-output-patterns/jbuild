@@ -1,6 +1,5 @@
 (library
  ((name ppx_expect_test_no_output_patterns)
-  (flags (:standard -safe-string))
   (preprocess (pps (ppx_expect ppxlib.runner)))))
 
 
