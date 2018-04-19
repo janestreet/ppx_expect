@@ -19,5 +19,4 @@
     (extends (ppx_inline_test))))
   ))
 
-
 (jbuild_version 1)
