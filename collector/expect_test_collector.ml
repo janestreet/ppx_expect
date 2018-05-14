@@ -53,7 +53,8 @@ module Make(C : Expect_test_config.S) = struct
   module C = struct
     include C
     let flush () =
-      (* Always flush [Pervasives.stdout] and [Pervasives.stderr]. *)
+      Format.pp_print_flush Format.std_formatter ();
+      Format.pp_print_flush Format.err_formatter ();
       Pervasives.flush Pervasives.stdout;
       Pervasives.flush Pervasives.stderr;
       C.flush ()
