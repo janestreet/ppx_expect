@@ -25,10 +25,36 @@ let convert_collector_test  ~allow_output_patterns (test : Collector_test_outcom
          ~f:(Lexer.parse_pretty ~allow_output_patterns)))
     |> Map.of_alist_exn (module File.Location)
   in
+  let uncaught_exn =
+    match test.uncaught_exn with
+    | None -> None
+    | Some (exn, bt) ->
+      let exn =
+        try
+          Exn.to_string exn
+        with exn ->
+          let name =
+            Caml.Obj.extension_constructor exn
+            |> Caml.Obj.extension_name
+          in
+          Printf.sprintf
+            "(\"%s(Cannot print more details, Exn.to_string failed)\")"
+            name
+      in
+      Some (Matcher.Saved_output.of_nonempty_list_exn [
+        exn ^ "\n" ^ Caml.Printexc.raw_backtrace_to_string bt])
+  in
+  let uncaught_exn_expectation =
+    Option.map test.uncaught_exn_expectation ~f:(fun expect ->
+      Expectation.map_pretty expect
+        ~f:(Lexer.parse_pretty ~allow_output_patterns))
+  in
   (test.location,
    { expectations
    ; saved_output
    ; trailing_output = Matcher.Saved_output.of_nonempty_list_exn [test.trailing_output]
+   ; uncaught_exn
+   ; uncaught_exn_expectation
    ; upon_unreleasable_issue = test.upon_unreleasable_issue
    })
 ;;

@@ -5,4 +5,3 @@ let%expect_test _ =
   Printexc.record_backtrace false;
   ignore (failwith "hi ho");
   [%expect {| it's off to work we go |}]
-;;

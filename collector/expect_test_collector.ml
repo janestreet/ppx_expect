@@ -4,12 +4,14 @@ module List = ListLabels
 
 module Test_outcome = struct
   type t =
-    { file_digest             : File.Digest.t
-    ; location                : File.Location.t
-    ; expectations            : Expectation.Raw.t list
-    ; saved_output            : (File.Location.t * string) list
-    ; trailing_output         : string
-    ; upon_unreleasable_issue : Expect_test_config.Upon_unreleasable_issue.t
+    { file_digest              : File.Digest.t
+    ; location                 : File.Location.t
+    ; expectations             : Expectation.Raw.t list
+    ; uncaught_exn_expectation : Expectation.Raw.t option
+    ; saved_output             : (File.Location.t * string) list
+    ; trailing_output          : string
+    ; upon_unreleasable_issue  : Expect_test_config.Upon_unreleasable_issue.t
+    ; uncaught_exn             : (exn * Printexc.raw_backtrace) option
     }
 end
 
@@ -65,12 +67,13 @@ module Make(C : Expect_test_config.S) = struct
 
     val save_output : t -> File.Location.t -> unit C.IO.t
 
-    val exec :
-      file_digest    : File.Digest.t ->
-      location       : File.Location.t ->
-      expectations   : Expectation.Raw.t list ->
-      f              : (t -> unit C.IO.t) ->
-      unit
+    val exec
+      :  file_digest              : File.Digest.t
+      -> location                 : File.Location.t
+      -> expectations             : Expectation.Raw.t list
+      -> uncaught_exn_expectation : Expectation.Raw.t option
+      -> f                        : (t -> unit C.IO.t)
+      -> unit
   end = struct
     module Running : sig
       type t
@@ -181,11 +184,11 @@ module Make(C : Expect_test_config.S) = struct
       else
         final_flush ~count:(count + 1) k
 
-    let exec ~file_digest ~location ~expectations ~f =
+    let exec ~file_digest ~location ~expectations ~uncaught_exn_expectation ~f =
       let running = Running.create () in
       let t = { state = Running running } in
       current_test := Some (location, t);
-      let finally () =
+      let finally uncaught_exn =
         current_test := None;
         C.run (fun () ->
           final_flush (fun ~append ->
@@ -195,15 +198,19 @@ module Make(C : Expect_test_config.S) = struct
               { file_digest
               ; location
               ; expectations
+              ; uncaught_exn_expectation
               ; saved_output
               ; trailing_output = trailing_output ^ append
               ; upon_unreleasable_issue = C.upon_unreleasable_issue
+              ; uncaught_exn
               } :: !tests_run;
             return ()))
       in
-      protect ~finally ~f:(fun () ->
-        C.run (fun () ->
-          f t))
+      match C.run (fun () -> f t) with
+      | () -> finally None
+      | exception exn ->
+        let bt = Printexc.get_raw_backtrace () in
+        finally (Some (exn, bt))
     ;;
 
     let save_output t location =
@@ -227,6 +234,7 @@ module Make(C : Expect_test_config.S) = struct
         ~description
         ~tags
         ~expectations
+        ~uncaught_exn_expectation
         ~inline_test_config
         f
     =
@@ -249,7 +257,8 @@ module Make(C : Expect_test_config.S) = struct
          else begin
            (* To avoid capturing not-yet flushed data of the stdout buffer *)
            C.run C.flush;
-           Instance.exec ~file_digest ~location ~expectations ~f;
+           Instance.exec ~file_digest ~location ~expectations
+             ~uncaught_exn_expectation ~f;
            true
          end
       );

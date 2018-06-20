@@ -2,12 +2,14 @@ open Expect_test_common.Std
 
 module Test_outcome : sig
   type t =
-    { file_digest             : File.Digest.t
-    ; location                : File.Location.t
-    ; expectations            : Expectation.Raw.t list
-    ; saved_output            : (File.Location.t * string) list
-    ; trailing_output         : string
-    ; upon_unreleasable_issue : Expect_test_config.Upon_unreleasable_issue.t
+    { file_digest              : File.Digest.t
+    ; location                 : File.Location.t
+    ; expectations             : Expectation.Raw.t list
+    ; uncaught_exn_expectation : Expectation.Raw.t option
+    ; saved_output             : (File.Location.t * string) list
+    ; trailing_output          : string
+    ; upon_unreleasable_issue  : Expect_test_config.Upon_unreleasable_issue.t
+    ; uncaught_exn             : (exn * Printexc.raw_backtrace) option
     }
 end
 
@@ -27,13 +29,14 @@ module Make(Config : Expect_test_config.S) : sig
 
   (** Run an expect-test *)
   val run
-    :  file_digest        : File.Digest.t
-    -> location           : File.Location.t
-    -> absolute_filename  : string
-    -> description        : string option
-    -> tags               : string list
-    -> expectations       : Expectation.Raw.t list
-    -> inline_test_config : Ppx_inline_test_lib.Runtime.config
+    :  file_digest              : File.Digest.t
+    -> location                 : File.Location.t
+    -> absolute_filename        : string
+    -> description              : string option
+    -> tags                     : string list
+    -> expectations             : Expectation.Raw.t list
+    -> uncaught_exn_expectation : Expectation.Raw.t option
+    -> inline_test_config       : Ppx_inline_test_lib.Runtime.config
     -> (Instance.t -> unit Config.IO.t)
     -> unit
 end

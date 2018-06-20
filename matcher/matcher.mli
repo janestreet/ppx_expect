@@ -11,10 +11,12 @@ module Test_outcome : sig
   (** Outcome of a group of test. Either a single [let%expect_test], or a whole file for
       toplevel expect test. *)
   type t =
-    { expectations            : Fmt.t Cst.t Expectation.t Map.M(File.Location).t
-    ; saved_output            : Saved_output.t Map.M(File.Location).t
-    ; trailing_output         : Saved_output.t
-    ; upon_unreleasable_issue : Expect_test_config.Upon_unreleasable_issue.t
+    { expectations             : Fmt.t Cst.t Expectation.t Map.M(File.Location).t
+    ; uncaught_exn_expectation : Fmt.t Cst.t Expectation.t option
+    ; saved_output             : Saved_output.t Map.M(File.Location).t
+    ; trailing_output          : Saved_output.t
+    ; uncaught_exn             : Saved_output.t option
+    ; upon_unreleasable_issue  : Expect_test_config.Upon_unreleasable_issue.t
     }
 
   (* Merge two [t]s with the same expectations *)
@@ -27,14 +29,25 @@ module Test_correction : sig
 
   val map_corrections : t -> f:(Fmt.t Cst.t -> Fmt.t Cst.t) -> t
 
-  (** Single node correction *)
-  type node_correction =
-    | Collector_never_triggered
-    | Correction of Fmt.t Cst.t Expectation.Body.t
+  module Node_correction : sig
+    (** Single node correction *)
+    type t =
+      | Collector_never_triggered
+      | Correction of Fmt.t Cst.t Expectation.Body.t
+  end
+
+  module Uncaught_exn : sig
+    type t =
+      | Match
+      | Without_expectation of Fmt.t Cst.t Expectation.Body.t
+      | Correction          of Fmt.t Cst.t Expectation.t * Fmt.t Cst.t Expectation.Body.t
+      | Unused_expectation  of Fmt.t Cst.t Expectation.t
+  end
 
   val make
     :  location        : File.Location.t
-    -> corrections     : (Fmt.t Cst.t Expectation.t * node_correction) list
+    -> corrections     : (Fmt.t Cst.t Expectation.t * Node_correction.t) list
+    -> uncaught_exn    : Uncaught_exn.t
     -> trailing_output : Fmt.t Cst.t Expectation.Body.t Reconcile.Result.t
     -> t Reconcile.Result.t
 end

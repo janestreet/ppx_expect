@@ -23,11 +23,15 @@ let lift_expectation ~loc expect =
   [%expr ([%e exp] : string Expect_test_common.Std.Expectation.t)]
 ;;
 
-let estring_option ~loc x =
+let eoption ~loc x =
   match x with
   | None -> pexp_construct ~loc (Located.mk ~loc (lident "None")) None
-  | Some s ->
-    pexp_construct ~loc (Located.mk ~loc (lident "Some")) (Some (estring ~loc s))
+  | Some e ->
+    pexp_construct ~loc (Located.mk ~loc (lident "Some")) (Some e)
+;;
+
+let estring_option ~loc x =
+  eoption ~loc (Option.map x ~f:(estring ~loc))
 ;;
 
 (* Grab a list of all the output expressions *)
@@ -67,12 +71,18 @@ let file_digest =
     Hashtbl.find_or_add cache fname ~default:(fun () ->
       Caml.Digest.file fname |> Caml.Digest.to_hex)
 
-let rewrite_test_body ~descr ~tags pstr_loc body =
+let rewrite_test_body ~descr ~tags ~uncaught_exn pstr_loc body =
   let loc = pstr_loc in
   let expectations =
     List.map (collect_expectations#expression body [])
       ~f:(fun (loc, expect_extension) -> lift_expectation ~loc expect_extension)
     |> elist ~loc
+  in
+
+  let uncaught_exn =
+    Option.map uncaught_exn ~f:(fun (loc, expectation) ->
+      lift_expectation ~loc expectation)
+    |> eoption ~loc
   in
 
   let instance_var = gen_symbol ~prefix:"_ppx_expect_instance" () in
@@ -92,9 +102,44 @@ let rewrite_test_body ~descr ~tags pstr_loc body =
       ~description:        [%e estring_option ~loc descr]
       ~tags:               [%e elist ~loc (List.map tags ~f:(estring ~loc))]
       ~expectations:       [%e expectations]
+      ~uncaught_exn_expectation: [%e uncaught_exn]
       ~inline_test_config: (module Inline_test_config)
       (fun [%p pvar ~loc instance_var] -> [%e body])
   ]
+
+module P = struct
+  open Ast_pattern
+
+  let uncaught_exn =
+    Attribute.declare_with_name_loc
+      "@expect.uncaught_exn"
+      Attribute.Context.value_binding
+      (map1' (Ppx_expect_payload.pattern ()) ~f:(fun loc x -> (loc, x)))
+      (fun ~name_loc (loc, x) ->
+         (loc,
+          Ppx_expect_payload.make x ~is_exact:false ~extension_id_loc:name_loc))
+
+  let opt_name () =
+    map (pstring __) ~f:(fun f x -> f (Some x)) |||
+    map ppat_any     ~f:(fun f   -> f None)
+
+  let pattern () =
+    pstr ((
+      pstr_value nonrecursive (
+        (Attribute.pattern uncaught_exn
+           (value_binding
+              ~pat:(
+                map
+                  (Attribute.pattern Ppx_inline_test.tags (opt_name ()))
+                  ~f:(fun f attributes name_opt ->
+                    f ~name:name_opt
+                      ~tags:(match attributes with
+                        | None -> []
+                        | Some x -> x)))
+              ~expr:__)
+         ^:: nil)
+      ) ^:: nil))
+end
 
 (* Set to [true] when we see a [%expect_test] extension *)
 module Has_tests =
@@ -104,12 +149,12 @@ module Has_tests =
 
 let expect_test =
   Extension.declare_inline "expect_test" Structure_item
-    Ast_pattern.(Ppx_inline_test.opt_name_and_expr __)
-    (fun ~loc ~path:_ ~name ~tags code ->
+    (P.pattern ())
+    (fun ~loc ~path:_ uncaught_exn ~name ~tags code ->
        Has_tests.set true;
        Ppx_inline_test.validate_extension_point_exn
          ~name_of_ppx_rewriter:"ppx_expect" ~loc ~tags;
-       rewrite_test_body ~descr:name ~tags loc code
+       rewrite_test_body ~descr:name ~tags ~uncaught_exn loc code
        |> Ppx_inline_test.maybe_drop loc)
 ;;
 

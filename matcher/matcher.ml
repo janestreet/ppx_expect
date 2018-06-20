@@ -41,25 +41,43 @@ module Test_outcome = struct
   end
 
   type t =
-    { expectations            : Expectations.t
-    ; saved_output            : Saved_output.t Map.M(File.Location).t
-    ; trailing_output         : Saved_output.t
-    ; upon_unreleasable_issue : Expect_test_config.Upon_unreleasable_issue.t
+    { expectations             : Expectations.t
+    ; uncaught_exn_expectation : Fmt.t Cst.t Expectation.t option
+    ; saved_output             : Saved_output.t Map.M(File.Location).t
+    ; trailing_output          : Saved_output.t
+    ; uncaught_exn             : Saved_output.t option
+    ; upon_unreleasable_issue  : Expect_test_config.Upon_unreleasable_issue.t
     }
 
-  let merge_exn t { expectations; saved_output; trailing_output; upon_unreleasable_issue } =
+  let merge_exn t
+        { expectations
+        ; uncaught_exn_expectation
+        ; saved_output
+        ; trailing_output
+        ; uncaught_exn
+        ; upon_unreleasable_issue
+        } =
     if not (Expectations.equal t.expectations expectations)
     then failwith "merging tests of different expectations";
     if not (Expect_test_config.Upon_unreleasable_issue.equal
               t.upon_unreleasable_issue
               upon_unreleasable_issue)
     then failwith "merging tests of different [Upon_unreleasable_issue]";
+    if not ([%compare.equal: Fmt.t Cst.t Expectation.t option] t.uncaught_exn_expectation
+              uncaught_exn_expectation)
+    then failwith "merging tests of different uncaught exception expectations";
     { expectations
+    ; uncaught_exn_expectation
     ; saved_output =
         Map.merge t.saved_output saved_output ~f:(fun ~key:_ -> function
           | `Left x      -> Some x
           | `Right x     -> Some x
           | `Both (x, y) -> Some (Saved_output.merge x y))
+    ; uncaught_exn =
+        (match t.uncaught_exn, uncaught_exn with
+         | None, None -> None
+         | Some x, None | None, Some x -> Some x
+         | Some x, Some y -> Some (Saved_output.merge x y))
     ; trailing_output = Saved_output.merge t.trailing_output trailing_output
     ; upon_unreleasable_issue
     }
@@ -67,14 +85,25 @@ module Test_outcome = struct
 end
 
 module Test_correction = struct
-  type node_correction =
-    | Collector_never_triggered
-    | Correction of Fmt.t Cst.t Expectation.Body.t
+  module Node_correction = struct
+    type t =
+      | Collector_never_triggered
+      | Correction of Fmt.t Cst.t Expectation.Body.t
+  end
+
+  module Uncaught_exn = struct
+    type t =
+      | Match
+      | Without_expectation of Fmt.t Cst.t Expectation.Body.t
+      | Correction          of Fmt.t Cst.t Expectation.t * Fmt.t Cst.t Expectation.Body.t
+      | Unused_expectation  of Fmt.t Cst.t Expectation.t
+  end
 
   type t =
     { location        : File.Location.t
     ; (* In the order of the file *)
-      corrections     : (Fmt.t Cst.t Expectation.t * node_correction) list
+      corrections     : (Fmt.t Cst.t Expectation.t * Node_correction.t) list
+    ; uncaught_exn    : Uncaught_exn.t
     ; trailing_output : Fmt.t Cst.t Expectation.Body.t Reconcile.Result.t
     }
 
@@ -84,6 +113,13 @@ module Test_correction = struct
         (e, match c with
          | Collector_never_triggered -> c
          | Correction body -> Correction (Expectation.Body.map_pretty body ~f)))
+    ; uncaught_exn =
+        (match t.uncaught_exn with
+         | Match | Unused_expectation _ as x -> x
+         | Without_expectation body ->
+           Without_expectation (Expectation.Body.map_pretty body ~f)
+         | Correction (e, body) ->
+           Correction (e, Expectation.Body.map_pretty body ~f))
     ; trailing_output =
         Reconcile.Result.map t.trailing_output ~f:(Expectation.Body.map_pretty ~f)
     }
@@ -91,14 +127,17 @@ module Test_correction = struct
 
   let compare_locations a b = compare a.location.line_number b.location.line_number
 
-  let make ~location ~corrections ~trailing_output : t Reconcile.Result.t =
+  let make ~location ~corrections ~uncaught_exn ~trailing_output : t Reconcile.Result.t =
     if List.is_empty corrections &&
-       match trailing_output with
-       | Reconcile.Result.Match -> true
-       | _ -> false then
+       (match trailing_output with
+        | Reconcile.Result.Match -> true
+        | _ -> false) &&
+       (match uncaught_exn with
+        | Uncaught_exn.Match -> true
+        | _ -> false) then
       Match
     else
-      Correction { location; corrections; trailing_output }
+      Correction { location; corrections; uncaught_exn; trailing_output }
   ;;
 end
 
@@ -107,6 +146,8 @@ let indentation_at file_contents (loc : File.Location.t) =
   while Char.equal file_contents.[!n] ' ' do Int.incr n done;
   !n - loc.line_start
 ;;
+
+let did_not_reach_this_program_point = "DID NOT REACH THIS PROGRAM POINT"
 
 let evaluate_test ~file_contents ~(location : File.Location.t)
       ~allow_output_patterns (test : Test_outcome.t) =
@@ -134,10 +175,29 @@ let evaluate_test ~file_contents ~(location : File.Location.t)
             ~allow_output_patterns
         with
         | Match        -> None
-        | Correction c -> Some (expect, Test_correction.Correction c)
+        | Correction c -> Some (expect, Test_correction.Node_correction.Correction c)
       in
       match Map.find test.saved_output location with
-      | None -> Some (expect, Test_correction.Collector_never_triggered)
+      | None -> begin
+          match
+            Reconcile.expectation_body
+              ~expect:(Pretty (Single_line
+                                 { leading_blanks  = ""
+                                 ; trailing_spaces = ""
+                                 ; orig = did_not_reach_this_program_point
+                                 ; data = Literal did_not_reach_this_program_point
+                                 }))
+              ~actual:(match expect.body with
+                | Pretty x -> Cst.to_string x
+                | Exact  x -> x)
+              ~default_indent:0
+              ~pad_single_line:false
+              ~allow_output_patterns:false
+          with
+          | Match -> None
+          | Correction _ ->
+            Some (expect, Test_correction.Node_correction.Collector_never_triggered)
+        end
       | Some (One actual) -> correction_for actual
       | Some (Many_distinct outputs) ->
         let matches_expectation output = Option.is_none (correction_for output) in
@@ -166,7 +226,43 @@ let evaluate_test ~file_contents ~(location : File.Location.t)
       ~allow_output_patterns
   in
 
-  Test_correction.make ~location ~corrections ~trailing_output
+  let uncaught_exn : Test_correction.Uncaught_exn.t =
+    match test.uncaught_exn with
+    | None -> begin
+        match test.uncaught_exn_expectation with
+        | None -> Match
+        | Some e -> Unused_expectation e
+      end
+    | Some x ->
+      let indent = location.start_pos - location.line_start in
+      let actual =
+        match x with
+        | One actual -> actual
+        | Many_distinct outputs ->
+          cr_for_multiple_outputs outputs
+            ~cr_body:"Test ran multiple times with different uncaught exceptions"
+      in
+      let expect =
+        match test.uncaught_exn_expectation with
+        | None -> Expectation.Body.Pretty Cst.empty
+        | Some e -> e.body
+      in
+      match
+        Reconcile.expectation_body
+          ~expect
+          ~actual
+          ~default_indent:indent
+          ~pad_single_line:true
+          ~allow_output_patterns
+      with
+      | Match -> Match
+      | Correction c ->
+        match test.uncaught_exn_expectation with
+        | None -> Without_expectation c
+        | Some e -> Correction (e, c)
+  in
+
+  Test_correction.make ~location ~corrections ~uncaught_exn ~trailing_output
 ;;
 
 type mode = Inline_expect_test | Toplevel_expect_test
@@ -206,10 +302,11 @@ let output_corrected oc ~file_contents ~mode test_corrections =
         let ofs =
           List.fold_left test_correction.corrections ~init:ofs
             ~f:(fun ofs (e, correction) ->
-              match (correction : Test_correction.node_correction) with
+              match (correction : Test_correction.Node_correction.t) with
               | Collector_never_triggered ->
                 output_slice oc file_contents ofs e.Expectation.body_location.start_pos;
-                output_body oc e.tag " DID NOT REACH THIS PROGRAM POINT ";
+                output_body oc e.tag
+                  (Printf.sprintf " %s " did_not_reach_this_program_point);
                 e.body_location.end_pos
               | Correction c ->
                 let id, body = id_and_string_of_body c in
@@ -220,25 +317,61 @@ let output_corrected oc ~file_contents ~mode test_corrections =
                 output_body oc e.tag body;
                 e.body_location.end_pos)
         in
-        match test_correction.trailing_output with
+        let ofs =
+          match test_correction.trailing_output with
+          | Match -> ofs
+          | Correction c ->
+            let loc = test_correction.location in
+            output_slice oc file_contents ofs loc.end_pos;
+            if match mode with Inline_expect_test -> true | _ -> false then
+              output_semi_colon_if_needed oc file_contents loc.end_pos;
+            let id, body = id_and_string_of_body c in
+            (match mode with
+             | Inline_expect_test ->
+               let indent = loc.start_pos - loc.line_start + 2 in
+               fprintf oc "\n%*s[%%%s " indent "" id
+             | Toplevel_expect_test ->
+               if loc.end_pos = 0 || Char.(<>) file_contents.[loc.end_pos - 1] '\n' then
+                 Out_channel.output_char oc '\n';
+               fprintf oc "[%%%%%s" id);
+            output_body oc (Some "") body;
+            fprintf oc "]";
+            loc.end_pos
+        in
+        match test_correction.uncaught_exn with
         | Match -> ofs
-        | Correction c ->
+        | Unused_expectation e ->
+          (* Unfortunately, the OCaml parser doesn't give us the location of the whole
+             extension point, so we have to find the square brackets ourselves :( *)
+          let start = ref e.extid_location.start_pos in
+          while not (Char.equal file_contents.[!start] '[') do Int.decr start done;
+          output_slice oc file_contents ofs !start;
+          let ofs = ref e.body_location.end_pos in
+          while not (Char.equal file_contents.[!ofs] ']') do Int.incr ofs done;
+          Int.incr ofs;
+          while !ofs < String.length file_contents &&
+                match file_contents.[!ofs] with
+                | '\t' | '\011' | '\012' | '\r' | ' ' -> true
+                | _ -> false
+          do
+            Int.incr ofs
+          done;
+          if !ofs < String.length file_contents &&
+             Char.equal file_contents.[!ofs] '\n' then
+            Int.incr ofs;
+          !ofs
+        | Without_expectation c ->
           let loc = test_correction.location in
           output_slice oc file_contents ofs loc.end_pos;
-          if match mode with Inline_expect_test -> true | _ -> false then
-            output_semi_colon_if_needed oc file_contents loc.end_pos;
-          let id, body = id_and_string_of_body c in
-          (match mode with
-           | Inline_expect_test ->
-             let indent = loc.start_pos - loc.line_start + 2 in
-             fprintf oc "\n%*s[%%%s " indent "" id
-           | Toplevel_expect_test ->
-             if loc.end_pos = 0 || Char.(<>) file_contents.[loc.end_pos - 1] '\n' then
-               Out_channel.output_char oc '\n';
-             fprintf oc "[%%%%%s" id);
-          output_body oc (Some "") body;
+          let indent = loc.start_pos - loc.line_start in
+          fprintf oc "\n%*s[@@expect.uncaught_exn " indent "";
+          output_body oc (Some "") (snd (id_and_string_of_body c));
           fprintf oc "]";
-          loc.end_pos)
+          loc.end_pos
+        | Correction (e, c) ->
+          output_slice oc file_contents ofs e.body_location.start_pos;
+          output_body oc e.tag (snd (id_and_string_of_body c));
+          e.body_location.end_pos)
   in
   output_slice oc file_contents ofs (String.length file_contents)
 ;;

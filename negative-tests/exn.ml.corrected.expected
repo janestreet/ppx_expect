@@ -5,4 +5,4 @@ let%expect_test _ =
   Printexc.record_backtrace false;
   ignore (failwith "hi ho");
   [%expect {| DID NOT REACH THIS PROGRAM POINT |}]
-;;
+[@@expect.uncaught_exn {| (Failure "hi ho") |}]
