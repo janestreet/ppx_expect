@@ -147,8 +147,6 @@ let indentation_at file_contents (loc : File.Location.t) =
   !n - loc.line_start
 ;;
 
-let did_not_reach_this_program_point = "DID NOT REACH THIS PROGRAM POINT"
-
 let evaluate_test ~file_contents ~(location : File.Location.t)
       ~allow_output_patterns (test : Test_outcome.t) =
   let cr_for_multiple_outputs ~cr_body outputs =
@@ -179,24 +177,9 @@ let evaluate_test ~file_contents ~(location : File.Location.t)
       in
       match Map.find test.saved_output location with
       | None -> begin
-          match
-            Reconcile.expectation_body
-              ~expect:(Pretty (Single_line
-                                 { leading_blanks  = ""
-                                 ; trailing_spaces = ""
-                                 ; orig = did_not_reach_this_program_point
-                                 ; data = Literal did_not_reach_this_program_point
-                                 }))
-              ~actual:(match expect.body with
-                | Pretty x -> Cst.to_string x
-                | Exact  x -> x)
-              ~default_indent:0
-              ~pad_single_line:false
-              ~allow_output_patterns:false
-          with
-          | Match -> None
-          | Correction _ ->
-            Some (expect, Test_correction.Node_correction.Collector_never_triggered)
+          match expect.body with
+          | Unreachable -> None
+          | _ -> Some (expect, Test_correction.Node_correction.Collector_never_triggered)
         end
       | Some (One actual) -> correction_for actual
       | Some (Many_distinct outputs) ->
@@ -286,6 +269,7 @@ let output_corrected oc ~file_contents ~mode test_corrections =
   let id_and_string_of_body : _ Expectation.Body.t -> string * string = function
     | Exact  x -> ("expect_exact", x)
     | Pretty x -> ("expect", Cst.to_string x)
+    | Unreachable -> assert false
   in
   let output_body oc tag body =
     match tag with
@@ -304,9 +288,8 @@ let output_corrected oc ~file_contents ~mode test_corrections =
             ~f:(fun ofs (e, correction) ->
               match (correction : Test_correction.Node_correction.t) with
               | Collector_never_triggered ->
-                output_slice oc file_contents ofs e.Expectation.body_location.start_pos;
-                output_body oc e.tag
-                  (Printf.sprintf " %s " did_not_reach_this_program_point);
+                output_slice oc file_contents ofs e.Expectation.extid_location.start_pos;
+                fprintf oc "expect.unreachable";
                 e.body_location.end_pos
               | Correction c ->
                 let id, body = id_and_string_of_body c in

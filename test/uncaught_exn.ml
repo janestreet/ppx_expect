@@ -7,7 +7,7 @@ let%expect_test _ =
 let%expect_test "Expectation with uncaught expectation" =
   Printexc.record_backtrace false;
   ignore (assert false);
-  [%expect {| DID NOT REACH THIS PROGRAM POINT |}];
+  [%expect.unreachable];
 [@@expect.uncaught_exn {|
   "Assert_failure uncaught_exn.ml:9:9" |}]
 ;;

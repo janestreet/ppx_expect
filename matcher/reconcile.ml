@@ -171,17 +171,33 @@ let expectation_body_internal
     if expect = actual
     then Match
     else Correction (Exact actual)
-  | Pretty expect ->
+  | Pretty expect -> begin
+      let actual_lines =
+        Lexer.strip_surrounding_whitespaces actual
+        |> Cst.stripped_original_lines
+      in
+      let expect_lines = Cst.to_lines expect in
+      match reconcile_lines ~expect_lines ~actual_lines ~allow_output_patterns with
+      | Match -> Match
+      | Correction reconciled_lines ->
+        let reconciled =
+          Cst.reconcile expect
+            ~lines:reconciled_lines
+            ~default_indentation:default_indent
+            ~pad_single_line
+        in
+        Correction (Pretty reconciled)
+    end
+  | Unreachable ->
     let actual_lines =
       Lexer.strip_surrounding_whitespaces actual
       |> Cst.stripped_original_lines
     in
-    let expect_lines = Cst.to_lines expect in
-    match reconcile_lines ~expect_lines ~actual_lines ~allow_output_patterns with
-    | Match -> Match
+    match reconcile_lines ~expect_lines:[] ~actual_lines ~allow_output_patterns with
+    | Match -> Correction (Pretty (Empty ""))
     | Correction reconciled_lines ->
       let reconciled =
-        Cst.reconcile expect
+        Cst.reconcile (Empty "")
           ~lines:reconciled_lines
           ~default_indentation:default_indent
           ~pad_single_line

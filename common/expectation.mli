@@ -2,6 +2,7 @@ module Body : sig
   type 'a t =
     | Exact  of string
     | Pretty of 'a
+    | Unreachable
   [@@deriving sexp_of, compare]
 
   val map_pretty : 'a t -> f:('a -> 'b) -> 'b t

@@ -4,14 +4,16 @@ open Expect_test_common.Std
 (** Translate a compile time location to a runtime location *)
 val transl_loc : Location.t -> File.Location.t
 
+type data = Location.t * string * string option (* string loc, string, tag *)
+
+type kind = Normal | Exact | Unreachable
+
 val make
-  :  is_exact:bool
-  -> (Location.t * string * string option) (* string loc, string, tag *) option
+  :  kind:kind
+  -> data option
   -> extension_id_loc:Location.t
   -> Expectation.Raw.t
 
 val pattern
   : unit
-  -> (Parsetree.payload,
-      (Location.t * string * string option) option -> 'a,
-      'a) Ast_pattern.t
+  -> (Parsetree.payload, data option -> 'a, 'a) Ast_pattern.t

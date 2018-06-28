@@ -7,16 +7,22 @@ let expect =
   Expert.declare "expect"
     Context.expression
     (Ppx_expect_payload.pattern ())
-    (Ppx_expect_payload.make ~is_exact:false)
+    (Ppx_expect_payload.make ~kind:Normal)
 
 (* An expect extension without pretty formatting *)
 let expect_exact =
   Expert.declare "expect_exact"
     Context.expression
     (Ppx_expect_payload.pattern ())
-    (Ppx_expect_payload.make ~is_exact:true)
+    (Ppx_expect_payload.make ~kind:Exact)
 
-let expectations = [ expect; expect_exact ]
+let expect_unreachable =
+  Expert.declare "@expect.unreachable"
+    Context.expression
+    (Ppx_expect_payload.pattern ())
+    (Ppx_expect_payload.make ~kind:Unreachable)
+
+let expectations = [ expect; expect_exact; expect_unreachable ]
 
 let match_expectation e =
   match e.pexp_desc with

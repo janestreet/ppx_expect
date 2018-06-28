@@ -117,7 +117,7 @@ module P = struct
       (map1' (Ppx_expect_payload.pattern ()) ~f:(fun loc x -> (loc, x)))
       (fun ~name_loc (loc, x) ->
          (loc,
-          Ppx_expect_payload.make x ~is_exact:false ~extension_id_loc:name_loc))
+          Ppx_expect_payload.make x ~kind:Normal ~extension_id_loc:name_loc))
 
   let opt_name () =
     map (pstring __) ~f:(fun f x -> f (Some x)) |||

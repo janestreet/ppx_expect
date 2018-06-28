@@ -5,11 +5,12 @@ module Body = struct
   type 'a t =
     | Exact  of string
     | Pretty of 'a
+    | Unreachable
   [@@deriving sexp_of, compare]
 
   let map_pretty t ~f =
     match t with
-    | Exact _ as t -> t
+    | (Exact _ | Unreachable) as t -> t
     | Pretty x -> Pretty (f x)
 end
 

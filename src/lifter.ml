@@ -17,6 +17,7 @@ type location = File.Location.t =
 and 'a body = 'a Expectation.Body.t =
   | Exact  of string
   | Pretty of 'a
+  | Unreachable
 
 and 'a expectation = 'a Expectation.t =
   { tag            : string option
