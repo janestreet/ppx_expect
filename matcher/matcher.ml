@@ -254,10 +254,15 @@ let output_slice out s a b =
   Out_channel.output_string out (String.sub s ~pos:a ~len:(b - a))
 ;;
 
+let is_space = function
+  | '\t' | '\011' | '\012' | '\r' | ' ' | '\n' -> true
+  | _ -> false
+;;
+
 let rec output_semi_colon_if_needed oc file_contents pos =
   if pos >= 0 then
     match file_contents.[pos] with
-    | '\t' | '\n' | '\011' | '\012' | '\r' | ' ' ->
+    | c when is_space c ->
       output_semi_colon_if_needed oc file_contents (pos - 1)
     | ';' -> ()
     | _ -> Out_channel.output_char oc ';'
@@ -283,6 +288,46 @@ let output_corrected oc ~file_contents ~mode test_corrections =
   let ofs =
     List.fold_left test_corrections ~init:0
       ~f:(fun ofs (test_correction : Test_correction.t) ->
+        let test_correction, to_skip =
+          (* If we need to remove an [%%expect.uncaught_exn] node, start by adjusting the
+             end position of the test. *)
+          match test_correction.uncaught_exn with
+          | Unused_expectation e ->
+            (* Unfortunately, the OCaml parser doesn't give us the location of the whole
+               extension point, so we have to find the square brackets ourselves :( *)
+            let start = ref e.extid_location.start_pos in
+            while not (Char.equal file_contents.[!start] '[') do
+              if [%compare: int] ofs !start >= 0 then
+                raise_s (Sexp.message
+                           "Cannot find '[' marking the start of [%expect.uncaught_exn]"
+                           [ "ofs"  , Int.sexp_of_t ofs
+                           ; "start", Int.sexp_of_t e.extid_location.start_pos
+                           ]);
+              Int.decr start
+            done;
+            while !start - 1 > ofs && is_space file_contents.[!start - 1] do
+              Int.decr start
+            done;
+            let file_len = String.length file_contents in
+            let stop = ref e.body_location.end_pos in
+            while !stop < file_len && not (Char.equal file_contents.[!stop] ']') do
+              Int.incr stop
+            done;
+            if [%compare: int] !stop file_len >= 0 then
+              raise_s (Sexp.message
+                         "Cannot find ']' marking the end of [%expect.uncaught_exn]"
+                         [ "stop", Int.sexp_of_t e.body_location.end_pos
+                         ]);
+            Int.incr stop;
+            let test_correction =
+              { test_correction with
+                location = { test_correction.location with end_pos = !start }
+              }
+            in
+            (test_correction, Some (!start, !stop))
+          | _ ->
+            (test_correction, None)
+        in
         let ofs =
           List.fold_left test_correction.corrections ~init:ofs
             ~f:(fun ofs (e, correction) ->
@@ -321,40 +366,30 @@ let output_corrected oc ~file_contents ~mode test_corrections =
             fprintf oc "]";
             loc.end_pos
         in
-        match test_correction.uncaught_exn with
-        | Match -> ofs
-        | Unused_expectation e ->
-          (* Unfortunately, the OCaml parser doesn't give us the location of the whole
-             extension point, so we have to find the square brackets ourselves :( *)
-          let start = ref e.extid_location.start_pos in
-          while not (Char.equal file_contents.[!start] '[') do Int.decr start done;
-          output_slice oc file_contents ofs !start;
-          let ofs = ref e.body_location.end_pos in
-          while not (Char.equal file_contents.[!ofs] ']') do Int.incr ofs done;
-          Int.incr ofs;
-          while !ofs < String.length file_contents &&
-                match file_contents.[!ofs] with
-                | '\t' | '\011' | '\012' | '\r' | ' ' -> true
-                | _ -> false
-          do
-            Int.incr ofs
-          done;
-          if !ofs < String.length file_contents &&
-             Char.equal file_contents.[!ofs] '\n' then
-            Int.incr ofs;
-          !ofs
-        | Without_expectation c ->
-          let loc = test_correction.location in
-          output_slice oc file_contents ofs loc.end_pos;
-          let indent = loc.start_pos - loc.line_start in
-          fprintf oc "\n%*s[@@expect.uncaught_exn " indent "";
-          output_body oc (Some "") (snd (id_and_string_of_body c));
-          fprintf oc "]";
-          loc.end_pos
-        | Correction (e, c) ->
-          output_slice oc file_contents ofs e.body_location.start_pos;
-          output_body oc e.tag (snd (id_and_string_of_body c));
-          e.body_location.end_pos)
+        let ofs =
+          match test_correction.uncaught_exn with
+          | Match -> ofs
+          | Unused_expectation _ ->
+            (* handled above *)
+            ofs
+          | Without_expectation c ->
+            let loc = test_correction.location in
+            output_slice oc file_contents ofs loc.end_pos;
+            let indent = loc.start_pos - loc.line_start in
+            fprintf oc "\n%*s[@@expect.uncaught_exn " indent "";
+            output_body oc (Some "") (snd (id_and_string_of_body c));
+            fprintf oc "]";
+            loc.end_pos
+          | Correction (e, c) ->
+            output_slice oc file_contents ofs e.body_location.start_pos;
+            output_body oc e.tag (snd (id_and_string_of_body c));
+            e.body_location.end_pos
+        in
+        match to_skip with
+        | None -> ofs
+        | Some (start, stop) ->
+          output_slice oc file_contents ofs start;
+          stop)
   in
   output_slice oc file_contents ofs (String.length file_contents)
 ;;

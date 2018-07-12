@@ -182,7 +182,19 @@ let process_group ~use_color ~in_place ~diff_command ~allow_output_patterns
 let evaluate_tests ~use_color ~in_place ~diff_command ~allow_output_patterns =
   convert_collector_tests (Expect_test_collector.tests_run ())
     ~allow_output_patterns
-  |> List.map ~f:(process_group ~use_color ~in_place ~diff_command ~allow_output_patterns)
+  |> List.map ~f:(fun group ->
+    match
+      process_group ~use_color ~in_place ~diff_command ~allow_output_patterns group
+    with
+    | exception exn ->
+      let bt = Caml.Printexc.get_raw_backtrace () in
+      raise_s
+        (Sexp.message "Expect test evaluator bug"
+           [ "exn", sexp_of_exn exn
+           ; "backtrace", Atom (Caml.Printexc.raw_backtrace_to_string bt)
+           ; "filename", File.Name.sexp_of_t group.filename
+           ])
+    | res -> res)
   |> Test_result.combine_all
 ;;
 
