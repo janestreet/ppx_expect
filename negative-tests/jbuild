@@ -36,103 +36,103 @@
 (alias (
   (name runtest)
   (deps (exn.ml.corrected.expected exn.ml.corrected))
-  (action (bash "diff -a $(^)"))
+  (action (bash "diff -a ${^}"))
 ))
 
 (alias (
   (name runtest)
   (deps (exn_missing.ml.corrected.expected exn_missing.ml.corrected))
-  (action (bash "diff -a $(^)"))
+  (action (bash "diff -a ${^}"))
 ))
 
 (alias (
   (name runtest)
   (deps (glob.ml.corrected.expected glob.ml.corrected))
-  (action (bash "diff -a $(^)"))
+  (action (bash "diff -a ${^}"))
 ))
 
 (alias (
   (name runtest)
   (deps (regexp.ml.corrected.expected regexp.ml.corrected))
-  (action (bash "diff -a $(^)"))
+  (action (bash "diff -a ${^}"))
 ))
 
 (alias (
   (name runtest)
   (deps (exact.ml.corrected.expected exact.ml.corrected))
-  (action (bash "diff -a $(^)"))
+  (action (bash "diff -a ${^}"))
 ))
 
 (alias (
   (name runtest)
   (deps (spacing.ml.corrected.expected spacing.ml.corrected))
-  (action (bash "diff -a $(^)"))
+  (action (bash "diff -a ${^}"))
 ))
 
 (alias (
   (name runtest)
   (deps (trailing.ml.corrected.expected trailing.ml.corrected))
-  (action (bash "diff -a $(^)"))
+  (action (bash "diff -a ${^}"))
 ))
 
 (alias (
   (name runtest)
   (deps (missing.ml.corrected.expected missing.ml.corrected))
-  (action (bash "diff -a $(^)"))
+  (action (bash "diff -a ${^}"))
 ))
 
 (alias (
   (name runtest)
   (deps (semicolon.ml.corrected.expected semicolon.ml.corrected))
-  (action (bash "diff -a $(^)"))
+  (action (bash "diff -a ${^}"))
 ))
 
 (alias (
   (name runtest)
   (deps (tag.ml.corrected.expected tag.ml.corrected))
-  (action (bash "diff -a $(^)"))
+  (action (bash "diff -a ${^}"))
 ))
 
 (alias (
   (name runtest)
   (deps (string_padding.ml.corrected.expected string_padding.ml.corrected))
-  (action (bash "diff -a $(^)"))
+  (action (bash "diff -a ${^}"))
 ))
 
 (alias (
   (name runtest)
   (deps (flexible.ml.corrected.expected flexible.ml.corrected))
-  (action (bash "diff -a $(^)"))
+  (action (bash "diff -a ${^}"))
 ))
 
 (alias (
   (name runtest)
   (deps (normal_strings.ml.corrected.expected normal_strings.ml.corrected))
-  (action (bash "diff -a $(^)"))
+  (action (bash "diff -a ${^}"))
 ))
 
 (alias (
   (name runtest)
   (deps (pending_output.ml.corrected.expected pending_output.ml.corrected))
-  (action (bash "diff -a $(^)"))
+  (action (bash "diff -a ${^}"))
 ))
 
 (alias (
   (name runtest)
   (deps (functor.ml.corrected.expected functor.ml.corrected))
-  (action (bash "diff -a $(^)"))
+  (action (bash "diff -a ${^}"))
 ))
 
 (alias (
   (name runtest)
   (deps (function_with_distinct_outputs.ml.corrected.expected function_with_distinct_outputs.ml.corrected))
-  (action (bash "diff -a $(^)"))
+  (action (bash "diff -a ${^}"))
 ))
 
 (alias (
   (name runtest)
   (deps (test-output.expected test-output))
-  (action (bash "diff -a $(^)"))
+  (action (bash "diff -a ${^}"))
 ))
 
 

@@ -6,7 +6,7 @@ val transl_loc : Location.t -> File.Location.t
 
 type data = Location.t * string * string option (* string loc, string, tag *)
 
-type kind = Normal | Exact | Unreachable
+type kind = Normal | Exact | Unreachable | Output
 
 val make
   :  kind:kind

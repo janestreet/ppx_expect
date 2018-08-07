@@ -273,6 +273,7 @@ let split_lines s = String.split s ~on:'\n'
 let output_corrected oc ~file_contents ~mode test_corrections =
   let id_and_string_of_body : _ Expectation.Body.t -> string * string = function
     | Exact  x -> ("expect_exact", x)
+    | Output -> ("expect.output", "")
     | Pretty x -> ("expect", Cst.to_string x)
     | Unreachable -> assert false
   in

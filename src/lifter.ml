@@ -16,6 +16,7 @@ type location = File.Location.t =
 
 and 'a body = 'a Expectation.Body.t =
   | Exact  of string
+  | Output
   | Pretty of 'a
   | Unreachable
 

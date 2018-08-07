@@ -7,7 +7,7 @@
 (alias (
   (name runtest)
   (deps (./main.exe))
-  (action (bash "$(^)"))
+  (action (bash "${^}"))
 ))
 
 

@@ -48,17 +48,21 @@ let collect_expectations = object
 end
 
 let replace_expects = object
-  inherit [string] Ast_traverse.map_with_context as super
+  inherit Ast_traverse.map as super
 
-  method! expression instance_var ({ pexp_attributes; pexp_loc; _ } as expr) =
+  method! expression ({ pexp_attributes; pexp_loc; _ } as expr) =
     match Expect_extension.match_expectation expr with
-    | None -> super#expression instance_var expr
+    | None -> super#expression expr
     | Some ext ->
+      let f_var =
+        match ext.body with
+        | Exact _ | Pretty _ | Unreachable -> "Expect_test_collector.save_output"
+        | Output -> "Expect_test_collector.save_and_return_output"
+      in
       let loc = { pexp_loc with loc_end = pexp_loc.loc_start } in
       let expr =
         [%expr
-          Expect_test_collector.Instance.save_output
-            [%e evar ~loc instance_var]
+          [%e evar ~loc f_var]
             [%e lift_location ~loc ext.extid_location]
         ]
       in
@@ -85,8 +89,7 @@ let rewrite_test_body ~descr ~tags ~uncaught_exn pstr_loc body =
     |> eoption ~loc
   in
 
-  let instance_var = gen_symbol ~prefix:"_ppx_expect_instance" () in
-  let body = replace_expects#expression instance_var body in
+  let body = replace_expects#expression body in
 
   let absolute_filename =
     Ppx_here_expander.expand_filename pstr_loc.loc_start.pos_fname
@@ -104,7 +107,7 @@ let rewrite_test_body ~descr ~tags ~uncaught_exn pstr_loc body =
       ~expectations:       [%e expectations]
       ~uncaught_exn_expectation: [%e uncaught_exn]
       ~inline_test_config: (module Inline_test_config)
-      (fun [%p pvar ~loc instance_var] -> [%e body])
+      (fun () -> [%e body])
   ]
 
 module P = struct

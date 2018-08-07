@@ -1,6 +1,7 @@
 module Body : sig
   type 'a t =
     | Exact  of string
+    | Output
     | Pretty of 'a
     | Unreachable
   [@@deriving sexp_of, compare]

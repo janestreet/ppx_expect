@@ -11,7 +11,7 @@ let transl_loc (loc : Location.t) : File.Location.t =
 
 type data = Location.t * string * string option
 
-type kind = Normal | Exact | Unreachable
+type kind = Normal | Exact | Unreachable | Output
 
 let make ~kind payload ~(extension_id_loc:Location.t) =
   let body_loc, body, tag =
@@ -22,14 +22,20 @@ let make ~kind payload ~(extension_id_loc:Location.t) =
       ({ extension_id_loc with loc_start = extension_id_loc.loc_end },
        Expectation.Body.Unreachable,
        None)
-    | _, None ->
-      ({ extension_id_loc with loc_start = extension_id_loc.loc_end },
-       Expectation.Body.Pretty "",
-       Some "")
     | Normal, Some (loc, s, tag) ->
       (loc, Pretty s, tag)
     | Exact, Some (loc, s, tag) ->
       (loc, Exact s, tag)
+    | Output, Some (loc, _, _) ->
+      Location.raise_errorf ~loc "expect.output accepts no payload" ()
+    | Output, None ->
+      ({ extension_id_loc with loc_start = extension_id_loc.loc_end },
+       Expectation.Body.Output,
+       None)
+    | _, None ->
+      ({ extension_id_loc with loc_start = extension_id_loc.loc_end },
+       Expectation.Body.Pretty "",
+       Some "")
   in
   let res : Expectation.Raw.t =
     { tag
@@ -46,7 +52,7 @@ let make ~kind payload ~(extension_id_loc:Location.t) =
      ]}
   *)
   match body with
-  | Exact _ | Unreachable -> res
+  | Exact _ | Output | Unreachable -> res
   | Pretty s ->
     let len = String.length s in
     let get i = if i >= len then None else Some s.[i] in

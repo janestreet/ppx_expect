@@ -16,13 +16,19 @@ let expect_exact =
     (Ppx_expect_payload.pattern ())
     (Ppx_expect_payload.make ~kind:Exact)
 
+let expect_output =
+  Expert.declare "@expect.output"
+    Context.expression
+    (Ppx_expect_payload.pattern ())
+    (Ppx_expect_payload.make ~kind:Output)
+
 let expect_unreachable =
   Expert.declare "@expect.unreachable"
     Context.expression
     (Ppx_expect_payload.pattern ())
     (Ppx_expect_payload.make ~kind:Unreachable)
 
-let expectations = [ expect; expect_exact; expect_unreachable ]
+let expectations = [ expect; expect_exact; expect_output; expect_unreachable ]
 
 let match_expectation e =
   match e.pexp_desc with
@@ -33,4 +39,3 @@ let match_expectation e =
     end
   | _ -> None
 ;;
-

@@ -171,6 +171,7 @@ let expectation_body_internal
     if expect = actual
     then Match
     else Correction (Exact actual)
+  | Output -> Match
   | Pretty expect -> begin
       let actual_lines =
         Lexer.strip_surrounding_whitespaces actual

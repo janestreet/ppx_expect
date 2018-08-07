@@ -15,17 +15,14 @@ end
 
 module Make(Config : Expect_test_config.S) : sig
 
-  module Instance : sig
-    type t
+  (** Collect the output that has been run since the last call to [save_output], or
+      since the current expect-test started running.
 
-    (** Collect the output that has been run since the last call to [save_output], or
-        since the current expect-test started running.
-
-        This function should only be called while a test is running. It is meant to be
-        called as a result of ppx_expect translating an expect-test, and is not intended
-        to be called manually. *)
-    val save_output : t -> File.Location.t -> unit Config.IO.t
-  end
+      This function should only be called while a test is running. It is meant to be
+      called as a result of ppx_expect translating an expect-test, and is not intended
+      to be called manually. *)
+  val save_output            : File.Location.t -> unit   Config.IO.t
+  val save_and_return_output : File.Location.t -> string Config.IO.t
 
   (** Run an expect-test *)
   val run
@@ -37,7 +34,7 @@ module Make(Config : Expect_test_config.S) : sig
     -> expectations             : Expectation.Raw.t list
     -> uncaught_exn_expectation : Expectation.Raw.t option
     -> inline_test_config       : Ppx_inline_test_lib.Runtime.config
-    -> (Instance.t -> unit Config.IO.t)
+    -> (unit -> unit Config.IO.t)
     -> unit
 end
 

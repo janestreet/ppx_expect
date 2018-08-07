@@ -63,104 +63,129 @@ module Make(C : Expect_test_config.S) = struct
   end
 
   module Instance : sig
-    type t
-
-    val save_output : t -> File.Location.t -> unit C.IO.t
+    val save_output            : File.Location.t -> unit   C.IO.t
+    val save_and_return_output : File.Location.t -> string C.IO.t
 
     val exec
       :  file_digest              : File.Digest.t
       -> location                 : File.Location.t
       -> expectations             : Expectation.Raw.t list
       -> uncaught_exn_expectation : Expectation.Raw.t option
-      -> f                        : (t -> unit C.IO.t)
+      -> f                        : (unit -> unit C.IO.t)
       -> unit
   end = struct
-    module Running : sig
-      type t
-      val create : unit -> t
-      val get_outputs_and_cleanup : t -> (File.Location.t * string) list  * string
-      val save_output : t -> File.Location.t -> unit
-    end = struct
-      type t =
-        { mutable saved : (File.Location.t * int) list
-        ; chan          : out_channel
-        ; filename      : File.Name.t
-        }
+    type t =
+      { mutable saved : (File.Location.t * int) list
+      ; chan          : out_channel
+      ; filename      : File.Name.t
+      }
 
-      external before_test
-        : output:out_channel -> stdout:out_channel -> stderr:out_channel -> unit
-        = "expect_test_collector_before_test"
-      external after_test
-        : stdout:out_channel -> stderr:out_channel -> unit
-        = "expect_test_collector_after_test"
-      external pos_out : out_channel -> int = "caml_out_channel_pos_fd"
+    external before_test
+      : output:out_channel -> stdout:out_channel -> stderr:out_channel -> unit
+      = "expect_test_collector_before_test"
+    external after_test
+      : stdout:out_channel -> stderr:out_channel -> unit
+      = "expect_test_collector_after_test"
+    external pos_out : out_channel -> int = "caml_out_channel_pos_fd"
 
-      let get_position () = pos_out stdout
-      ;;
+    let get_position () = pos_out stdout
 
-      let create () =
-        let filename = Filename.temp_file "expect-test" "output" in
-        let chan = open_out filename in
-        before_test ~output:chan ~stdout ~stderr;
-        { chan
-        ; filename = File.Name.of_string filename
-        ; saved    = []
-        }
-      ;;
+    let create () =
+      let filename = Filename.temp_file "expect-test" "output" in
+      let chan = open_out filename in
+      before_test ~output:chan ~stdout ~stderr;
+      { chan
+      ; filename = File.Name.of_string filename
+      ; saved    = []
+      }
 
-      let extract_output ic len =
-        let s = really_input_string ic len in
-        if not (Check_backtraces.contains_backtraces s) then
-          s
-        else
-          let cr_prefix =
-            Expect_test_config.Upon_unreleasable_issue.comment_prefix
-              C.upon_unreleasable_issue
+    let extract_output ic len =
+      let s = really_input_string ic len in
+      if not (Check_backtraces.contains_backtraces s) then
+        s
+      else
+        let cr_prefix =
+          Expect_test_config.Upon_unreleasable_issue.comment_prefix
+            C.upon_unreleasable_issue
+        in
+        Printf.sprintf "\n\
+                        (* %sexpect_test_collector: This test expectation appears to \
+                        contain a backtrace.\n\
+                       \   This is strongly discouraged as backtraces are fragile.\n\
+                       \   Please change this test to not include a backtrace. *)\n\
+                        \n\
+                        %s" cr_prefix s
+
+    let relative_filename t =
+      File.Name.relative_to ~dir:(File.initial_dir ()) t.filename
+
+    let with_ic fname ~f =
+      let ic = open_in fname in
+      protect ~finally:(fun () -> close_in ic) ~f:(fun () -> f ic)
+
+    let get_outputs_and_cleanup t =
+      let last_ofs = get_position () in
+      after_test ~stdout ~stderr;
+      close_out t.chan;
+
+      let fname = relative_filename t in
+      protect ~finally:(fun () -> Sys.remove fname) ~f:(fun () ->
+        with_ic fname ~f:(fun ic ->
+          let ofs, outputs =
+            List.fold_left (List.rev t.saved) ~init:(0, [])
+              ~f:(fun (ofs, acc) (loc, next_ofs) ->
+                let s = extract_output ic (next_ofs - ofs) in
+                (next_ofs, ((loc, s) :: acc)))
           in
-          Printf.sprintf "\n\
-                          (* %sexpect_test_collector: This test expectation appears to \
-                          contain a backtrace.\n\
-                         \   This is strongly discouraged as backtraces are fragile.\n\
-                         \   Please change this test to not include a backtrace. *)\n\
-                          \n\
-                          %s" cr_prefix s
-
-      let get_outputs_and_cleanup t =
-        let last_ofs = get_position () in
-        after_test ~stdout ~stderr;
-        close_out t.chan;
-
-        let fname = File.Name.relative_to ~dir:(File.initial_dir ()) t.filename in
-        protect ~finally:(fun () -> Sys.remove fname) ~f:(fun () ->
-          let ic = open_in fname in
-          protect ~finally:(fun () -> close_in ic) ~f:(fun () ->
-            let ofs, outputs =
-              List.fold_left (List.rev t.saved) ~init:(0, [])
-                ~f:(fun (ofs, acc) (loc, next_ofs) ->
-                  let s = extract_output ic (next_ofs - ofs) in
-                  (next_ofs, ((loc, s) :: acc)))
-            in
-            let trailing_output = extract_output ic (last_ofs - ofs) in
-            (List.rev outputs, trailing_output)))
-      ;;
-
-      let save_output running location =
-        let pos = get_position () in
-        running.saved <- (location, pos) :: running.saved
-
-    end
-
-    type state = Running of Running.t | Ended
-    type t = { mutable state : state }
+          let trailing_output = extract_output ic (last_ofs - ofs) in
+          (List.rev outputs, trailing_output)))
 
     let current_test : (File.Location.t * t) option ref = ref None
+    let last_test_loc = ref None
+
+    let get_current () =
+      match !current_test with
+      | Some (_, t) -> t
+      | None ->
+        Printf.ksprintf failwith
+          "Expect_test_collector.Instance.get_current called outside a test.%s"
+          (match !last_test_loc with
+           | None -> ""
+           | Some location ->
+             Printf.sprintf
+               !"\nThe last test to be executed was: %{sexp:File.Location.t}."
+               location)
+
+    let save_output location =
+      let t = get_current () in
+      C.flush () >>= fun () ->
+      let pos = get_position () in
+      t.saved <- (location, pos) :: t.saved;
+      return ()
+
+    let save_and_return_output location =
+      let t = get_current () in
+      C.flush () >>= fun () ->
+      let pos = get_position () in
+      let prev_pos =
+        match t.saved with
+        | [] -> 0
+        | (_, prev_pos) :: _ -> prev_pos
+      in
+      t.saved <- (location, pos) :: t.saved;
+      flush t.chan;
+      let len = pos - prev_pos in
+      C.IO.return
+        (with_ic (relative_filename t) ~f:(fun ic ->
+           seek_in ic prev_pos;
+           really_input_string ic len))
 
     let () =
       Caml.at_exit (fun () ->
         match !current_test with
-        | None | Some (_, { state = Ended }) -> ()
-        | Some (loc, { state = Running running }) ->
-          let blocks, trailing = Running.get_outputs_and_cleanup running in
+        | None -> ()
+        | Some (loc, t) ->
+          let blocks, trailing = get_outputs_and_cleanup t in
           Printf.eprintf "File %S, line %d, characters %d-%d:\n\
                           Error: program exited while expect test was running!\n\
                           Output captured so far:\n%!"
@@ -185,15 +210,13 @@ module Make(C : Expect_test_config.S) = struct
         final_flush ~count:(count + 1) k
 
     let exec ~file_digest ~location ~expectations ~uncaught_exn_expectation ~f =
-      let running = Running.create () in
-      let t = { state = Running running } in
+      let t = create () in
       current_test := Some (location, t);
       let finally uncaught_exn =
-        current_test := None;
         C.run (fun () ->
           final_flush (fun ~append ->
-            t.state <- Ended;
-            let saved_output, trailing_output = Running.get_outputs_and_cleanup running in
+            current_test := None;
+            let saved_output, trailing_output = get_outputs_and_cleanup t in
             tests_run :=
               { file_digest
               ; location
@@ -206,26 +229,15 @@ module Make(C : Expect_test_config.S) = struct
               } :: !tests_run;
             return ()))
       in
-      match C.run (fun () -> f t) with
+      match C.run f with
       | () -> finally None
       | exception exn ->
         let bt = Printexc.get_raw_backtrace () in
         finally (Some (exn, bt))
-    ;;
-
-    let save_output t location =
-      match t.state with
-      | Running running ->
-        C.flush () >>= fun () ->
-        Running.save_output running location;
-        return ()
-      | Ended ->
-        Printf.ksprintf failwith
-          !"Expect_test_collector.Instance.save_output called after test has ended \
-            (loc = %{sexp:File.Location.t})"
-          location
-    ;;
   end
+
+  let save_output = Instance.save_output
+  let save_and_return_output = Instance.save_and_return_output
 
   let run
         ~file_digest
