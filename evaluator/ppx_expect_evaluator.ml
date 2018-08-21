@@ -170,7 +170,7 @@ let process_group ~use_color ~in_place ~diff_command ~allow_output_patterns
           (* We need a temporary file for corrections to allow [Ppxlib_print_diff] to work when
              multiple inline_tests_runner are run simultaneously. Otherwise one copy may
              remove the corrected file before the other can print the diff. *)
-          Caml.Filename.temp_file (Caml.Filename.basename filename) ".tmp_corrected"
+          Caml.Filename.temp_file (Caml.Filename.basename filename) ".corrected.tmp"
             ~temp_dir:(Caml.Filename.dirname filename)
         in
         write_corrected ~file:tmp_corrected;
