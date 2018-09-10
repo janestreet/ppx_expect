@@ -41,8 +41,20 @@ let convert_collector_test  ~allow_output_patterns (test : Collector_test_outcom
             "(\"%s(Cannot print more details, Exn.to_string failed)\")"
             name
       in
-      Some (Matcher.Saved_output.of_nonempty_list_exn [
-        exn ^ "\n" ^ Caml.Printexc.raw_backtrace_to_string bt])
+      Some (exn ^ "\n" ^ Caml.Printexc.raw_backtrace_to_string bt)
+  in
+  let uncaught_exn, trailing_output =
+    match uncaught_exn, test.trailing_output with
+    | None, _ | _, "" -> uncaught_exn, test.trailing_output
+    | Some uncaught_exn, trailing_output ->
+      Some (Printf.sprintf
+              "%s\n\
+               \
+               Trailing output\n\
+               ---------------\n\
+               %s"
+              uncaught_exn trailing_output),
+      ""
   in
   let uncaught_exn_expectation =
     Option.map test.uncaught_exn_expectation ~f:(fun expect ->
@@ -52,8 +64,10 @@ let convert_collector_test  ~allow_output_patterns (test : Collector_test_outcom
   (test.location,
    { expectations
    ; saved_output
-   ; trailing_output = Matcher.Saved_output.of_nonempty_list_exn [test.trailing_output]
-   ; uncaught_exn
+   ; trailing_output = Matcher.Saved_output.of_nonempty_list_exn [trailing_output]
+   ; uncaught_exn =
+       Option.map uncaught_exn ~f:(fun s ->
+         Matcher.Saved_output.of_nonempty_list_exn [s])
    ; uncaught_exn_expectation
    ; upon_unreleasable_issue = test.upon_unreleasable_issue
    })

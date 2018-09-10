@@ -14,6 +14,7 @@
     glob.ml.corrected
     exn.ml.corrected
     exn_missing.ml.corrected
+    exn_and_trailing.ml.corrected
     regexp.ml.corrected
     exact.ml.corrected
     spacing.ml.corrected
@@ -42,6 +43,12 @@
 (alias (
   (name runtest)
   (deps (exn_missing.ml.corrected.expected exn_missing.ml.corrected))
+  (action (bash "diff -a ${^}"))
+))
+
+(alias (
+  (name runtest)
+  (deps (exn_and_trailing.ml.corrected.expected exn_and_trailing.ml.corrected))
   (action (bash "diff -a ${^}"))
 ))
 
