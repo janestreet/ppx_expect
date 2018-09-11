@@ -10,8 +10,6 @@
     base
     stdio
     re
-    re.emacs
-    re.glob
     expect_test_common
     expect_test_config
     ))

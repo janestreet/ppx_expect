@@ -26,7 +26,7 @@ let matches_regexp ~(pat : Re.t) s =
   Re.execp (Re.compile (Re.whole_string pat)) s
 ;;
 
-let glob = Re_glob.glob ~anchored:true ~pathname:false ~expand_braces:true
+let glob = Re.Glob.glob ~anchored:true ~pathname:false ~expand_braces:true
 
 let line_matches ~(expect : Fmt.t) ~actual =
   match expect with
@@ -35,7 +35,7 @@ let line_matches ~(expect : Fmt.t) ~actual =
   | Glob expect ->
     matches_regexp ~pat:(glob expect) actual
   | Regexp expect ->
-    matches_regexp ~pat:(Re_emacs.re expect) actual
+    matches_regexp ~pat:(Re.Emacs.re expect) actual
 ;;
 
 let%test _ = line_matches ~expect:(Literal "foo") ~actual:"foo"
