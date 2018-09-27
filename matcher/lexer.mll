@@ -116,8 +116,10 @@ and quoted_string_terminators acc = parse
         ~f:(fun s () ->
           parse_pretty_line ~allow_output_patterns s)
     in
-    if Ppx_inline_test_lib.Runtime.testing then
-      [%test_result: string] (Cst.to_string res) ~expect:s;
+    (match Ppx_inline_test_lib.Runtime.testing with
+    | `Testing `Am_test_runner ->
+      [%test_result: string] (Cst.to_string res) ~expect:s
+    | `Testing `Am_child_of_test_runner | `Not_testing -> ());
     res
 
   let parse_body ~allow_output_patterns body =
