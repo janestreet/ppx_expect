@@ -41,7 +41,7 @@ let make ~is_exact payload ~(extension_id_loc:Location.t) =
     let rec first_line i =
       match get i with
       | None              -> ()
-      | Some (' ' | '\t') -> first_line (i + 1)
+      | Some (' ' | '\t' | '\r') -> first_line (i + 1)
       | Some '\n'         -> ()
       | Some _            -> first_line_has_stuff (i + 1)
     and first_line_has_stuff i =
@@ -52,7 +52,7 @@ let make ~is_exact payload ~(extension_id_loc:Location.t) =
     and rest_must_be_empty i =
       match get i with
       | None -> ()
-      | Some (' ' | '\t' | '\n') ->
+      | Some (' ' | '\t' | '\r' | '\n') ->
         rest_must_be_empty (i + 1)
       | Some _  ->
         Location.raise_errorf ~loc:body_loc
