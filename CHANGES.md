@@ -1,3 +1,7 @@
+## v0.11.1
+
+- Fix formatting check on Windows (@bryphe, #12)
+
 ## v0.11
 
 - Change `ppx_expect` so that when `-diff-cmd -` is passed, they write the
