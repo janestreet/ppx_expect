@@ -10,4 +10,8 @@ let%expect_test _ =
   print_string "foo\\bar";
   [%expect {||}];
   print_string "hey\\ho";
-  [%expect_exact ""]
+  [%expect_exact ""];
+  print_string {|
+    Foo
+    "bar baz"|};
+  [%expect.unreachable]

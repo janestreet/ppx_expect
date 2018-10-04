@@ -21,7 +21,7 @@ let make ~kind payload ~(extension_id_loc:Location.t) =
     | Unreachable, None ->
       ({ extension_id_loc with loc_start = extension_id_loc.loc_end },
        Expectation.Body.Unreachable,
-       None)
+       Some "")
     | Normal, Some (loc, s, tag) ->
       (loc, Pretty s, tag)
     | Exact, Some (loc, s, tag) ->
