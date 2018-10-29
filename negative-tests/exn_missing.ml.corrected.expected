@@ -1,5 +1,6 @@
 open! Core
 
+
 let%expect_test "without trailing output" =
   printf "hello world";
   [%expect "hello world"]

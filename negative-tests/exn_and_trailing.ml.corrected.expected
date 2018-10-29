@@ -4,7 +4,6 @@ let%expect_test _ =
   [%expect.unreachable]
 [@@expect.uncaught_exn {|
   Exit
-
   Trailing output
   ---------------
   hello |}]

@@ -104,17 +104,10 @@ module Make(C : Expect_test_config.S) = struct
       if not (Check_backtraces.contains_backtraces s) then
         s
       else
-        let cr_prefix =
-          Expect_test_config.Upon_unreleasable_issue.comment_prefix
-            C.upon_unreleasable_issue
-        in
-        Printf.sprintf "\n\
-                        (* %sexpect_test_collector: This test expectation appears to \
-                        contain a backtrace.\n\
-                       \   This is strongly discouraged as backtraces are fragile.\n\
-                       \   Please change this test to not include a backtrace. *)\n\
-                        \n\
-                        %s" cr_prefix s
+        Expect_test_config.Upon_unreleasable_issue.
+          message_when_expectation_contains_backtrace
+          C.upon_unreleasable_issue
+        ^ s
 
     let relative_filename t =
       File.Name.relative_to ~dir:(File.initial_dir ()) t.filename

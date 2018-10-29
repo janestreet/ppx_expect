@@ -23,6 +23,9 @@ module Upon_unreleasable_issue : sig
   val equal : t -> t -> bool
 
   val comment_prefix : t -> string
+
+  (** Message to print when an expectation contains a backtrace *)
+  val message_when_expectation_contains_backtrace : t -> string
 end
 
 module type S = sig

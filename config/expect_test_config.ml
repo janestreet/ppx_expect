@@ -10,6 +10,14 @@ module Upon_unreleasable_issue = struct
     | `CR                            -> "CR "
     | `Warning_for_collector_testing -> ""
   ;;
+
+  let message_when_expectation_contains_backtrace t =
+    Printf.sprintf {|
+(* %sexpect_test_collector: This test expectation appears to contain a backtrace.
+   This is strongly discouraged as backtraces are fragile.
+   Please change this test to not include a backtrace. *)
+
+|} (comment_prefix t)
 end
 
 module type S = sig

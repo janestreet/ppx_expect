@@ -41,7 +41,14 @@ let convert_collector_test  ~allow_output_patterns (test : Collector_test_outcom
             "(\"%s(Cannot print more details, Exn.to_string failed)\")"
             name
       in
-      Some (exn ^ "\n" ^ Caml.Printexc.raw_backtrace_to_string bt)
+      Some (
+        match Caml.Printexc.raw_backtrace_to_string bt with
+        | "" -> exn
+        | bt ->
+          Expect_test_config.Upon_unreleasable_issue.
+            message_when_expectation_contains_backtrace
+            test.upon_unreleasable_issue ^
+          exn ^ "\n" ^ bt)
   in
   let uncaught_exn, trailing_output =
     match uncaught_exn, test.trailing_output with
