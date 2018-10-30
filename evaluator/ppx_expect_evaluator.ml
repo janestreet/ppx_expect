@@ -124,7 +124,7 @@ let create_group ~allow_output_patterns (filename, tests) =
   in
   if D.compare expected_digest current_digest <> 0 then
     Printf.ksprintf failwith
-      !"File \"%{File.Name}\" changed, you need rebuild inline_test_runner \
+      !"File \"%{File.Name}\" changed, you need rebuild inline_tests_runner \
         to be able to run expect tests \
         (expected digest: %{D}, current digest: %{D})"
       filename expected_digest current_digest;
