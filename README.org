@@ -137,7 +137,7 @@ If you are writing expect tests for a system using Async, Lwt or any
 other libraries for cooperative threading, you need some preparation
 so that everything works well. For instance, you probably need to
 flush some =stdout= channel. The expect test runtime takes care of
-flushing =Pervasives.stdout= but it doesn't know about
+flushing =Caml.stdout= but it doesn't know about
 =Async.Writer.stdout=, =Lwt_io.stdout= or anything else.
 
 To deal with this, expect\_test provides some hooks in the form of a

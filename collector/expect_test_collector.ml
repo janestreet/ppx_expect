@@ -57,8 +57,8 @@ module Make(C : Expect_test_config.S) = struct
     let flush () =
       Format.pp_print_flush Format.std_formatter ();
       Format.pp_print_flush Format.err_formatter ();
-      Pervasives.flush Pervasives.stdout;
-      Pervasives.flush Pervasives.stderr;
+      Caml.flush Caml.stdout;
+      Caml.flush Pervasives.stderr;
       C.flush ()
   end
 
