@@ -1,5 +1,4 @@
 #+TITLE: expect-test - a cram like framework for OCaml
-#+PARENT: ../README.md
 
 ** Introduction
 
