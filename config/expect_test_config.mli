@@ -29,18 +29,22 @@ module Upon_unreleasable_issue : sig
 end
 
 module type S = sig
-  (** IO monad *)
-  module IO : sig
+  module IO_run : sig
+    type 'a t
+  end
+
+  module IO_flush : sig
     type 'a t
     val return : 'a -> 'a t
     val bind : 'a t -> f:('a -> 'b t) -> 'b t
+    val to_run : 'a t -> 'a IO_run.t
   end
 
   (** Flush whatever need to be to get pending output out on file descriptor 0. *)
-  val flush : unit -> unit IO.t
+  val flush : unit -> unit IO_flush.t
 
   (** Run an IO operation until completion *)
-  val run : (unit -> unit IO.t) -> unit
+  val run : (unit -> unit IO_run.t) -> unit
 
   (** Synchronous check that there is no pending output on file description 0. With async,
       there is no guarantee that on the rhs of a [IO.bind (flush ()) ...] the output is
@@ -52,4 +56,7 @@ module type S = sig
   val upon_unreleasable_issue : Upon_unreleasable_issue.t
 end
 
-include S with type 'a IO.t = 'a
+include S
+  with type 'a IO_flush.t = 'a
+  with type 'a IO_run.t = 'a
+

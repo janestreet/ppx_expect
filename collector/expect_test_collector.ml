@@ -49,8 +49,8 @@ module Current_file = struct
 end
 
 module Make(C : Expect_test_config.S) = struct
-  let ( >>= ) t f = C.IO.bind t ~f
-  let return = C.IO.return
+  let ( >>= ) t f = C.IO_flush.bind t ~f
+  let return = C.IO_flush.return
 
   module C = struct
     include C
@@ -63,15 +63,15 @@ module Make(C : Expect_test_config.S) = struct
   end
 
   module Instance : sig
-    val save_output            : File.Location.t -> unit   C.IO.t
-    val save_and_return_output : File.Location.t -> string C.IO.t
+    val save_output            : File.Location.t -> unit   C.IO_flush.t
+    val save_and_return_output : File.Location.t -> string C.IO_flush.t
 
     val exec
       :  file_digest              : File.Digest.t
       -> location                 : File.Location.t
       -> expectations             : Expectation.Raw.t list
       -> uncaught_exn_expectation : Expectation.Raw.t option
-      -> f                        : (unit -> unit C.IO.t)
+      -> f                        : (unit -> unit C.IO_run.t)
       -> unit
   end = struct
     type t =
@@ -168,7 +168,7 @@ module Make(C : Expect_test_config.S) = struct
       t.saved <- (location, pos) :: t.saved;
       flush t.chan;
       let len = pos - prev_pos in
-      C.IO.return
+      return
         (with_ic (relative_filename t) ~f:(fun ic ->
            seek_in ic prev_pos;
            really_input_string ic len))
@@ -207,20 +207,21 @@ module Make(C : Expect_test_config.S) = struct
       current_test := Some (location, t);
       let finally uncaught_exn =
         C.run (fun () ->
-          final_flush (fun ~append ->
-            current_test := None;
-            let saved_output, trailing_output = get_outputs_and_cleanup t in
-            tests_run :=
-              { file_digest
-              ; location
-              ; expectations
-              ; uncaught_exn_expectation
-              ; saved_output
-              ; trailing_output = trailing_output ^ append
-              ; upon_unreleasable_issue = C.upon_unreleasable_issue
-              ; uncaught_exn
-              } :: !tests_run;
-            return ()))
+          C.IO_flush.to_run
+            (final_flush (fun ~append ->
+               current_test := None;
+               let saved_output, trailing_output = get_outputs_and_cleanup t in
+               tests_run :=
+                 { file_digest
+                 ; location
+                 ; expectations
+                 ; uncaught_exn_expectation
+                 ; saved_output
+                 ; trailing_output = trailing_output ^ append
+                 ; upon_unreleasable_issue = C.upon_unreleasable_issue
+                 ; uncaught_exn
+                 } :: !tests_run;
+               return ())))
       in
       match C.run f with
       | () -> finally None
@@ -261,7 +262,7 @@ module Make(C : Expect_test_config.S) = struct
              defined_in location.line_number registering_tests_for
          else begin
            (* To avoid capturing not-yet flushed data of the stdout buffer *)
-           C.run C.flush;
+           C.run (fun () -> C.IO_flush.to_run (C.flush ()));
            Instance.exec ~file_digest ~location ~expectations
              ~uncaught_exn_expectation ~f;
            true

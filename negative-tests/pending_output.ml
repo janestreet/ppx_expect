@@ -1,4 +1,4 @@
-module Expect_test_config : Expect_test_config.S with type 'a IO.t = 'a = struct
+module Expect_test_config : Expect_test_config.S with type 'a IO_flush.t = 'a with type 'a IO_run.t = 'a = struct
   include Expect_test_config
 
   let flushed () = print_string "blah\n"; false

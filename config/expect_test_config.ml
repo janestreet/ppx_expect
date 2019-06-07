@@ -21,21 +21,31 @@ module Upon_unreleasable_issue = struct
 end
 
 module type S = sig
-  module IO : sig
+  module IO_run : sig
+    type 'a t
+  end
+
+  module IO_flush : sig
     type 'a t
     val return : 'a -> 'a t
     val bind : 'a t -> f:('a -> 'b t) -> 'b t
+    val to_run : 'a t -> 'a IO_run.t
   end
-  val flush : unit -> unit IO.t
-  val run : (unit -> unit IO.t) -> unit
+  val flush : unit -> unit IO_flush.t
+  val run : (unit -> unit IO_run.t) -> unit
   val flushed : unit -> bool
   val upon_unreleasable_issue : [ `CR | `Warning_for_collector_testing ]
 end
 
-module IO = struct
+module IO_run = struct
   type 'a t = 'a
   let return x = x
   let bind t ~f = f t
+end
+
+module IO_flush = struct
+  include IO_run
+  let to_run t = t
 end
 
 let flush () = () (* the runtime already flushes [stdout] *)
