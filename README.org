@@ -130,7 +130,26 @@ pattern.
 When producing a correction, ppx_expect tries to respect as much as
 possible the formatting of the pattern.
 
+** Output capture
+
+The extension point =[%expect.output]= returns a =string= with the output that
+would have been matched had an =[%expect]= node been there instead.
+
+An idiom for testing non-deterministic output is to capture the output using
+=[%expect.output]= and either post-process it or inspect it manually, e.g.,
+
+#+BEGIN_SRC ocaml
+show_process ();
+let pid_and_exit_status = [%expect.output] in
+let exit_status = discard_pid pid_and_exit_status in
+print_endline exit_status;
+[%expect {| 1 |}]
+#+END_SRC
+
+This is preferred over output patterns (see below).
+
 ** Integration with Async, Lwt or other cooperative libraries
+
 
 If you are writing expect tests for a system using Async, Lwt or any
 other libraries for cooperative threading, you need some preparation
