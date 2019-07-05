@@ -150,7 +150,6 @@ This is preferred over output patterns (see below).
 
 ** Integration with Async, Lwt or other cooperative libraries
 
-
 If you are writing expect tests for a system using Async, Lwt or any
 other libraries for cooperative threading, you need some preparation
 so that everything works well. For instance, you probably need to
@@ -164,7 +163,29 @@ define no-op hooks that the user can override. =Async= redefines
 this module so when =Async= is opened you can write async-aware
 expect test.
 
-This is what you would need to write to do the same with Lwt:
+In addition to =Async.Expect_test_config=, there is an
+alternative, =Async.Expect_test_config_with_unit_expect=.  That is
+easier to use than =Async.Expect_test_config= because =[%expect]= has
+type =unit= rather than =unit Deferred.t=.  So one can write:
+
+#+begin_src ocaml
+[%expect foo];
+#+end_src
+
+rather than:
+
+#+begin_src ocaml
+let%bind () = [%expect foo] in
+#+end_src
+
+=Expect_test_config_with_unit_expect= arrived in 2019-06.  We hope to
+transition from =Expect_test_config= to
+=Expect_test_config_with_unit_expect=, eventually renaming the latter
+as the former.
+
+*** LWT
+
+This is what you would need to write expect tests with Lwt:
 
 #+begin_src ocaml
 module Expect_test_config
