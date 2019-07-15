@@ -5,7 +5,7 @@ let inner = ref Init
 
 let%expect_test _ =
   let module M = struct
-    inner := Set_by_inline_test
+    let () = inner := Set_by_inline_test
   end in ()
 
 let%test_unit _ = inner := Set_by_inline_test
