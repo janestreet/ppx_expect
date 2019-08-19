@@ -19,5 +19,5 @@ let%expect_test "Ensure repeated expect.outputs clean up in-betweeen" =
   Printf.printf "%s" (String.uppercase_ascii output2);
   [%expect {| SECOND |}];
   Printf.printf "%s" (String.uppercase_ascii output1);
-  [%expect {| FIRST |}];
+  [%expect {| FIRST |}]
 ;;

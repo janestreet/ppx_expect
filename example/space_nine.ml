@@ -22,31 +22,22 @@
    Generate with [cp space_nine.ml.corrected space_nine.ml] the following [%expect]... *)
 
 let%expect_test _ =
-  print_string " hello";          [%expect_exact " hello"];
-  print_string " hello\n";        [%expect_exact " hello
-"];
-  print_string " hello\n\n";      [%expect_exact " hello
-
-"];
-  print_string "\n hello";        [%expect_exact "
- hello"];
-  print_string "\n hello\n";      [%expect_exact "
- hello
-"];
-  print_string "\n hello\n\n";    [%expect_exact "
- hello
-
-"];
-  print_string "\n\n hello";      [%expect_exact "
-
- hello"];
-  print_string "\n\n hello\n";    [%expect_exact "
-
- hello
-"];
-  print_string "\n\n hello\n\n";  [%expect_exact "
-
- hello
-
-"]
+  print_string " hello";
+  [%expect_exact " hello"];
+  print_string " hello\n";
+  [%expect_exact " hello\n"];
+  print_string " hello\n\n";
+  [%expect_exact " hello\n\n"];
+  print_string "\n hello";
+  [%expect_exact "\n hello"];
+  print_string "\n hello\n";
+  [%expect_exact "\n hello\n"];
+  print_string "\n hello\n\n";
+  [%expect_exact "\n hello\n\n"];
+  print_string "\n\n hello";
+  [%expect_exact "\n\n hello"];
+  print_string "\n\n hello\n";
+  [%expect_exact "\n\n hello\n"];
+  print_string "\n\n hello\n\n";
+  [%expect_exact "\n\n hello\n\n"]
 ;;

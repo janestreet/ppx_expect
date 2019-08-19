@@ -6,6 +6,7 @@ let%expect_test _ =
   [%expect_exact {|
   foobarbaz
   |}]
+;;
 
 (* Check that [%expect_exact] does not treat whitespace as indentation *)
 let%expect_test _ =
@@ -13,8 +14,10 @@ let%expect_test _ =
   [%expect_exact {|
     foobarbaz
   |}]
+;;
 
 (* Check that [%expect_exact] does not strip whitespace on single lines *)
 let%expect_test _ =
   print_string "foobarbaz";
   [%expect_exact {| foobarbaz |}]
+;;

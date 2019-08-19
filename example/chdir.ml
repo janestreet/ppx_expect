@@ -1,4 +1,3 @@
-
 (* The test framework should be resilient to user changing the current directory. *)
 
 let%expect_test _ =
@@ -7,3 +6,4 @@ let%expect_test _ =
   [%expect {|
   hello world
 |}]
+;;

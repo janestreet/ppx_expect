@@ -4,7 +4,7 @@ let%expect_test _ =
     [%expect {| hello world |}]
   in
   f "hello world";
-  f "hello world";
+  f "hello world"
 ;;
 
 let%expect_test _ =
@@ -13,5 +13,5 @@ let%expect_test _ =
     [%expect {| |}]
   in
   f ();
-  f ();
+  f ()
 ;;

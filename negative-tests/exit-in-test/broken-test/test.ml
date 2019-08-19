@@ -3,5 +3,5 @@ let%expect_test _ =
   [%expect {|foo|}];
   print_endline "Something went horribly wrong, exiting prematurely!";
   (exit 42 : unit);
-  [%expect {| random output |}];
+  [%expect {| random output |}]
 ;;

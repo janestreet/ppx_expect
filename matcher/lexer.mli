@@ -4,14 +4,9 @@ open Expect_test_common.Std
 val strip_surrounding_whitespaces : string -> unit Cst.t
 
 
-val parse_pretty_line
-  :  allow_output_patterns:bool
-  -> string
-  -> Fmt.t
-val parse_pretty
-  :  allow_output_patterns:bool
-  -> string
-  -> Fmt.t Cst.t
+val parse_pretty_line : allow_output_patterns:bool -> string -> Fmt.t
+val parse_pretty : allow_output_patterns:bool -> string -> Fmt.t Cst.t
+
 val parse_body
   :  allow_output_patterns:bool
   -> string Expectation.Body.t

@@ -1,2 +1,2 @@
-module File        = File
+module File = File
 module Expectation = Expectation

@@ -8,3 +8,4 @@ let%expect_test _ =
   [%expect {|
     hello
     goodbye |}]
+;;

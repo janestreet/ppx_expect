@@ -4,6 +4,7 @@ let%expect_test _ =
   (* Correction should include a string tag *)
   print_string "{|String tag required|}";
   [%expect {xxx| {|String tag required|} |xxx}]
+;;
 
 let%expect_test _ =
   (* The correction should use the same string-kind (normal,quoted) as the [%expect] *)
@@ -17,3 +18,4 @@ let%expect_test _ =
   [%expect{|
     Foo
     "bar baz" |}]
+;;

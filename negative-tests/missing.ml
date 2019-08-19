@@ -5,3 +5,4 @@ open! Core
 let%expect_test _ =
   print_string "hello\n";
   print_string "goodbye\n"
+;;

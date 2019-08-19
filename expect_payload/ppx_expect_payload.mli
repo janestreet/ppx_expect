@@ -6,14 +6,11 @@ val transl_loc : Location.t -> File.Location.t
 
 type data = Location.t * string * string option (* string loc, string, tag *)
 
-type kind = Normal | Exact | Unreachable | Output
+type kind =
+  | Normal
+  | Exact
+  | Unreachable
+  | Output
 
-val make
-  :  kind:kind
-  -> data option
-  -> extension_id_loc:Location.t
-  -> Expectation.Raw.t
-
-val pattern
-  : unit
-  -> (Parsetree.payload, data option -> 'a, 'a) Ast_pattern.t
+val make : kind:kind -> data option -> extension_id_loc:Location.t -> Expectation.Raw.t
+val pattern : unit -> (Parsetree.payload, data option -> 'a, 'a) Ast_pattern.t

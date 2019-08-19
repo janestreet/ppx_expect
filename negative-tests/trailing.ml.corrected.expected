@@ -5,14 +5,13 @@ open! Core
 let%expect_test _ =
   print_string "hello";
   [%expect {| hello |}];
-
   print_string "goodbye\n";
   [%expect {| goodbye |}]
+;;
 
 let%expect_test _ =
   print_string "foo";
   [%expect {| foo |}];
-
   print_string "bar";
   [%expect {| bar |}]
 ;;
@@ -20,3 +19,4 @@ let%expect_test _ =
 let%expect_test _ =
   print_string "hello world";
   [%expect {| hello world |}]
+;;

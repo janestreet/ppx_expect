@@ -16,12 +16,11 @@
 
 module Upon_unreleasable_issue : sig
   type t =
-    [ `CR     (** Leaves a CR, so that features cannot be released. *)
-    | `Warning_for_collector_testing  (** Only for ppx_expect testing; do not use. *)
+    [ `CR (** Leaves a CR, so that features cannot be released. *)
+    | `Warning_for_collector_testing (** Only for ppx_expect testing; do not use. *)
     ]
 
   val equal : t -> t -> bool
-
   val comment_prefix : t -> string
 
   (** Message to print when an expectation contains a backtrace *)
@@ -35,6 +34,7 @@ module type S = sig
 
   module IO_flush : sig
     type 'a t
+
     val return : 'a -> 'a t
     val bind : 'a t -> f:('a -> 'b t) -> 'b t
     val to_run : 'a t -> 'a IO_run.t
@@ -51,12 +51,10 @@ module type S = sig
       completely flushed, that's why we need this. *)
   val flushed : unit -> bool
 
+
   (** [upon_unreleasable_issue] specifies how to deal with output that should not be
       released even if it is accepted (e.g. backtraces). The default is [`CR].  *)
   val upon_unreleasable_issue : Upon_unreleasable_issue.t
 end
 
-include S
-  with type 'a IO_flush.t = 'a
-  with type 'a IO_run.t = 'a
-
+include S with type 'a IO_flush.t = 'a with type 'a IO_run.t = 'a

@@ -1,3 +1,4 @@
 let%expect_test _ =
-  print_string "hello"; [%expect "goodbye"]
+  print_string "hello";
+  [%expect "goodbye"]
 ;;

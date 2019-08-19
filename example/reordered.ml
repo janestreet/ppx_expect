@@ -3,8 +3,7 @@ let%expect_test _ =
     print_string "bar";
     [%expect {| bar |}]
   in
-
   print_string "foo";
   [%expect {| foo |}];
-
-  f ();
+  f ()
+;;

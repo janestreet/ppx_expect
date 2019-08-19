@@ -3,3 +3,4 @@ let%expect_test _ =
   if true then raise Exit;
   [%expect {| hello |}]
 [@@expect.uncaught_exn {| Exit |}]
+;;

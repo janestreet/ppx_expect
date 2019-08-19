@@ -11,9 +11,9 @@ module Result : sig
 end
 
 val expectation_body
-  :  expect                : Fmt.t Cst.t Expectation.Body.t
-  -> actual                : string
-  -> default_indent        : int
-  -> pad_single_line       : bool
-  -> allow_output_patterns : bool
+  :  expect:Fmt.t Cst.t Expectation.Body.t
+  -> actual:string
+  -> default_indent:int
+  -> pad_single_line:bool
+  -> allow_output_patterns:bool
   -> Fmt.t Cst.t Expectation.Body.t Result.t

@@ -4,6 +4,7 @@ let%expect_test _ =
   (* Correction should include a string tag *)
   print_string "{|String tag required|}";
   [%expect {||}]
+;;
 
 let%expect_test _ =
   (* The correction should use the same string-kind (normal,quoted) as the [%expect] *)
@@ -15,3 +16,4 @@ let%expect_test _ =
     Foo
     "bar baz"|};
   [%expect.unreachable]
+;;

@@ -23,39 +23,83 @@
 
 let%expect_test _ =
   let module M = struct
-    let () = print_string "hello";          [%expect {| hello |}]
-    let () = print_string "hello\n";        [%expect {|
+    let () =
+      print_string "hello";
+      [%expect {| hello |}]
+    ;;
+
+    let () =
+      print_string "hello\n";
+      [%expect
+        {|
                                               hello
                                             |}]
-    let () = print_string "hello\n\n";      [%expect {|
+    ;;
+
+    let () =
+      print_string "hello\n\n";
+      [%expect
+        {|
                                               hello
 
                                             |}]
-    let () = print_string "\nhello";        [%expect {|
+    ;;
+
+    let () =
+      print_string "\nhello";
+      [%expect {|
 
                                               hello|}]
-    let () = print_string "\nhello\n";      [%expect {|
+    ;;
+
+    let () =
+      print_string "\nhello\n";
+      [%expect
+        {|
 
                                               hello
                                             |}]
-    let () = print_string "\nhello\n\n";    [%expect {|
+    ;;
+
+    let () =
+      print_string "\nhello\n\n";
+      [%expect
+        {|
 
                                               hello
 
                                             |}]
-    let () = print_string "\n\nhello";      [%expect {|
+    ;;
+
+    let () =
+      print_string "\n\nhello";
+      [%expect {|
 
 
                                               hello|}]
-    let () = print_string "\n\nhello\n";    [%expect {|
+    ;;
+
+    let () =
+      print_string "\n\nhello\n";
+      [%expect
+        {|
 
 
                                               hello
                                             |}]
-    let () = print_string "\n\nhello\n\n";  [%expect {|
+    ;;
+
+    let () =
+      print_string "\n\nhello\n\n";
+      [%expect
+        {|
 
 
                                               hello
 
                                             |}]
-  end in ()
+    ;;
+  end
+  in
+  ()
+;;

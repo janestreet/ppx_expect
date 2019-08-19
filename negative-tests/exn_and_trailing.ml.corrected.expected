@@ -7,3 +7,4 @@ let%expect_test _ =
   Trailing output
   ---------------
   hello |}]
+;;

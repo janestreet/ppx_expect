@@ -3,7 +3,7 @@ open Ppx_sexp_conv_lib.Conv
 
 module Body = struct
   type 'a t =
-    | Exact  of string
+    | Exact of string
     | Output
     | Pretty of 'a
     | Unreachable
@@ -13,14 +13,16 @@ module Body = struct
     match t with
     | (Exact _ | Output | Unreachable) as t -> t
     | Pretty x -> Pretty (f x)
+  ;;
 end
 
 type 'a t =
-  { tag            : string option
-  ; body           : 'a Body.t
+  { tag : string option
+  ; body : 'a Body.t
   ; extid_location : File.Location.t
-  ; body_location  : File.Location.t
-  } [@@deriving sexp_of, compare]
+  ; body_location : File.Location.t
+  }
+[@@deriving sexp_of, compare]
 
 module Raw = struct
   type nonrec t = string t [@@deriving sexp_of, compare]

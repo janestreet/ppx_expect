@@ -11,12 +11,12 @@ module Test_outcome : sig
   (** Outcome of a group of test. Either a single [let%expect_test], or a whole file for
       toplevel expect test. *)
   type t =
-    { expectations             : Fmt.t Cst.t Expectation.t Map.M(File.Location).t
+    { expectations : Fmt.t Cst.t Expectation.t Map.M(File.Location).t
     ; uncaught_exn_expectation : Fmt.t Cst.t Expectation.t option
-    ; saved_output             : Saved_output.t Map.M(File.Location).t
-    ; trailing_output          : Saved_output.t
-    ; uncaught_exn             : Saved_output.t option
-    ; upon_unreleasable_issue  : Expect_test_config.Upon_unreleasable_issue.t
+    ; saved_output : Saved_output.t Map.M(File.Location).t
+    ; trailing_output : Saved_output.t
+    ; uncaught_exn : Saved_output.t option
+    ; upon_unreleasable_issue : Expect_test_config.Upon_unreleasable_issue.t
     }
 
   (* Merge two [t]s with the same expectations *)
@@ -40,15 +40,15 @@ module Test_correction : sig
     type t =
       | Match
       | Without_expectation of Fmt.t Cst.t Expectation.Body.t
-      | Correction          of Fmt.t Cst.t Expectation.t * Fmt.t Cst.t Expectation.Body.t
-      | Unused_expectation  of Fmt.t Cst.t Expectation.t
+      | Correction of Fmt.t Cst.t Expectation.t * Fmt.t Cst.t Expectation.Body.t
+      | Unused_expectation of Fmt.t Cst.t Expectation.t
   end
 
   val make
-    :  location        : File.Location.t
-    -> corrections     : (Fmt.t Cst.t Expectation.t * Node_correction.t) list
-    -> uncaught_exn    : Uncaught_exn.t
-    -> trailing_output : Fmt.t Cst.t Expectation.Body.t Reconcile.Result.t
+    :  location:File.Location.t
+    -> corrections:(Fmt.t Cst.t Expectation.t * Node_correction.t) list
+    -> uncaught_exn:Uncaught_exn.t
+    -> trailing_output:Fmt.t Cst.t Expectation.Body.t Reconcile.Result.t
     -> t Reconcile.Result.t
 end
 
@@ -60,7 +60,9 @@ val evaluate_test
   -> Test_outcome.t
   -> Test_correction.t Reconcile.Result.t
 
-type mode = Inline_expect_test | Toplevel_expect_test
+type mode =
+  | Inline_expect_test
+  | Toplevel_expect_test
 
 (** Write a list of correction to a file. *)
 val write_corrected
