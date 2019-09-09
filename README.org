@@ -158,7 +158,7 @@ flushing =Caml.stdout= but it doesn't know about
 =Async.Writer.stdout=, =Lwt_io.stdout= or anything else.
 
 To deal with this, expect\_test provides some hooks in the form of a
-condifuration module =Expect_test_config=. The default module in scope
+configuration module =Expect_test_config=. The default module in scope
 define no-op hooks that the user can override. =Async= redefines
 this module so when =Async= is opened you can write async-aware
 expect test.
