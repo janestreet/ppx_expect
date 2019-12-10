@@ -52,7 +52,7 @@ let replace_expects =
   object
     inherit Ast_traverse.map as super
 
-    method! expression ({ pexp_attributes; pexp_loc; _ } as expr) =
+    method! expression ({ pexp_attributes; pexp_loc = loc; _ } as expr) =
       match Expect_extension.match_expectation expr with
       | None -> super#expression expr
       | Some ext ->
@@ -61,7 +61,6 @@ let replace_expects =
           | Exact _ | Pretty _ | Unreachable -> "Expect_test_collector.save_output"
           | Output -> "Expect_test_collector.save_and_return_output"
         in
-        let loc = { pexp_loc with loc_end = pexp_loc.loc_start } in
         let expr =
           [%expr [%e evar ~loc f_var] [%e lift_location ~loc ext.extid_location]]
         in
