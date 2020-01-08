@@ -23,7 +23,8 @@ let lift_expectation ~loc expect =
   let exp = (lifter ~loc)#raw expect in
   (* the constraint is added in order to avoid warnings if the code
      is compiled with -principal. *)
-  [%expr ([%e exp] : string Expect_test_common.Std.Expectation.t)]
+  Merlin_helpers.hide_expression
+    [%expr ([%e exp] : string Expect_test_common.Std.Expectation.t)]
 ;;
 
 let eoption ~loc x =
