@@ -9,7 +9,7 @@ module Test_outcome = struct
     ; uncaught_exn_expectation : Expectation.Raw.t option
     ; saved_output : (File.Location.t * string) list
     ; trailing_output : string
-    ; upon_unreleasable_issue : Expect_test_config.Upon_unreleasable_issue.t
+    ; upon_unreleasable_issue : Expect_test_config_types.Upon_unreleasable_issue.t
     ; uncaught_exn : (exn * Printexc.raw_backtrace) option
     }
 end
@@ -48,7 +48,7 @@ module Current_file = struct
   ;;
 end
 
-module Make (C : Expect_test_config.S) = struct
+module Make (C : Expect_test_config_types.S) = struct
   let ( >>= ) t f = C.IO_flush.bind t ~f
   let return = C.IO_flush.return
 
@@ -111,7 +111,7 @@ module Make (C : Expect_test_config.S) = struct
       if not (Check_backtraces.contains_backtraces s)
       then s
       else
-        Expect_test_config.Upon_unreleasable_issue
+        Expect_test_config_types.Upon_unreleasable_issue
         .message_when_expectation_contains_backtrace
           C.upon_unreleasable_issue
         ^ s

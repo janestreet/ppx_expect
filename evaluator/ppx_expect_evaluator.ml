@@ -49,7 +49,7 @@ let convert_collector_test ~allow_output_patterns (test : Collector_test_outcome
         (match Caml.Printexc.raw_backtrace_to_string bt with
          | "" -> exn
          | bt ->
-           Expect_test_config.Upon_unreleasable_issue
+           Expect_test_config_types.Upon_unreleasable_issue
            .message_when_expectation_contains_backtrace
              test.upon_unreleasable_issue
            ^ exn

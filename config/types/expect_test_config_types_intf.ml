@@ -36,7 +36,7 @@ module type S = sig
 end
 
 (** Configuration for running expect tests *)
-module type Expect_test_config = sig
+module type Expect_test_config_types = sig
   (** To configure expect_test, add the following at the top of your .ml file, or in some
       import.ml:
 
@@ -62,6 +62,4 @@ module type Expect_test_config = sig
   end
 
   module type S = S
-
-  include S with type 'a IO_flush.t = 'a with type 'a IO_run.t = 'a
 end
