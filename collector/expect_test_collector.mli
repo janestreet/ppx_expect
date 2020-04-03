@@ -1,4 +1,4 @@
-open Expect_test_common.Std
+open Expect_test_common
 
 module Test_outcome : sig
   type t =

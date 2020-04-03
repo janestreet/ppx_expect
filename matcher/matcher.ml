@@ -1,6 +1,6 @@
 open Base
 open Stdio
-open Expect_test_common.Std
+open Expect_test_common
 
 let fprintf = Out_channel.fprintf
 

@@ -5,4 +5,4 @@ type t =
   | Regexp of string
   | Glob of string
   | Literal of string
-[@@deriving sexp_of, variants, compare]
+[@@deriving sexp_of, compare]

@@ -1,4 +1,4 @@
-open Expect_test_common.Std
+open Expect_test_common
 open Ppxlib
 
 let transl_loc (loc : Location.t) : File.Location.t =

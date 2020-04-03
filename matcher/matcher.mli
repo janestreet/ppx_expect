@@ -1,5 +1,5 @@
 open Base
-open Expect_test_common.Std
+open Expect_test_common
 
 module Saved_output : sig
   type t

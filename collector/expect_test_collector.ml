@@ -1,4 +1,4 @@
-open Expect_test_common.Std
+open Expect_test_common
 module List = ListLabels
 
 module Test_outcome = struct
@@ -146,21 +146,12 @@ module Make (C : Expect_test_config_types.S) = struct
     ;;
 
     let current_test : (File.Location.t * t) option ref = ref None
-    let last_test_loc = ref None
 
     let get_current () =
       match !current_test with
       | Some (_, t) -> t
       | None ->
-        Printf.ksprintf
-          failwith
-          "Expect_test_collector.Instance.get_current called outside a test.%s"
-          (match !last_test_loc with
-           | None -> ""
-           | Some location ->
-             Printf.sprintf
-               !"\nThe last test to be executed was: %{sexp:File.Location.t}."
-               location)
+        failwith "Expect_test_collector.Instance.get_current called outside a test."
     ;;
 
     let save_output location =
