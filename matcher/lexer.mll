@@ -1,4 +1,5 @@
 {
+  open Import
   open Expect_test_common
   open Ppx_sexp_conv_lib.Conv
 

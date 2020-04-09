@@ -1,3 +1,5 @@
+open! Base
+open Import
 open Expect_test_common
 open Ppx_sexp_conv_lib.Conv
 
@@ -6,7 +8,37 @@ module Result = struct
   type 'a t =
     | Match
     | Correction of 'a
-  [@@deriving sexp_of, compare]
+  [@@deriving_inline sexp_of, compare]
+
+  let _ = fun (_ : 'a t) -> ()
+
+  let sexp_of_t
+    : type a. (a -> Ppx_sexp_conv_lib.Sexp.t) -> a t -> Ppx_sexp_conv_lib.Sexp.t
+    =
+    fun _of_a -> function
+      | Match -> Ppx_sexp_conv_lib.Sexp.Atom "Match"
+      | Correction v0 ->
+        let v0 = _of_a v0 in
+        Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "Correction"; v0 ]
+  ;;
+
+  let _ = sexp_of_t
+
+  let compare : 'a. ('a -> 'a -> int) -> 'a t -> 'a t -> int =
+    fun _cmp__a a__001_ b__002_ ->
+    if Ppx_compare_lib.phys_equal a__001_ b__002_
+    then 0
+    else (
+      match a__001_, b__002_ with
+      | Match, Match -> 0
+      | Match, _ -> -1
+      | _, Match -> 1
+      | Correction _a__003_, Correction _b__004_ -> _cmp__a _a__003_ _b__004_)
+  ;;
+
+  let _ = compare
+
+  [@@@end]
 
   let map t ~f =
     match t with
@@ -88,7 +120,7 @@ let rec corrected_rev
   match expect_lines, actual_lines with
   | [], [] -> acc
   | [], actual_lines ->
-    ListLabels.fold_left actual_lines ~init:acc ~f:(fun acc x ->
+    List.fold actual_lines ~init:acc ~f:(fun acc x ->
       literal_line x ~allow_output_patterns :: acc)
   | _, [] -> acc
   | expect :: expect_lines, actual :: actual_lines ->

@@ -1,12 +1,24 @@
 (** Determine whether a test's output matches its expected output. *)
 
+open! Base
+open Import
 open Expect_test_common
 
 module Result : sig
   type 'a t =
     | Match
     | Correction of 'a
-  [@@deriving compare, sexp_of]
+  [@@deriving_inline compare, sexp_of]
+
+  include sig
+    [@@@ocaml.warning "-32"]
+
+    val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
+    val sexp_of_t : ('a -> Ppx_sexp_conv_lib.Sexp.t) -> 'a t -> Ppx_sexp_conv_lib.Sexp.t
+  end
+  [@@ocaml.doc "@inline"]
+
+  [@@@end]
 
   val map : 'a t -> f:('a -> 'b) -> 'b t
 end
