@@ -64,12 +64,20 @@ module Location = struct
          and extra = ref [] in
          let rec iter = function
            | Ppx_sexp_conv_lib.Sexp.List
-               [ Ppx_sexp_conv_lib.Sexp.Atom field_name; _field_sexp ]
+               (Ppx_sexp_conv_lib.Sexp.Atom field_name :: (([] | [ _ ]) as _field_sexps))
              :: tail ->
+             let _field_sexp () =
+               match _field_sexps with
+               | [ x ] -> x
+               | [] ->
+                 Ppx_sexp_conv_lib.Conv_error.record_only_pairs_expected _tp_loc sexp
+               | _ -> assert false
+             in
              (match field_name with
               | "filename" ->
                 (match !filename_field with
                  | Ppx_sexp_conv_lib.Option.None ->
+                   let _field_sexp = _field_sexp () in
                    let fvalue = Name.t_of_sexp _field_sexp in
                    filename_field := Ppx_sexp_conv_lib.Option.Some fvalue
                  | Ppx_sexp_conv_lib.Option.Some _ ->
@@ -77,6 +85,7 @@ module Location = struct
               | "line_number" ->
                 (match !line_number_field with
                  | Ppx_sexp_conv_lib.Option.None ->
+                   let _field_sexp = _field_sexp () in
                    let fvalue = int_of_sexp _field_sexp in
                    line_number_field := Ppx_sexp_conv_lib.Option.Some fvalue
                  | Ppx_sexp_conv_lib.Option.Some _ ->
@@ -84,6 +93,7 @@ module Location = struct
               | "line_start" ->
                 (match !line_start_field with
                  | Ppx_sexp_conv_lib.Option.None ->
+                   let _field_sexp = _field_sexp () in
                    let fvalue = int_of_sexp _field_sexp in
                    line_start_field := Ppx_sexp_conv_lib.Option.Some fvalue
                  | Ppx_sexp_conv_lib.Option.Some _ ->
@@ -91,6 +101,7 @@ module Location = struct
               | "start_pos" ->
                 (match !start_pos_field with
                  | Ppx_sexp_conv_lib.Option.None ->
+                   let _field_sexp = _field_sexp () in
                    let fvalue = int_of_sexp _field_sexp in
                    start_pos_field := Ppx_sexp_conv_lib.Option.Some fvalue
                  | Ppx_sexp_conv_lib.Option.Some _ ->
@@ -98,6 +109,7 @@ module Location = struct
               | "end_pos" ->
                 (match !end_pos_field with
                  | Ppx_sexp_conv_lib.Option.None ->
+                   let _field_sexp = _field_sexp () in
                    let fvalue = int_of_sexp _field_sexp in
                    end_pos_field := Ppx_sexp_conv_lib.Option.Some fvalue
                  | Ppx_sexp_conv_lib.Option.Some _ ->
@@ -106,13 +118,6 @@ module Location = struct
                 if !Ppx_sexp_conv_lib.Conv.record_check_extra_fields
                 then extra := field_name :: !extra
                 else ());
-             iter tail
-           | Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom field_name ]
-             :: tail ->
-             (let _ = field_name in
-              if !Ppx_sexp_conv_lib.Conv.record_check_extra_fields
-              then extra := field_name :: !extra
-              else ());
              iter tail
            | ((Ppx_sexp_conv_lib.Sexp.Atom _ | Ppx_sexp_conv_lib.Sexp.List _) as sexp)
              :: _ -> Ppx_sexp_conv_lib.Conv_error.record_only_pairs_expected _tp_loc sexp
