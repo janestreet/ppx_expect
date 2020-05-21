@@ -293,6 +293,7 @@ module Make (C : Expect_test_config_types.S) = struct
            true))
   ;;
 end
+[@@inline never]
 
 let tests_run () =
   (* We prepend tests when we encounter them, so reverse the list to reinstate order *)
