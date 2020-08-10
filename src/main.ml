@@ -28,9 +28,7 @@ let eoption ~loc x =
 
 let estring_option ~loc x = eoption ~loc (Option.map x ~f:(estring ~loc))
 
-let lift_expectation
-      ~loc
-      ({ tag; body; extid_location; body_location } : _ Expectation.t)
+let lift_expectation ~loc ({ tag; body; extid_location; body_location } : _ Expectation.t)
   =
   Merlin_helpers.hide_expression
     [%expr

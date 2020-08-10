@@ -218,8 +218,7 @@ let sexp_of_single_line :
 
 let _ = sexp_of_single_line
 
-let compare_single_line :
-  'a. ('a -> 'a -> int) -> 'a single_line -> 'a single_line -> int
+let compare_single_line : 'a. ('a -> 'a -> int) -> 'a single_line -> 'a single_line -> int
   =
   fun _cmp__a a__021_ b__022_ ->
   if Ppx_compare_lib.phys_equal a__021_ b__022_
@@ -238,8 +237,7 @@ let compare_single_line :
 
 let _ = compare_single_line
 
-let equal_single_line :
-  'a. ('a -> 'a -> bool) -> 'a single_line -> 'a single_line -> bool
+let equal_single_line : 'a. ('a -> 'a -> bool) -> 'a single_line -> 'a single_line -> bool
   =
   fun _cmp__a a__023_ b__024_ ->
   if Ppx_compare_lib.phys_equal a__023_ b__024_
@@ -302,8 +300,7 @@ let sexp_of_multi_lines :
 
 let _ = sexp_of_multi_lines
 
-let compare_multi_lines :
-  'a. ('a -> 'a -> int) -> 'a multi_lines -> 'a multi_lines -> int
+let compare_multi_lines : 'a. ('a -> 'a -> int) -> 'a multi_lines -> 'a multi_lines -> int
   =
   fun _cmp__a a__025_ b__026_ ->
   if Ppx_compare_lib.phys_equal a__025_ b__026_
@@ -326,8 +323,7 @@ let compare_multi_lines :
 
 let _ = compare_multi_lines
 
-let equal_multi_lines :
-  'a. ('a -> 'a -> bool) -> 'a multi_lines -> 'a multi_lines -> bool
+let equal_multi_lines : 'a. ('a -> 'a -> bool) -> 'a multi_lines -> 'a multi_lines -> bool
   =
   fun _cmp__a a__031_ b__032_ ->
   if Ppx_compare_lib.phys_equal a__031_ b__032_
@@ -357,8 +353,7 @@ type 'a t =
 
 let _ = fun (_ : 'a t) -> ()
 
-let sexp_of_t
-  : type a. (a -> Ppx_sexp_conv_lib.Sexp.t) -> a t -> Ppx_sexp_conv_lib.Sexp.t
+let sexp_of_t : type a. (a -> Ppx_sexp_conv_lib.Sexp.t) -> a t -> Ppx_sexp_conv_lib.Sexp.t
   =
   fun _of_a -> function
     | Empty v0 ->
@@ -564,9 +559,7 @@ let extract_indentation lines =
   match not_blank_lines lines with
   | [] -> "", lines
   | first :: rest ->
-    let indent =
-      List.fold_left rest ~init:(indentation first) ~f:longest_common_prefix
-    in
+    let indent = List.fold_left rest ~init:(indentation first) ~f:longest_common_prefix in
     let indent_len = String.length indent in
     let update_line : 'a Line.t -> 'a Line.t = function
       | Blank b -> Blank b

@@ -110,8 +110,7 @@ module Test_outcome = struct
     { expectations
     ; uncaught_exn_expectation
     ; saved_output =
-        Map.merge t.saved_output saved_output ~f:(fun ~key:_ ->
-          function
+        Map.merge t.saved_output saved_output ~f:(fun ~key:_ -> function
           | `Left x -> Some x
           | `Right x -> Some x
           | `Both (x, y) -> Some (Saved_output.merge x y))

@@ -4,9 +4,7 @@ open Expect_test_common
 open Expect_test_matcher
 
 (* [matcher/lexer.mll] checks for escaped newlines. *)
-let%test_unit _ =
-  [%test_result: string] (Scanf.unescaped "xx\\n\032yy") ~expect:"xx\n yy"
-;;
+let%test_unit _ = [%test_result: string] (Scanf.unescaped "xx\\n\032yy") ~expect:"xx\n yy"
 
 let%test_module "Choose_tag" =
   (module struct
@@ -86,14 +84,11 @@ let%test_module "Reconcile" =
           Cst.Line.Not_blank { orig; trailing_blanks; data = () }
         ;;
 
-        let%test_unit _ =
-          [%test_result: unit Cst.t] (strip "\n  ") ~expect:(Empty "\n  ")
-        ;;
+        let%test_unit _ = [%test_result: unit Cst.t] (strip "\n  ") ~expect:(Empty "\n  ")
 
         let%test_unit _ =
           [%test_result: unit Cst.t]
-            (strip
-               "   \n   foo   \n     bar     \n     plop  \n  \n    blah \n \n   ")
+            (strip "   \n   foo   \n     bar     \n     plop  \n  \n    blah \n \n   ")
             ~expect:
               (Multi_lines
                  { leading_spaces = "   \n"
