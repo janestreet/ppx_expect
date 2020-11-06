@@ -171,7 +171,7 @@ let process_group
   | [] ->
     remove dot_corrected;
     Success
-  | _ ->
+  | _ :: _ ->
     let no_diff =
       match diff_command with
       | Some "-" -> true

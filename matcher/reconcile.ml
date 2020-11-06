@@ -107,7 +107,7 @@ let rec lines_match
     let line = reconcile_line ~expect:format ~actual ~allow_output_patterns in
     (match line with
      | Match -> lines_match ~expect_lines ~actual_lines ~allow_output_patterns
-     | _ -> false)
+     | Correction _ -> false)
 ;;
 
 let rec corrected_rev

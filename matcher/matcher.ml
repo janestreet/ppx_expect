@@ -171,13 +171,13 @@ module Test_correction = struct
 
   let make ~location ~corrections ~uncaught_exn ~trailing_output : t Reconcile.Result.t =
     if List.is_empty corrections
-    && (match trailing_output with
-        | Reconcile.Result.Match -> true
-        | _ -> false)
+    && (match (trailing_output : _ Reconcile.Result.t) with
+        | Match -> true
+        | Correction _ -> false)
     &&
-    match uncaught_exn with
-    | Uncaught_exn.Match -> true
-    | _ -> false
+    match (uncaught_exn : Uncaught_exn.t) with
+    | Match -> true
+    | Correction _ | Without_expectation _ | Unused_expectation _ -> false
     then Match
     else Correction { location; corrections; uncaught_exn; trailing_output }
   ;;
@@ -225,8 +225,8 @@ let evaluate_test
       match Map.find test.saved_output location with
       | None ->
         (match expect.body with
-         | Unreachable -> None
-         | _ ->
+         | Unreachable | Output -> None
+         | Exact _ | Pretty _ ->
            Some (expect, Test_correction.Node_correction.Collector_never_triggered))
       | Some (One actual) -> correction_for actual
       | Some (Many_distinct outputs) ->
@@ -381,7 +381,7 @@ let output_corrected oc ~file_contents ~mode test_corrections =
               }
             in
             test_correction, Some (!start, !stop)
-          | _ -> test_correction, None
+          | Match | Without_expectation _ | Correction _ -> test_correction, None
         in
         let ofs =
           List.fold_left
@@ -413,7 +413,7 @@ let output_corrected oc ~file_contents ~mode test_corrections =
             output_slice oc file_contents ofs loc.end_pos;
             if match mode with
               | Inline_expect_test -> true
-              | _ -> false
+              | Toplevel_expect_test -> false
             then output_semi_colon_if_needed oc file_contents loc.end_pos;
             let id, body = id_and_string_of_body c in
             (match mode with
