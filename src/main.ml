@@ -171,6 +171,7 @@ let expect_test =
     Structure_item
     (P.pattern ())
     (fun ~loc ~path:_ uncaught_exn ~name ~tags code ->
+       let loc = { loc with loc_ghost = true } in
        Has_tests.set true;
        Ppx_inline_test.validate_extension_point_exn
          ~name_of_ppx_rewriter:"ppx_expect"
@@ -188,6 +189,7 @@ let () =
       match whole_loc, Ppx_inline_test_libname.get () with
       | None, _ | _, None -> [], []
       | Some loc, Some _ ->
+        let loc = { loc with loc_ghost = true } in
         let maybe_drop = Ppx_inline_test.maybe_drop in
         let absolute_filename =
           Ppx_here_expander.expand_filename loc.loc_start.pos_fname
