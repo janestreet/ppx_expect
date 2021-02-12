@@ -266,9 +266,10 @@ module Make (C : Expect_test_config_types.S) = struct
     Ppx_inline_test_lib.Runtime.test
       ~config:inline_test_config
       ~descr:
-        (match description with
-         | None -> ""
-         | Some s -> ": " ^ s)
+        (lazy
+          (match description with
+           | None -> ""
+           | Some s -> s))
       ~tags
       ~filename:(File.Name.to_string location.filename)
       ~line_number:location.line_number
