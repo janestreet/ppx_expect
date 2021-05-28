@@ -204,6 +204,7 @@ let process_group
           Ppxlib_print_diff.print
             ~file1:filename
             ~file2:tmp_corrected
+            ~extra_patdiff_args:[ "-alt-new"; dot_corrected ]
             ~use_color
             ?diff_command
             ();
