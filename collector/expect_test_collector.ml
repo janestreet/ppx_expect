@@ -58,8 +58,8 @@ module Make (C : Expect_test_config_types.S) = struct
     let flush () =
       Format.pp_print_flush Format.std_formatter ();
       Format.pp_print_flush Format.err_formatter ();
-      Caml.flush Caml.stdout;
-      Caml.flush Caml.stderr;
+      Stdlib.flush Stdlib.stdout;
+      Stdlib.flush Stdlib.stderr;
       C.flush ()
     ;;
   end
@@ -106,8 +106,8 @@ module Make (C : Expect_test_config_types.S) = struct
       { chan; filename = File.Name.of_string filename; saved = [] }
     ;;
 
-    let extract_output ic len =
-      let s = really_input_string ic len in
+    let extract_output_and_sanitize ic len =
+      let s = really_input_string ic len |> C.sanitize in
       if not (Check_backtraces.contains_backtraces s)
       then s
       else
@@ -138,10 +138,10 @@ module Make (C : Expect_test_config_types.S) = struct
                 (List.rev t.saved)
                 ~init:(0, [])
                 ~f:(fun (ofs, acc) (loc, next_ofs) ->
-                  let s = extract_output ic (next_ofs - ofs) in
+                  let s = extract_output_and_sanitize ic (next_ofs - ofs) in
                   next_ofs, (loc, s) :: acc)
             in
-            let trailing_output = extract_output ic (last_ofs - ofs) in
+            let trailing_output = extract_output_and_sanitize ic (last_ofs - ofs) in
             List.rev outputs, trailing_output))
     ;;
 
@@ -183,7 +183,7 @@ module Make (C : Expect_test_config_types.S) = struct
     ;;
 
     let () =
-      Caml.at_exit (fun () ->
+      Stdlib.at_exit (fun () ->
         match !current_test with
         | None -> ()
         | Some (loc, t) ->

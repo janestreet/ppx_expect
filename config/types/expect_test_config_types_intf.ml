@@ -29,6 +29,9 @@ module type S = sig
       completely flushed, that's why we need this. *)
   val flushed : unit -> bool
 
+  (** [sanitize] can be used to map all output strings, e.g. for cleansing. *)
+  val sanitize : string -> string
+
 
   (** [upon_unreleasable_issue] specifies how to deal with output that should not be
       released even if it is accepted (e.g. backtraces). The default is [`CR].  *)

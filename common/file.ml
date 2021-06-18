@@ -22,13 +22,13 @@ end = struct
   include String
 
   let relative_to ~dir t =
-    if not (Caml.Filename.is_relative t) then t else Caml.Filename.concat dir t
+    if not (Stdlib.Filename.is_relative t) then t else Stdlib.Filename.concat dir t
   ;;
 end
 
 let initial_dir =
   let dir_or_error =
-    match Caml.Sys.getcwd () with
+    match Stdlib.Sys.getcwd () with
     | v -> `Ok v
     | exception exn -> `Exn exn
   in

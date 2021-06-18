@@ -84,7 +84,7 @@ let file_digest =
   let cache = Hashtbl.create (module String) ~size:32 in
   fun fname ->
     Hashtbl.find_or_add cache fname ~default:(fun () ->
-      Caml.Digest.file fname |> Caml.Digest.to_hex)
+      Stdlib.Digest.file fname |> Stdlib.Digest.to_hex)
 ;;
 
 let rewrite_test_body ~descr ~tags ~uncaught_exn ~called_by_merlin pstr_loc body =

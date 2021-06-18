@@ -13,6 +13,7 @@ end
 
 let flush () = () (* the runtime already flushes [stdout] *)
 
+let sanitize s = s
 let run f = f ()
 let flushed () = true (* the runtime flushed [stdout] before calling this function *)
 
