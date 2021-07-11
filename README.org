@@ -200,12 +200,13 @@ module Lwt_io_flush = struct
 end
 
 module Expect_test_config :
-  Expect_test_config.S
+  Expect_test_config_types.S
     with module IO_run = Lwt_io_run
      and module IO_flush = Lwt_io_flush = struct
   module IO_run = Lwt_io_run
   module IO_flush = Lwt_io_flush
   let run x = Lwt_main.run (x ())
+  let flush () = Lwt.return ()
   let flushed () = Lwt_io.(buffered stdout = 0)
   let upon_unreleasable_issue = `CR
 end
