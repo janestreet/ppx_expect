@@ -1,5 +1,4 @@
 open! Base
-open Import
 
 module Name : sig
   (** Strongly-typed filename *)
@@ -8,7 +7,7 @@ module Name : sig
   include sig
     [@@@ocaml.warning "-32"]
 
-    include Ppx_sexp_conv_lib.Sexpable.S with type t := t
+    include Sexplib0.Sexpable.S with type t := t
 
     val compare : t -> t -> int
   end
@@ -37,7 +36,7 @@ module Location : sig
   include sig
     [@@@ocaml.warning "-32"]
 
-    include Ppx_sexp_conv_lib.Sexpable.S with type t := t
+    include Sexplib0.Sexpable.S with type t := t
 
     val compare : t -> t -> int
   end
@@ -56,7 +55,7 @@ module Digest : sig
   include sig
     [@@@ocaml.warning "-32"]
 
-    val sexp_of_t : t -> Ppx_sexp_conv_lib.Sexp.t
+    val sexp_of_t : t -> Sexplib0.Sexp.t
     val compare : t -> t -> int
   end
   [@@ocaml.doc "@inline"]

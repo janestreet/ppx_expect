@@ -34,26 +34,22 @@ module Line = struct
 
   let _ = fun (_ : 'a not_blank) -> ()
 
-  let sexp_of_not_blank :
-    'a. ('a -> Ppx_sexp_conv_lib.Sexp.t) -> 'a not_blank -> Ppx_sexp_conv_lib.Sexp.t
-    =
-    fun _of_a -> function
-      | { trailing_blanks = v_trailing_blanks; orig = v_orig; data = v_data } ->
-        let bnds = [] in
-        let bnds =
-          let arg = _of_a v_data in
-          Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "data"; arg ] :: bnds
-        in
-        let bnds =
-          let arg = sexp_of_string v_orig in
-          Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "orig"; arg ] :: bnds
-        in
-        let bnds =
-          let arg = sexp_of_string v_trailing_blanks in
-          Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "trailing_blanks"; arg ]
-          :: bnds
-        in
-        Ppx_sexp_conv_lib.Sexp.List bnds
+  let sexp_of_not_blank : 'a. ('a -> Sexplib0.Sexp.t) -> 'a not_blank -> Sexplib0.Sexp.t =
+    fun _of_a { trailing_blanks = v_trailing_blanks; orig = v_orig; data = v_data } ->
+    let bnds = [] in
+    let bnds =
+      let arg = _of_a v_data in
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "data"; arg ] :: bnds
+    in
+    let bnds =
+      let arg = sexp_of_string v_orig in
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "orig"; arg ] :: bnds
+    in
+    let bnds =
+      let arg = sexp_of_string v_trailing_blanks in
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "trailing_blanks"; arg ] :: bnds
+    in
+    Sexplib0.Sexp.List bnds
   ;;
 
   let _ = sexp_of_not_blank
@@ -96,16 +92,14 @@ module Line = struct
 
   let _ = fun (_ : 'a t) -> ()
 
-  let sexp_of_t
-    : type a. (a -> Ppx_sexp_conv_lib.Sexp.t) -> a t -> Ppx_sexp_conv_lib.Sexp.t
-    =
+  let sexp_of_t : type a. (a -> Sexplib0.Sexp.t) -> a t -> Sexplib0.Sexp.t =
     fun _of_a -> function
       | Blank v0 ->
         let v0 = sexp_of_string v0 in
-        Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "Blank"; v0 ]
+        Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Blank"; v0 ]
       | Not_blank v0 ->
         let v0 = sexp_of_not_blank _of_a v0 in
-        Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "Not_blank"; v0 ]
+        Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Not_blank"; v0 ]
   ;;
 
   let _ = sexp_of_t
@@ -185,35 +179,32 @@ type 'a single_line =
 
 let _ = fun (_ : 'a single_line) -> ()
 
-let sexp_of_single_line :
-  'a. ('a -> Ppx_sexp_conv_lib.Sexp.t) -> 'a single_line -> Ppx_sexp_conv_lib.Sexp.t
+let sexp_of_single_line : 'a. ('a -> Sexplib0.Sexp.t) -> 'a single_line -> Sexplib0.Sexp.t
   =
-  fun _of_a -> function
-    | { leading_blanks = v_leading_blanks
-      ; trailing_spaces = v_trailing_spaces
-      ; orig = v_orig
-      ; data = v_data
-      } ->
-      let bnds = [] in
-      let bnds =
-        let arg = _of_a v_data in
-        Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "data"; arg ] :: bnds
-      in
-      let bnds =
-        let arg = sexp_of_string v_orig in
-        Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "orig"; arg ] :: bnds
-      in
-      let bnds =
-        let arg = sexp_of_string v_trailing_spaces in
-        Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "trailing_spaces"; arg ]
-        :: bnds
-      in
-      let bnds =
-        let arg = sexp_of_string v_leading_blanks in
-        Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "leading_blanks"; arg ]
-        :: bnds
-      in
-      Ppx_sexp_conv_lib.Sexp.List bnds
+  fun _of_a
+    { leading_blanks = v_leading_blanks
+    ; trailing_spaces = v_trailing_spaces
+    ; orig = v_orig
+    ; data = v_data
+    } ->
+    let bnds = [] in
+    let bnds =
+      let arg = _of_a v_data in
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "data"; arg ] :: bnds
+    in
+    let bnds =
+      let arg = sexp_of_string v_orig in
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "orig"; arg ] :: bnds
+    in
+    let bnds =
+      let arg = sexp_of_string v_trailing_spaces in
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "trailing_spaces"; arg ] :: bnds
+    in
+    let bnds =
+      let arg = sexp_of_string v_leading_blanks in
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "leading_blanks"; arg ] :: bnds
+    in
+    Sexplib0.Sexp.List bnds
 ;;
 
 let _ = sexp_of_single_line
@@ -266,36 +257,32 @@ type 'a multi_lines =
 
 let _ = fun (_ : 'a multi_lines) -> ()
 
-let sexp_of_multi_lines :
-  'a. ('a -> Ppx_sexp_conv_lib.Sexp.t) -> 'a multi_lines -> Ppx_sexp_conv_lib.Sexp.t
+let sexp_of_multi_lines : 'a. ('a -> Sexplib0.Sexp.t) -> 'a multi_lines -> Sexplib0.Sexp.t
   =
-  fun _of_a -> function
-    | { leading_spaces = v_leading_spaces
-      ; trailing_spaces = v_trailing_spaces
-      ; indentation = v_indentation
-      ; lines = v_lines
-      } ->
-      let bnds = [] in
-      let bnds =
-        let arg = sexp_of_list (Line.sexp_of_t _of_a) v_lines in
-        Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "lines"; arg ] :: bnds
-      in
-      let bnds =
-        let arg = sexp_of_string v_indentation in
-        Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "indentation"; arg ]
-        :: bnds
-      in
-      let bnds =
-        let arg = sexp_of_string v_trailing_spaces in
-        Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "trailing_spaces"; arg ]
-        :: bnds
-      in
-      let bnds =
-        let arg = sexp_of_string v_leading_spaces in
-        Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "leading_spaces"; arg ]
-        :: bnds
-      in
-      Ppx_sexp_conv_lib.Sexp.List bnds
+  fun _of_a
+    { leading_spaces = v_leading_spaces
+    ; trailing_spaces = v_trailing_spaces
+    ; indentation = v_indentation
+    ; lines = v_lines
+    } ->
+    let bnds = [] in
+    let bnds =
+      let arg = sexp_of_list (Line.sexp_of_t _of_a) v_lines in
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "lines"; arg ] :: bnds
+    in
+    let bnds =
+      let arg = sexp_of_string v_indentation in
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "indentation"; arg ] :: bnds
+    in
+    let bnds =
+      let arg = sexp_of_string v_trailing_spaces in
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "trailing_spaces"; arg ] :: bnds
+    in
+    let bnds =
+      let arg = sexp_of_string v_leading_spaces in
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "leading_spaces"; arg ] :: bnds
+    in
+    Sexplib0.Sexp.List bnds
 ;;
 
 let _ = sexp_of_multi_lines
@@ -353,18 +340,17 @@ type 'a t =
 
 let _ = fun (_ : 'a t) -> ()
 
-let sexp_of_t : type a. (a -> Ppx_sexp_conv_lib.Sexp.t) -> a t -> Ppx_sexp_conv_lib.Sexp.t
-  =
+let sexp_of_t : type a. (a -> Sexplib0.Sexp.t) -> a t -> Sexplib0.Sexp.t =
   fun _of_a -> function
     | Empty v0 ->
       let v0 = sexp_of_string v0 in
-      Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "Empty"; v0 ]
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Empty"; v0 ]
     | Single_line v0 ->
       let v0 = sexp_of_single_line _of_a v0 in
-      Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "Single_line"; v0 ]
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Single_line"; v0 ]
     | Multi_lines v0 ->
       let v0 = sexp_of_multi_lines _of_a v0 in
-      Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "Multi_lines"; v0 ]
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Multi_lines"; v0 ]
 ;;
 
 let _ = sexp_of_t

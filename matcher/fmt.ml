@@ -1,7 +1,7 @@
 open! Base
 open Import
 open Ppx_compare_lib.Builtin
-open Ppx_sexp_conv_lib.Conv
+open Sexplib0.Sexp_conv
 
 type t =
   | Regexp of string
@@ -15,14 +15,14 @@ let sexp_of_t =
   (function
     | Regexp v0 ->
       let v0 = sexp_of_string v0 in
-      Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "Regexp"; v0 ]
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Regexp"; v0 ]
     | Glob v0 ->
       let v0 = sexp_of_string v0 in
-      Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "Glob"; v0 ]
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Glob"; v0 ]
     | Literal v0 ->
       let v0 = sexp_of_string v0 in
-      Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "Literal"; v0 ]
-      : t -> Ppx_sexp_conv_lib.Sexp.t)
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Literal"; v0 ]
+      : t -> Sexplib0.Sexp.t)
 ;;
 
 let _ = sexp_of_t

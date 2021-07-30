@@ -1,7 +1,6 @@
 {
-  open Import
   open Expect_test_common
-  open Ppx_sexp_conv_lib.Conv
+  open Sexplib0.Sexp_conv
 
   let escaped s =
     let unescaped = Scanf.unescaped s in

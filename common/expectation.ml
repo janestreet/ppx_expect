@@ -1,7 +1,7 @@
 open! Base
 open Import
 open Ppx_compare_lib.Builtin
-open Ppx_sexp_conv_lib.Conv
+open Sexplib0.Sexp_conv
 
 module Body = struct
   type 'a t =
@@ -13,18 +13,16 @@ module Body = struct
 
   let _ = fun (_ : 'a t) -> ()
 
-  let sexp_of_t
-    : type a. (a -> Ppx_sexp_conv_lib.Sexp.t) -> a t -> Ppx_sexp_conv_lib.Sexp.t
-    =
+  let sexp_of_t : type a. (a -> Sexplib0.Sexp.t) -> a t -> Sexplib0.Sexp.t =
     fun _of_a -> function
       | Exact v0 ->
         let v0 = sexp_of_string v0 in
-        Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "Exact"; v0 ]
-      | Output -> Ppx_sexp_conv_lib.Sexp.Atom "Output"
+        Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Exact"; v0 ]
+      | Output -> Sexplib0.Sexp.Atom "Output"
       | Pretty v0 ->
         let v0 = _of_a v0 in
-        Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "Pretty"; v0 ]
-      | Unreachable -> Ppx_sexp_conv_lib.Sexp.Atom "Unreachable"
+        Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Pretty"; v0 ]
+      | Unreachable -> Sexplib0.Sexp.Atom "Unreachable"
   ;;
 
   let _ = sexp_of_t
@@ -88,33 +86,31 @@ type 'a t =
 
 let _ = fun (_ : 'a t) -> ()
 
-let sexp_of_t : 'a. ('a -> Ppx_sexp_conv_lib.Sexp.t) -> 'a t -> Ppx_sexp_conv_lib.Sexp.t =
-  fun _of_a -> function
-    | { tag = v_tag
-      ; body = v_body
-      ; extid_location = v_extid_location
-      ; body_location = v_body_location
-      } ->
-      let bnds = [] in
-      let bnds =
-        let arg = File.Location.sexp_of_t v_body_location in
-        Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "body_location"; arg ]
-        :: bnds
-      in
-      let bnds =
-        let arg = File.Location.sexp_of_t v_extid_location in
-        Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "extid_location"; arg ]
-        :: bnds
-      in
-      let bnds =
-        let arg = Body.sexp_of_t _of_a v_body in
-        Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "body"; arg ] :: bnds
-      in
-      let bnds =
-        let arg = sexp_of_option sexp_of_string v_tag in
-        Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "tag"; arg ] :: bnds
-      in
-      Ppx_sexp_conv_lib.Sexp.List bnds
+let sexp_of_t : 'a. ('a -> Sexplib0.Sexp.t) -> 'a t -> Sexplib0.Sexp.t =
+  fun _of_a
+    { tag = v_tag
+    ; body = v_body
+    ; extid_location = v_extid_location
+    ; body_location = v_body_location
+    } ->
+    let bnds = [] in
+    let bnds =
+      let arg = File.Location.sexp_of_t v_body_location in
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "body_location"; arg ] :: bnds
+    in
+    let bnds =
+      let arg = File.Location.sexp_of_t v_extid_location in
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "extid_location"; arg ] :: bnds
+    in
+    let bnds =
+      let arg = Body.sexp_of_t _of_a v_body in
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "body"; arg ] :: bnds
+    in
+    let bnds =
+      let arg = sexp_of_option sexp_of_string v_tag in
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "tag"; arg ] :: bnds
+    in
+    Sexplib0.Sexp.List bnds
 ;;
 
 let _ = sexp_of_t
@@ -159,7 +155,7 @@ module Raw = struct
   type nonrec t = string t [@@deriving_inline sexp_of, compare]
 
   let _ = fun (_ : t) -> ()
-  let sexp_of_t = (fun v -> sexp_of_t sexp_of_string v : t -> Ppx_sexp_conv_lib.Sexp.t)
+  let sexp_of_t = (fun v -> sexp_of_t sexp_of_string v : t -> Sexplib0.Sexp.t)
   let _ = sexp_of_t
 
   let compare =

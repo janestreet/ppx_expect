@@ -8,7 +8,6 @@
 *)
 
 open! Base
-open Import
 
 module Line : sig
   type 'a not_blank =
@@ -20,12 +19,12 @@ module Line : sig
     (** Data associated to the line. *)
     }
   [@@deriving_inline sexp_of, compare, equal]
+
   include
     sig
       [@@@ocaml.warning "-32"]
       val sexp_of_not_blank :
-        ('a -> Ppx_sexp_conv_lib.Sexp.t) ->
-        'a not_blank -> Ppx_sexp_conv_lib.Sexp.t
+        ('a -> Sexplib0.Sexp.t) -> 'a not_blank -> Sexplib0.Sexp.t
       val compare_not_blank :
         ('a -> 'a -> int) -> 'a not_blank -> 'a not_blank -> int
       val equal_not_blank :
@@ -37,11 +36,11 @@ module Line : sig
     | Blank     of string  (** regexp: "[ \t]*" *)
     | Not_blank of 'a not_blank
   [@@deriving_inline sexp_of, compare, equal]
+
   include
     sig
       [@@@ocaml.warning "-32"]
-      val sexp_of_t :
-        ('a -> Ppx_sexp_conv_lib.Sexp.t) -> 'a t -> Ppx_sexp_conv_lib.Sexp.t
+      val sexp_of_t : ('a -> Sexplib0.Sexp.t) -> 'a t -> Sexplib0.Sexp.t
       val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
       val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
     end[@@ocaml.doc "@inline"]
@@ -80,8 +79,7 @@ include
   sig
     [@@@ocaml.warning "-32"]
     val sexp_of_single_line :
-      ('a -> Ppx_sexp_conv_lib.Sexp.t) ->
-      'a single_line -> Ppx_sexp_conv_lib.Sexp.t
+      ('a -> Sexplib0.Sexp.t) -> 'a single_line -> Sexplib0.Sexp.t
     val compare_single_line :
       ('a -> 'a -> int) -> 'a single_line -> 'a single_line -> int
     val equal_single_line :
@@ -133,8 +131,7 @@ include
   sig
     [@@@ocaml.warning "-32"]
     val sexp_of_multi_lines :
-      ('a -> Ppx_sexp_conv_lib.Sexp.t) ->
-      'a multi_lines -> Ppx_sexp_conv_lib.Sexp.t
+      ('a -> Sexplib0.Sexp.t) -> 'a multi_lines -> Sexplib0.Sexp.t
     val compare_multi_lines :
       ('a -> 'a -> int) -> 'a multi_lines -> 'a multi_lines -> int
     val equal_multi_lines :
@@ -150,8 +147,7 @@ type 'a t =
 include
   sig
     [@@@ocaml.warning "-32"]
-    val sexp_of_t :
-      ('a -> Ppx_sexp_conv_lib.Sexp.t) -> 'a t -> Ppx_sexp_conv_lib.Sexp.t
+    val sexp_of_t : ('a -> Sexplib0.Sexp.t) -> 'a t -> Sexplib0.Sexp.t
     val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
     val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
   end[@@ocaml.doc "@inline"]

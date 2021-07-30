@@ -1,7 +1,6 @@
 (** Determine whether a test's output matches its expected output. *)
 
 open! Base
-open Import
 open Expect_test_common
 
 module Result : sig
@@ -14,7 +13,7 @@ module Result : sig
     [@@@ocaml.warning "-32"]
 
     val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
-    val sexp_of_t : ('a -> Ppx_sexp_conv_lib.Sexp.t) -> 'a t -> Ppx_sexp_conv_lib.Sexp.t
+    val sexp_of_t : ('a -> Sexplib0.Sexp.t) -> 'a t -> Sexplib0.Sexp.t
   end
   [@@ocaml.doc "@inline"]
 

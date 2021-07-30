@@ -1,7 +1,7 @@
 open! Base
 open Import
 open Expect_test_common
-open Ppx_sexp_conv_lib.Conv
+open Sexplib0.Sexp_conv
 
 module Result = struct
   (* Either match with an explicit success, or (lazily) produce a correction. *)
@@ -12,14 +12,12 @@ module Result = struct
 
   let _ = fun (_ : 'a t) -> ()
 
-  let sexp_of_t
-    : type a. (a -> Ppx_sexp_conv_lib.Sexp.t) -> a t -> Ppx_sexp_conv_lib.Sexp.t
-    =
+  let sexp_of_t : type a. (a -> Sexplib0.Sexp.t) -> a t -> Sexplib0.Sexp.t =
     fun _of_a -> function
-      | Match -> Ppx_sexp_conv_lib.Sexp.Atom "Match"
+      | Match -> Sexplib0.Sexp.Atom "Match"
       | Correction v0 ->
         let v0 = _of_a v0 in
-        Ppx_sexp_conv_lib.Sexp.List [ Ppx_sexp_conv_lib.Sexp.Atom "Correction"; v0 ]
+        Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Correction"; v0 ]
   ;;
 
   let _ = sexp_of_t
