@@ -15,23 +15,23 @@ module Result = struct
   let sexp_of_t : type a. (a -> Sexplib0.Sexp.t) -> a t -> Sexplib0.Sexp.t =
     fun _of_a -> function
       | Match -> Sexplib0.Sexp.Atom "Match"
-      | Correction v0 ->
-        let v0 = _of_a v0 in
-        Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Correction"; v0 ]
+      | Correction arg0__001_ ->
+        let res0__002_ = _of_a arg0__001_ in
+        Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Correction"; res0__002_ ]
   ;;
 
   let _ = sexp_of_t
 
   let compare : 'a. ('a -> 'a -> int) -> 'a t -> 'a t -> int =
-    fun _cmp__a a__001_ b__002_ ->
-    if Ppx_compare_lib.phys_equal a__001_ b__002_
+    fun _cmp__a a__003_ b__004_ ->
+    if Ppx_compare_lib.phys_equal a__003_ b__004_
     then 0
     else (
-      match a__001_, b__002_ with
+      match a__003_, b__004_ with
       | Match, Match -> 0
       | Match, _ -> -1
       | _, Match -> 1
-      | Correction _a__003_, Correction _b__004_ -> _cmp__a _a__003_ _b__004_)
+      | Correction _a__005_, Correction _b__006_ -> _cmp__a _a__005_ _b__006_)
   ;;
 
   let _ = compare

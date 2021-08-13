@@ -52,7 +52,7 @@ module Location = struct
     let _ = fun (_ : t) -> ()
 
     let t_of_sexp =
-      (let _tp_loc = "file.ml.Location.T.t" in
+      (let error_source__001_ = "file.ml.Location.T.t" in
        function
        | Sexplib0.Sexp.List field_sexps as sexp ->
          let filename_field = ref Stdlib.Option.None
@@ -69,7 +69,10 @@ module Location = struct
              let _field_sexp () =
                match _field_sexps with
                | [ x ] -> x
-               | [] -> Sexplib0.Sexp_conv_error.record_only_pairs_expected _tp_loc sexp
+               | [] ->
+                 Sexplib0.Sexp_conv_error.record_only_pairs_expected
+                   error_source__001_
+                   sexp
                | _ -> assert false
              in
              (match field_name with
@@ -114,16 +117,20 @@ module Location = struct
                 else ());
              iter tail
            | ((Sexplib0.Sexp.Atom _ | Sexplib0.Sexp.List _) as sexp) :: _ ->
-             Sexplib0.Sexp_conv_error.record_only_pairs_expected _tp_loc sexp
+             Sexplib0.Sexp_conv_error.record_only_pairs_expected error_source__001_ sexp
            | [] -> ()
          in
          iter field_sexps;
          (match !duplicates with
           | _ :: _ ->
-            Sexplib0.Sexp_conv_error.record_duplicate_fields _tp_loc !duplicates sexp
+            Sexplib0.Sexp_conv_error.record_duplicate_fields
+              error_source__001_
+              !duplicates
+              sexp
           | [] ->
             (match !extra with
-             | _ :: _ -> Sexplib0.Sexp_conv_error.record_extra_fields _tp_loc !extra sexp
+             | _ :: _ ->
+               Sexplib0.Sexp_conv_error.record_extra_fields error_source__001_ !extra sexp
              | [] ->
                (match
                   ( !filename_field
@@ -145,7 +152,7 @@ module Location = struct
                   }
                 | _ ->
                   Sexplib0.Sexp_conv_error.record_undefined_elements
-                    _tp_loc
+                    error_source__001_
                     sexp
                     [ Sexplib0.Sexp_conv.( = ) !filename_field Stdlib.Option.None, "filename"
                     ; ( Sexplib0.Sexp_conv.( = ) !line_number_field Stdlib.Option.None
@@ -157,7 +164,7 @@ module Location = struct
                     ; Sexplib0.Sexp_conv.( = ) !end_pos_field Stdlib.Option.None, "end_pos"
                     ])))
        | Sexplib0.Sexp.Atom _ as sexp ->
-         Sexplib0.Sexp_conv_error.record_list_instead_atom _tp_loc sexp
+         Sexplib0.Sexp_conv_error.record_list_instead_atom error_source__001_ sexp
          : Sexplib0.Sexp.t -> t)
     ;;
 
@@ -198,18 +205,18 @@ module Location = struct
     let _ = sexp_of_t
 
     let compare =
-      (fun a__001_ b__002_ ->
-         if Ppx_compare_lib.phys_equal a__001_ b__002_
+      (fun a__002_ b__003_ ->
+         if Ppx_compare_lib.phys_equal a__002_ b__003_
          then 0
          else (
-           match Name.compare a__001_.filename b__002_.filename with
+           match Name.compare a__002_.filename b__003_.filename with
            | 0 ->
-             (match compare_int a__001_.line_number b__002_.line_number with
+             (match compare_int a__002_.line_number b__003_.line_number with
               | 0 ->
-                (match compare_int a__001_.line_start b__002_.line_start with
+                (match compare_int a__002_.line_start b__003_.line_start with
                  | 0 ->
-                   (match compare_int a__001_.start_pos b__002_.start_pos with
-                    | 0 -> compare_int a__001_.end_pos b__002_.end_pos
+                   (match compare_int a__002_.start_pos b__003_.start_pos with
+                    | 0 -> compare_int a__002_.end_pos b__003_.end_pos
                     | n -> n)
                  | n -> n)
               | n -> n)
