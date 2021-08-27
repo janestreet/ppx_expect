@@ -96,18 +96,16 @@ module Test_outcome = struct
     =
     if not (Expectations.equal t.expectations expectations)
     then failwith "merging tests of different expectations";
-    if
-      not
-        (Expect_test_config_types.Upon_unreleasable_issue.equal
-           t.upon_unreleasable_issue
-           upon_unreleasable_issue)
+    if not
+         (Expect_test_config_types.Upon_unreleasable_issue.equal
+            t.upon_unreleasable_issue
+            upon_unreleasable_issue)
     then failwith "merging tests of different [Upon_unreleasable_issue]";
-    if
-      not
-        (Option.equal
-           (Expectation.equal (Cst.equal Fmt.equal))
-           t.uncaught_exn_expectation
-           uncaught_exn_expectation)
+    if not
+         (Option.equal
+            (Expectation.equal (Cst.equal Fmt.equal))
+            t.uncaught_exn_expectation
+            uncaught_exn_expectation)
     then failwith "merging tests of different uncaught exception expectations";
     { expectations
     ; uncaught_exn_expectation
@@ -172,15 +170,14 @@ module Test_correction = struct
   let compare_locations a b = compare a.location.line_number b.location.line_number
 
   let make ~location ~corrections ~uncaught_exn ~trailing_output : t Reconcile.Result.t =
-    if
-      List.is_empty corrections
-      && (match (trailing_output : _ Reconcile.Result.t) with
+    if List.is_empty corrections
+    && (match (trailing_output : _ Reconcile.Result.t) with
         | Match -> true
         | Correction _ -> false)
-      &&
-      match (uncaught_exn : Uncaught_exn.t) with
-      | Match -> true
-      | Correction _ | Without_expectation _ | Unused_expectation _ -> false
+    &&
+    match (uncaught_exn : Uncaught_exn.t) with
+    | Match -> true
+    | Correction _ | Without_expectation _ | Unused_expectation _ -> false
     then Match
     else Correction { location; corrections; uncaught_exn; trailing_output }
   ;;
@@ -414,8 +411,7 @@ let output_corrected oc ~file_contents ~mode test_corrections =
           | Correction c ->
             let loc = test_correction.location in
             output_slice oc file_contents ofs loc.end_pos;
-            if
-              match mode with
+            if match mode with
               | Inline_expect_test -> true
               | Toplevel_expect_test -> false
             then output_semi_colon_if_needed oc file_contents loc.end_pos;

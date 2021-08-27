@@ -27,7 +27,7 @@ module A = struct
        | Some str -> print_endline str)
   ;;
 
-  let%expect_test (_[@tags "no-js"]) =
+  let%expect_test (_ [@tags "no-js"]) =
     (* We create a backtrace with 10 identical slots and then only print the 5th slot.
        Otherwise flambda and non-flambda compilers create slightly different
        backtraces. *)
