@@ -45,6 +45,7 @@ module Location : sig
   [@@@end]
 
   val beginning_of_file : Name.t -> t
+  val of_source_code_position : Source_code_position.t -> t
 
   include Comparable.S with type t := t
 end

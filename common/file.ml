@@ -241,6 +241,15 @@ module Location = struct
   let beginning_of_file filename =
     { filename; line_number = 1; line_start = 0; start_pos = 0; end_pos = 0 }
   ;;
+
+  let of_source_code_position (pos : Source_code_position.t) =
+    { filename = Name.of_string (Caml.Filename.basename pos.pos_fname)
+    ; line_number = pos.pos_lnum
+    ; line_start = pos.pos_bol
+    ; start_pos = pos.pos_cnum
+    ; end_pos = pos.pos_cnum
+    }
+  ;;
 end
 
 module Digest : sig
