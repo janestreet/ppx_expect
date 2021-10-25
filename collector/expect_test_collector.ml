@@ -74,7 +74,7 @@ module Instance = struct
 
   let create () =
     let filename = Filename.temp_file "expect-test" "output" in
-    let chan = open_out filename in
+    let chan = open_out_bin filename in
     before_test ~output:chan ~stdout ~stderr;
     { chan; filename = File.Name.of_string filename; saved = [] }
   ;;
@@ -82,7 +82,7 @@ module Instance = struct
   let relative_filename t = File.Name.relative_to ~dir:(File.initial_dir ()) t.filename
 
   let with_ic fname ~f =
-    let ic = open_in fname in
+    let ic = open_in_bin fname in
     protect ~finally:(fun () -> close_in ic) ~f:(fun () -> f ic)
   ;;
 
@@ -122,7 +122,7 @@ let basic_flush () =
   Stdlib.flush Stdlib.stderr
 ;;
 
-let save_and_return_output_without_config location =
+let save_and_return_output location =
   let instance = Instance.get_current () in
   basic_flush ();
   Instance.save_and_return_output_without_flush instance location
@@ -137,7 +137,7 @@ module Make (C : Expect_test_config_types.S) = struct
 
     let flush () =
       basic_flush ();
-      C.flush ()
+      C.IO_flush.return ()
     ;;
   end
 

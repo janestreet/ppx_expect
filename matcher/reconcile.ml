@@ -12,26 +12,27 @@ module Result = struct
 
   let _ = fun (_ : 'a t) -> ()
 
-  let sexp_of_t : type a. (a -> Sexplib0.Sexp.t) -> a t -> Sexplib0.Sexp.t =
-    fun _of_a -> function
+  let sexp_of_t : 'a. ('a -> Sexplib0.Sexp.t) -> 'a t -> Sexplib0.Sexp.t =
+    fun (type a__004_) : ((a__004_ -> Sexplib0.Sexp.t) -> a__004_ t -> Sexplib0.Sexp.t) ->
+    fun _of_a__001_ -> function
       | Match -> Sexplib0.Sexp.Atom "Match"
-      | Correction arg0__001_ ->
-        let res0__002_ = _of_a arg0__001_ in
-        Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Correction"; res0__002_ ]
+      | Correction arg0__002_ ->
+        let res0__003_ = _of_a__001_ arg0__002_ in
+        Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Correction"; res0__003_ ]
   ;;
 
   let _ = sexp_of_t
 
   let compare : 'a. ('a -> 'a -> int) -> 'a t -> 'a t -> int =
-    fun _cmp__a a__003_ b__004_ ->
-    if Ppx_compare_lib.phys_equal a__003_ b__004_
+    fun _cmp__a a__005_ b__006_ ->
+    if Ppx_compare_lib.phys_equal a__005_ b__006_
     then 0
     else (
-      match a__003_, b__004_ with
+      match a__005_, b__006_ with
       | Match, Match -> 0
       | Match, _ -> -1
       | _, Match -> 1
-      | Correction _a__005_, Correction _b__006_ -> _cmp__a _a__005_ _b__006_)
+      | Correction _a__007_, Correction _b__008_ -> _cmp__a _a__007_ _b__008_)
   ;;
 
   let _ = compare

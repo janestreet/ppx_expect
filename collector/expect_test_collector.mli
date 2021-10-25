@@ -38,9 +38,8 @@ module Make (Config : Expect_test_config_types.S) : sig
     -> unit
 end
 
-(** Performs a basic flush of stdout/stderr, but not any custom flush behavior from
-    [Expect_test_config]. *)
-val save_and_return_output_without_config : File.Location.t -> string
+(** Flushes stdout/stderr. Same as [Make().save_and_return_output], without monad. *)
+val save_and_return_output : File.Location.t -> string
 
 (** The tests that ran, in the order they ran *)
 val tests_run : unit -> Test_outcome.t list

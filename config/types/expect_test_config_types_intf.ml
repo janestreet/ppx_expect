@@ -10,6 +10,8 @@ module type S = sig
     type 'a t
   end
 
+  (** A now-legacy monad. This signature used to declare a [flush] function.
+      [[%expect.output]] still returns this type. No meaningful monadic work is done. *)
   module IO_flush : sig
     type 'a t
 
@@ -17,9 +19,6 @@ module type S = sig
     val bind : 'a t -> f:('a -> 'b t) -> 'b t
     val to_run : 'a t -> 'a IO_run.t
   end
-
-  (** Flush whatever need to be to get pending output out on file descriptor 0. *)
-  val flush : unit -> unit IO_flush.t
 
   (** Run an IO operation until completion *)
   val run : (unit -> unit IO_run.t) -> unit
