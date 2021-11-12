@@ -172,7 +172,7 @@ val to_lines : 'a t -> 'a Line.t list
 val trim_lines : 'a Line.t list -> 'a Line.t list
 
 (** Given a contents [t] and a list of [lines], try to produce a new contents containing
-    [lines] but with the same formating as [t].
+    [lines] but with the same formatting as [t].
 
     [default_indentation] is the indentation to use in case we ignore [t]'s indentation
     (for instance if [t] is [Single_line] or [Empty]). *)
@@ -183,7 +183,7 @@ val reconcile
   -> pad_single_line     : bool
   -> 'a t
 
-(** Compuute the longest indentation of a list of lines and trim it from every line. It
+(** Compute the longest indentation of a list of lines and trim it from every line. It
     returns the found indentation and the list of trimmed lines. *)
 val extract_indentation : 'a Line.t list -> string * 'a Line.t list
 

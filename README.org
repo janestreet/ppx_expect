@@ -207,7 +207,6 @@ module Expect_test_config :
   module IO_flush = Lwt_io_flush
   let run x = Lwt_main.run (x ())
   let flushed () = Lwt_io.(buffered stdout = 0)
-  let flush () = Lwt_io.flush_all ()
   let upon_unreleasable_issue = `CR
 end
 #+end_src
