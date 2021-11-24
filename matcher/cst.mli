@@ -33,8 +33,9 @@ module Line : sig
   [@@@end]
 
   type 'a t =
-    | Blank     of string  (** regexp: "[ \t]*" *)
-    | Not_blank of 'a not_blank
+    | Blank           of string (** regexp: "[ \t]*" *)
+    | Conflict_marker of string (** regexp: "^(<{7} |[|]{7} |>{7} |={7})" *)
+    | Not_blank       of 'a not_blank
   [@@deriving_inline sexp_of, compare, equal]
 
   include
