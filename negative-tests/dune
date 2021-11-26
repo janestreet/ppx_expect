@@ -1,4 +1,4 @@
-(library (name expect_test_negative_tests) (libraries core_kernel.core)
+(library (name expect_test_negative_tests) (libraries core)
  (preprocess (pps ppx_jane)))
 
 (rule
