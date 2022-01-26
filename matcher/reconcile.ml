@@ -102,7 +102,10 @@ let rec lines_match
   | [], _ -> false
   | _, [] -> false
   | expect :: expect_lines, actual :: actual_lines ->
-    let format = Cst.Line.data expect ~blank:(Literal "") in
+    let format =
+      Cst.Line.data expect ~blank:(Literal "") ~conflict_marker:(fun marker ->
+        Literal marker)
+    in
     let line = reconcile_line ~expect:format ~actual ~allow_output_patterns in
     (match line with
      | Match -> lines_match ~expect_lines ~actual_lines ~allow_output_patterns
@@ -123,7 +126,10 @@ let rec corrected_rev
       literal_line x ~allow_output_patterns :: acc)
   | _, [] -> acc
   | expect :: expect_lines, actual :: actual_lines ->
-    let format = Cst.Line.data expect ~blank:(Literal "") in
+    let format =
+      Cst.Line.data expect ~blank:(Literal "") ~conflict_marker:(fun marker ->
+        Literal marker)
+    in
     let line =
       reconcile_line ~expect:format ~actual ~allow_output_patterns
       |> Result.value ~success:expect

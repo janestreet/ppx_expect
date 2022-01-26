@@ -181,9 +181,10 @@ module Line = struct
       assert (len > 0 && not (is_blank n.orig.[len - 1]))
   ;;
 
-  let data t ~blank =
+  let data t ~blank ~conflict_marker =
     match t with
-    | Blank _ | Conflict_marker _ -> blank
+    | Blank _ -> blank
+    | Conflict_marker marker -> conflict_marker marker
     | Not_blank n -> n.data
   ;;
 
@@ -466,11 +467,11 @@ let map t ~f =
   | Multi_lines m -> Multi_lines { m with lines = List.map m.lines ~f:(Line.map ~f) }
 ;;
 
-let data t ~blank =
+let data t ~blank ~conflict_marker =
   match t with
   | Empty _ -> []
   | Single_line s -> [ s.data ]
-  | Multi_lines m -> List.map m.lines ~f:(Line.data ~blank)
+  | Multi_lines m -> List.map m.lines ~f:(Line.data ~blank ~conflict_marker)
 ;;
 
 let stripped_original_lines t =

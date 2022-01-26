@@ -1,4 +1,5 @@
 open! Base
+open Base.Exported_for_specific_uses (* for [Ppx_compare_lib] *)
 
 module Name : sig
   (** Strongly-typed filename *)
@@ -8,8 +9,7 @@ module Name : sig
     [@@@ocaml.warning "-32"]
 
     include Sexplib0.Sexpable.S with type t := t
-
-    val compare : t -> t -> int
+    include Ppx_compare_lib.Comparable.S with type t := t
   end
   [@@ocaml.doc "@inline"]
 
@@ -37,8 +37,7 @@ module Location : sig
     [@@@ocaml.warning "-32"]
 
     include Sexplib0.Sexpable.S with type t := t
-
-    val compare : t -> t -> int
+    include Ppx_compare_lib.Comparable.S with type t := t
   end
   [@@ocaml.doc "@inline"]
 
@@ -57,7 +56,8 @@ module Digest : sig
     [@@@ocaml.warning "-32"]
 
     val sexp_of_t : t -> Sexplib0.Sexp.t
-    val compare : t -> t -> int
+
+    include Ppx_compare_lib.Comparable.S with type t := t
   end
   [@@ocaml.doc "@inline"]
 

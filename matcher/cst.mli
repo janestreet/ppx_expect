@@ -8,6 +8,7 @@
 *)
 
 open! Base
+open Base.Exported_for_specific_uses (* for [Ppx_compare_lib] *)
 
 module Line : sig
   type 'a not_blank =
@@ -38,12 +39,13 @@ module Line : sig
     | Not_blank       of 'a not_blank
   [@@deriving_inline sexp_of, compare, equal]
 
+
   include
     sig
       [@@@ocaml.warning "-32"]
       val sexp_of_t : ('a -> Sexplib0.Sexp.t) -> 'a t -> Sexplib0.Sexp.t
-      val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
-      val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
+      include Ppx_compare_lib.Comparable.S1 with type 'a t :=  'a t
+      include Ppx_compare_lib.Equal.S1 with type 'a t :=  'a t
     end[@@ocaml.doc "@inline"]
   [@@@end]
 
@@ -55,7 +57,7 @@ module Line : sig
   (** Delete trailing blanks (everything for blank lines) *)
   val strip : 'a t -> 'a t
 
-  val data : 'a t -> blank:'a -> 'a
+  val data : 'a t -> blank:'a -> conflict_marker:(string -> 'a) -> 'a
 end
 
 (** Single line represent [%expect] nodes with data on the first line but not on the
@@ -149,8 +151,8 @@ include
   sig
     [@@@ocaml.warning "-32"]
     val sexp_of_t : ('a -> Sexplib0.Sexp.t) -> 'a t -> Sexplib0.Sexp.t
-    val compare : ('a -> 'a -> int) -> 'a t -> 'a t -> int
-    val equal : ('a -> 'a -> bool) -> 'a t -> 'a t -> bool
+    include Ppx_compare_lib.Comparable.S1 with type 'a t :=  'a t
+    include Ppx_compare_lib.Equal.S1 with type 'a t :=  'a t
   end[@@ocaml.doc "@inline"]
 [@@@end]
 
@@ -160,7 +162,7 @@ val empty : 'a t
 
 val map : 'a t -> f:(string -> 'a -> 'b) -> 'b t
 
-val data : 'a t -> blank:'a -> 'a list
+val data : 'a t -> blank:'a -> conflict_marker:(string -> 'a) -> 'a list
 
 val strip : 'a t -> 'a t
 

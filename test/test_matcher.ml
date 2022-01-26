@@ -1,3 +1,4 @@
+
 open Ppx_compare_lib.Builtin
 open Ppx_sexp_conv_lib.Conv
 open Expect_test_common
@@ -40,6 +41,38 @@ let%test_module "Reconcile" =
     let%test _ = line_matches ~expect:(Regexp "f.*o") ~actual:"foo"
     (* Regexp provides the possibility to match trailing *)
     let%test _ = line_matches ~expect:(Regexp "f.*o[ ]") ~actual:"foo "
+
+    let%expect_test _ =
+      let expect =
+        Lexer.parse_body
+          ~allow_output_patterns:false
+          (Pretty "a\n||||||| conflict-marker\nb\n")
+      in
+      (match
+         expectation_body
+           ~expect
+           ~actual:"a\n\nb\n"
+           ~default_indent:0
+           ~pad_single_line:false
+           ~allow_output_patterns:false
+       with
+       | Match -> print_endline "Match"
+       | Correction correction ->
+         print_endline "Correction";
+         print_endline
+           (Ppx_sexp_conv_lib.Sexp.to_string_hum
+              (Expectation.Body.sexp_of_t (Cst.sexp_of_t Fmt.sexp_of_t) correction)));
+      [%expect
+        {|
+        Correction
+        (Pretty
+         (Multi_lines
+          ((leading_spaces "") (trailing_spaces "\n") (indentation "")
+           (lines
+            ((Not_blank ((trailing_blanks "") (orig a) (data (Literal a))))
+             (Blank "")
+             (Not_blank ((trailing_blanks "") (orig b) (data (Literal b))))))))) |}]
+    ;;
 
     let%test_module _ =
       (module struct
