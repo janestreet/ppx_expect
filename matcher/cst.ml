@@ -44,18 +44,22 @@ module Line = struct
   let sexp_of_not_blank : 'a. ('a -> Sexplib0.Sexp.t) -> 'a not_blank -> Sexplib0.Sexp.t =
     fun _of_a__001_
       { trailing_blanks = trailing_blanks__003_; orig = orig__005_; data = data__007_ } ->
-      let bnds__002_ = [] in
+      let bnds__002_ = ([] : _ Stdlib.List.t) in
       let bnds__002_ =
         let arg__008_ = _of_a__001_ data__007_ in
-        Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "data"; arg__008_ ] :: bnds__002_
+        (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "data"; arg__008_ ] :: bnds__002_
+         : _ Stdlib.List.t)
       in
       let bnds__002_ =
         let arg__006_ = sexp_of_string orig__005_ in
-        Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "orig"; arg__006_ ] :: bnds__002_
+        (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "orig"; arg__006_ ] :: bnds__002_
+         : _ Stdlib.List.t)
       in
       let bnds__002_ =
         let arg__004_ = sexp_of_string trailing_blanks__003_ in
-        Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "trailing_blanks"; arg__004_ ] :: bnds__002_
+        (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "trailing_blanks"; arg__004_ ]
+         :: bnds__002_
+         : _ Stdlib.List.t)
       in
       Sexplib0.Sexp.List bnds__002_
   ;;
@@ -213,22 +217,26 @@ let sexp_of_single_line : 'a. ('a -> Sexplib0.Sexp.t) -> 'a single_line -> Sexpl
     ; orig = orig__047_
     ; data = data__049_
     } ->
-    let bnds__042_ = [] in
+    let bnds__042_ = ([] : _ Stdlib.List.t) in
     let bnds__042_ =
       let arg__050_ = _of_a__041_ data__049_ in
-      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "data"; arg__050_ ] :: bnds__042_
+      (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "data"; arg__050_ ] :: bnds__042_
+       : _ Stdlib.List.t)
     in
     let bnds__042_ =
       let arg__048_ = sexp_of_string orig__047_ in
-      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "orig"; arg__048_ ] :: bnds__042_
+      (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "orig"; arg__048_ ] :: bnds__042_
+       : _ Stdlib.List.t)
     in
     let bnds__042_ =
       let arg__046_ = sexp_of_string trailing_spaces__045_ in
-      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "trailing_spaces"; arg__046_ ] :: bnds__042_
+      (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "trailing_spaces"; arg__046_ ] :: bnds__042_
+       : _ Stdlib.List.t)
     in
     let bnds__042_ =
       let arg__044_ = sexp_of_string leading_blanks__043_ in
-      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "leading_blanks"; arg__044_ ] :: bnds__042_
+      (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "leading_blanks"; arg__044_ ] :: bnds__042_
+       : _ Stdlib.List.t)
     in
     Sexplib0.Sexp.List bnds__042_
 ;;
@@ -291,22 +299,26 @@ let sexp_of_multi_lines : 'a. ('a -> Sexplib0.Sexp.t) -> 'a multi_lines -> Sexpl
     ; indentation = indentation__061_
     ; lines = lines__063_
     } ->
-    let bnds__056_ = [] in
+    let bnds__056_ = ([] : _ Stdlib.List.t) in
     let bnds__056_ =
       let arg__064_ = sexp_of_list (Line.sexp_of_t _of_a__055_) lines__063_ in
-      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "lines"; arg__064_ ] :: bnds__056_
+      (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "lines"; arg__064_ ] :: bnds__056_
+       : _ Stdlib.List.t)
     in
     let bnds__056_ =
       let arg__062_ = sexp_of_string indentation__061_ in
-      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "indentation"; arg__062_ ] :: bnds__056_
+      (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "indentation"; arg__062_ ] :: bnds__056_
+       : _ Stdlib.List.t)
     in
     let bnds__056_ =
       let arg__060_ = sexp_of_string trailing_spaces__059_ in
-      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "trailing_spaces"; arg__060_ ] :: bnds__056_
+      (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "trailing_spaces"; arg__060_ ] :: bnds__056_
+       : _ Stdlib.List.t)
     in
     let bnds__056_ =
       let arg__058_ = sexp_of_string leading_spaces__057_ in
-      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "leading_spaces"; arg__058_ ] :: bnds__056_
+      (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "leading_spaces"; arg__058_ ] :: bnds__056_
+       : _ Stdlib.List.t)
     in
     Sexplib0.Sexp.List bnds__056_
 ;;

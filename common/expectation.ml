@@ -94,22 +94,26 @@ let sexp_of_t : 'a. ('a -> Sexplib0.Sexp.t) -> 'a t -> Sexplib0.Sexp.t =
     ; extid_location = extid_location__025_
     ; body_location = body_location__027_
     } ->
-    let bnds__020_ = [] in
+    let bnds__020_ = ([] : _ Stdlib.List.t) in
     let bnds__020_ =
       let arg__028_ = File.Location.sexp_of_t body_location__027_ in
-      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "body_location"; arg__028_ ] :: bnds__020_
+      (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "body_location"; arg__028_ ] :: bnds__020_
+       : _ Stdlib.List.t)
     in
     let bnds__020_ =
       let arg__026_ = File.Location.sexp_of_t extid_location__025_ in
-      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "extid_location"; arg__026_ ] :: bnds__020_
+      (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "extid_location"; arg__026_ ] :: bnds__020_
+       : _ Stdlib.List.t)
     in
     let bnds__020_ =
       let arg__024_ = Body.sexp_of_t _of_a__019_ body__023_ in
-      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "body"; arg__024_ ] :: bnds__020_
+      (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "body"; arg__024_ ] :: bnds__020_
+       : _ Stdlib.List.t)
     in
     let bnds__020_ =
       let arg__022_ = sexp_of_option sexp_of_string tag__021_ in
-      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "tag"; arg__022_ ] :: bnds__020_
+      (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "tag"; arg__022_ ] :: bnds__020_
+       : _ Stdlib.List.t)
     in
     Sexplib0.Sexp.List bnds__020_
 ;;

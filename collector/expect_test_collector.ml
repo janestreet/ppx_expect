@@ -115,7 +115,7 @@ module Instance = struct
   ;;
 end
 
-let basic_flush () =
+let flush () =
   Format.pp_print_flush Format.std_formatter ();
   Format.pp_print_flush Format.err_formatter ();
   Stdlib.flush Stdlib.stdout;
@@ -124,33 +124,21 @@ let basic_flush () =
 
 let save_and_return_output location =
   let instance = Instance.get_current () in
-  basic_flush ();
+  flush ();
   Instance.save_and_return_output_without_flush instance location
 ;;
 
 module Make (C : Expect_test_config_types.S) = struct
-  let ( >>= ) t f = C.IO_flush.bind t ~f
-  let return = C.IO_flush.return
-
-  module C = struct
-    include C
-
-    let flush () =
-      basic_flush ();
-      C.IO_flush.return ()
-    ;;
-  end
-
   module Instance_io : sig
-    val save_output : File.Location.t -> unit C.IO_flush.t
-    val save_and_return_output : File.Location.t -> string C.IO_flush.t
+    val save_output : File.Location.t -> unit
+    val save_and_return_output : File.Location.t -> string
 
     val exec
       :  file_digest:File.Digest.t
       -> location:File.Location.t
       -> expectations:Expectation.Raw.t list
       -> uncaught_exn_expectation:Expectation.Raw.t option
-      -> f:(unit -> unit C.IO_run.t)
+      -> f:(unit -> unit C.IO.t)
       -> unit
   end = struct
     open Instance
@@ -189,15 +177,14 @@ module Make (C : Expect_test_config_types.S) = struct
 
     let save_output location =
       let t = get_current () in
-      C.flush ()
-      >>= fun () ->
-      save_output_without_flush t location;
-      return ()
+      flush ();
+      save_output_without_flush t location
     ;;
 
     let save_and_return_output location =
       let t = get_current () in
-      C.flush () >>= fun () -> return (save_and_return_output_without_flush t location)
+      flush ();
+      save_and_return_output_without_flush t location
     ;;
 
     let () =
@@ -221,8 +208,7 @@ module Make (C : Expect_test_config_types.S) = struct
 
     let rec final_flush ?(count = 0) k =
       let max_attempts = 10 in
-      C.flush ()
-      >>= fun () ->
+      flush ();
       if C.flushed ()
       then k ~append:""
       else if count = max_attempts
@@ -242,7 +228,7 @@ module Make (C : Expect_test_config_types.S) = struct
       current_test := Some (location, t);
       let finally uncaught_exn =
         C.run (fun () ->
-          C.IO_flush.to_run
+          C.IO.return
             (final_flush (fun ~append ->
                current_test := None;
                let saved_output, trailing_output = get_outputs_and_cleanup t in
@@ -256,8 +242,7 @@ module Make (C : Expect_test_config_types.S) = struct
                   ; upon_unreleasable_issue = C.upon_unreleasable_issue
                   ; uncaught_exn
                   }
-                  :: !tests_run;
-               return ())))
+                  :: !tests_run)))
       in
       match C.run f with
       | () -> finally None
@@ -307,7 +292,7 @@ module Make (C : Expect_test_config_types.S) = struct
              registering_tests_for
          else (
            (* To avoid capturing not-yet flushed data of the stdout buffer *)
-           C.run (fun () -> C.IO_flush.to_run (C.flush ()));
+           C.run (fun () -> C.IO.return (flush ()));
            Instance_io.exec
              ~file_digest
              ~location

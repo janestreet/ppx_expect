@@ -1,18 +1,10 @@
-module IO_run = struct
+module IO = struct
   type 'a t = 'a
 
   let return x = x
-  let bind t ~f = f t
-end
-
-module IO_flush = struct
-  include IO_run
-
-  let to_run t = t
 end
 
 let sanitize s = s
 let run f = f ()
 let flushed () = true (* the runtime flushed [stdout] before calling this function *)
-
 let upon_unreleasable_issue = `CR

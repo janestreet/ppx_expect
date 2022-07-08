@@ -6,22 +6,14 @@ module Upon_unreleasable_issue = struct
 end
 
 module type S = sig
-  module IO_run : sig
-    type 'a t
-  end
-
-  (** A now-legacy monad. This signature used to declare a [flush] function.
-      [[%expect.output]] still returns this type. No meaningful monadic work is done. *)
-  module IO_flush : sig
+  module IO : sig
     type 'a t
 
     val return : 'a -> 'a t
-    val bind : 'a t -> f:('a -> 'b t) -> 'b t
-    val to_run : 'a t -> 'a IO_run.t
   end
 
   (** Run an IO operation until completion *)
-  val run : (unit -> unit IO_run.t) -> unit
+  val run : (unit -> unit IO.t) -> unit
 
   (** Synchronous check that there is no pending output on file description 0. With async,
       there is no guarantee that on the rhs of a [IO.bind (flush ()) ...] the output is
