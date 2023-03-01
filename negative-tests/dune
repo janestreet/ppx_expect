@@ -7,13 +7,12 @@
  (targets exact.ml.corrected exn.ml.corrected exn_and_trailing.ml.corrected
   exn_missing.ml.corrected expect_output.ml.corrected flexible.ml.corrected
   function_with_distinct_outputs.ml.corrected functor.ml.corrected
-  glob.ml.corrected missing.ml.corrected normal_strings.ml.corrected
-  pending_output.ml.corrected regexp.ml.corrected semicolon.ml.corrected
+  missing.ml.corrected normal_strings.ml.corrected semicolon.ml.corrected
   spacing.ml.corrected string_padding.ml.corrected tag.ml.corrected
   trailing.ml.corrected unidiomatic_syntax.ml.corrected test-output)
  (action
   (bash
-   "rm -f *.ml.corrected 2>/dev/null; ! %{first_dep} -diff-cmd true -allow-output-patterns 2> test-output")))
+   "rm -f *.ml.corrected 2>/dev/null; ! %{first_dep} -diff-cmd true 2> test-output")))
 
 (alias (name runtest) (deps exact.ml.corrected.expected exact.ml.corrected)
  (action (bash "diff -a %{deps}")))
@@ -46,22 +45,12 @@
  (deps functor.ml.corrected.expected functor.ml.corrected)
  (action (bash "diff -a %{deps}")))
 
-(alias (name runtest) (deps glob.ml.corrected.expected glob.ml.corrected)
- (action (bash "diff -a %{deps}")))
-
 (alias (name runtest)
  (deps missing.ml.corrected.expected missing.ml.corrected)
  (action (bash "diff -a %{deps}")))
 
 (alias (name runtest)
  (deps normal_strings.ml.corrected.expected normal_strings.ml.corrected)
- (action (bash "diff -a %{deps}")))
-
-(alias (name runtest)
- (deps pending_output.ml.corrected.expected pending_output.ml.corrected)
- (action (bash "diff -a %{deps}")))
-
-(alias (name runtest) (deps regexp.ml.corrected.expected regexp.ml.corrected)
  (action (bash "diff -a %{deps}")))
 
 (alias (name runtest)

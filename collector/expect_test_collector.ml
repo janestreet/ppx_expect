@@ -87,6 +87,7 @@ module Instance = struct
   ;;
 
   let current_test : (File.Location.t * t) option ref = ref None
+  let am_running_expect_test () = Option.is_some !current_test
 
   let get_current () =
     match !current_test with
@@ -114,6 +115,8 @@ module Instance = struct
       really_input_string ic len)
   ;;
 end
+
+let am_running_expect_test = Instance.am_running_expect_test
 
 let flush () =
   Format.pp_print_flush Format.std_formatter ();
@@ -206,43 +209,26 @@ module Make (C : Expect_test_config_types.S) = struct
           Printf.eprintf "%s%!" trailing)
     ;;
 
-    let rec final_flush ?(count = 0) k =
-      let max_attempts = 10 in
-      flush ();
-      if C.flushed ()
-      then k ~append:""
-      else if count = max_attempts
-      then
-        k
-          ~append:
-            (Printf.sprintf
-               "\n\
-                STOPPED COLLECTING OUTPUT AFTER %d FLUSHING ATTEMPS\n\
-                THERE MUST BE A BACKGROUND JOB PRINTING TO STDOUT\n"
-               max_attempts)
-      else final_flush ~count:(count + 1) k
-    ;;
-
     let exec ~file_digest ~location ~expectations ~uncaught_exn_expectation ~f =
       let t = create () in
       current_test := Some (location, t);
       let finally uncaught_exn =
         C.run (fun () ->
           C.IO.return
-            (final_flush (fun ~append ->
-               current_test := None;
-               let saved_output, trailing_output = get_outputs_and_cleanup t in
-               tests_run
-               := { file_digest
-                  ; location
-                  ; expectations
-                  ; uncaught_exn_expectation
-                  ; saved_output
-                  ; trailing_output = trailing_output ^ append
-                  ; upon_unreleasable_issue = C.upon_unreleasable_issue
-                  ; uncaught_exn
-                  }
-                  :: !tests_run)))
+            (flush ();
+             current_test := None;
+             let saved_output, trailing_output = get_outputs_and_cleanup t in
+             tests_run
+             := { file_digest
+                ; location
+                ; expectations
+                ; uncaught_exn_expectation
+                ; saved_output
+                ; trailing_output
+                ; upon_unreleasable_issue = C.upon_unreleasable_issue
+                ; uncaught_exn
+                }
+                :: !tests_run))
       in
       match C.run f with
       | () -> finally None
@@ -266,7 +252,7 @@ module Make (C : Expect_test_config_types.S) = struct
         ~inline_test_config
         f
     =
-    Ppx_inline_test_lib.Runtime.test
+    Ppx_inline_test_lib.test
       ~config:inline_test_config
       ~descr:
         (lazy

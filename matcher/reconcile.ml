@@ -1,5 +1,5 @@
 open! Base
-open Import
+open! Import
 open Expect_test_common
 open Sexplib0.Sexp_conv
 
@@ -25,7 +25,7 @@ module Result = struct
 
   let compare : 'a. ('a -> 'a -> int) -> 'a t -> 'a t -> int =
     fun _cmp__a a__005_ b__006_ ->
-    if Ppx_compare_lib.phys_equal a__005_ b__006_
+    if Stdlib.( == ) a__005_ b__006_
     then 0
     else (
       match a__005_, b__006_ with

@@ -2,7 +2,7 @@ open Base
 open Stdio
 open Expect_test_common
 open Expect_test_matcher
-module Test_result = Ppx_inline_test_lib.Runtime.Test_result
+module Test_result = Ppx_inline_test_lib.Test_result
 module Collector_test_outcome = Expect_test_collector.Test_outcome
 
 type group =
@@ -78,7 +78,7 @@ let dir_seps = '/' :: (if Sys.win32 then [ '\\'; ':' ] else [])
 
 let resolve_filename filename =
   let relative_to =
-    match Ppx_inline_test_lib.Runtime.source_tree_root with
+    match Ppx_inline_test_lib.source_tree_root with
     | None -> File.initial_dir ()
     | Some root ->
       if Stdlib.Filename.is_relative root
@@ -164,42 +164,51 @@ let process_group
     remove dot_corrected;
     Success
   | _ :: _ ->
-    let no_diff =
-      match diff_command with
-      | Some "-" -> true
-      | None | Some _ -> false
-    in
-    let write_corrected ~file =
-      Matcher.write_corrected bad_outcomes ~file ~file_contents ~mode:Inline_expect_test
+    let next_contents =
+      Matcher.get_contents_for_corrected_file
+        ~file_contents
+        ~mode:Inline_expect_test
+        bad_outcomes
     in
     (match in_place with
      | true ->
-       write_corrected ~file:filename;
+       Out_channel.write_all filename ~data:next_contents;
        remove dot_corrected;
        Success
      | false ->
-       (match no_diff with
-        | true ->
-          write_corrected ~file:dot_corrected;
+       (match diff_command with
+        | Some "-" (* Just write the .corrected file - do not output a diff. *) ->
+          Out_channel.write_all dot_corrected ~data:next_contents;
           Success
-        | false ->
+        | None | Some _ ->
+          (* By invoking [Make_corrected_file.f] with a fresh temporary file, we avoid the
+             following possible race between inline_test_runners A and B:
+             1. A runs test T1 and generates next contents C1.
+             2. B runs test T2 and generates next contents C2.
+             3. A writes C1 to the .corrected file.
+             4. B writes C2 to the .corrected file.
+             5. A diffs the .corrected file against the original file and reports the
+             result. It thinks it is reporting the diff produced by T1, but is in fact
+             reporting the diff produced by T2. The key aspect of using temporary files is
+             that even if in the above scenario the final contents of the .corrected file
+             are C2, the diff reported by A comes from its tmp file and will still be the
+             diff produced by T1. *)
           let tmp_corrected =
-            (* We need a temporary file for corrections to allow [Ppxlib_print_diff] to work when
-               multiple inline_tests_runner are run simultaneously. Otherwise one copy may
-               remove the corrected file before the other can print the diff. *)
             Stdlib.Filename.temp_file
               (Stdlib.Filename.basename filename)
               ".corrected.tmp"
               ~temp_dir:(Stdlib.Filename.dirname filename)
           in
-          write_corrected ~file:tmp_corrected;
-          Ppxlib_print_diff.print
-            ~file1:filename
-            ~file2:tmp_corrected
-            ~extra_patdiff_args:[ "-alt-new"; dot_corrected ]
-            ~use_color
-            ?diff_command
-            ();
+          let (Ok () | Error (_ : Error.t)) =
+            Make_corrected_file.f
+              ~corrected_path:tmp_corrected
+              ~use_color
+              ?diff_command
+              ~message:None
+              ~next_contents
+              ~path:filename
+              ()
+          in
           Stdlib.Sys.rename tmp_corrected dot_corrected;
           Failure))
 ;;
@@ -224,10 +233,10 @@ let evaluate_tests ~use_color ~in_place ~diff_command ~allow_output_patterns =
 ;;
 
 let () =
-  Ppx_inline_test_lib.Runtime.add_evaluator ~f:(fun () ->
+  Ppx_inline_test_lib.add_evaluator ~f:(fun () ->
     evaluate_tests
-      ~use_color:Ppx_inline_test_lib.Runtime.use_color
-      ~in_place:Ppx_inline_test_lib.Runtime.in_place
-      ~diff_command:Ppx_inline_test_lib.Runtime.diff_command
-      ~allow_output_patterns:Ppx_inline_test_lib.Runtime.allow_output_patterns)
+      ~use_color:Ppx_inline_test_lib.use_color
+      ~in_place:Ppx_inline_test_lib.in_place
+      ~diff_command:Ppx_inline_test_lib.diff_command
+      ~allow_output_patterns:false)
 ;;

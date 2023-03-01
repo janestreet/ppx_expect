@@ -146,7 +146,7 @@ module Location = struct
 
     let compare =
       (fun a__015_ b__016_ ->
-         if Ppx_compare_lib.phys_equal a__015_ b__016_
+         if Stdlib.( == ) a__015_ b__016_
          then 0
          else (
            match Name.compare a__015_.filename b__016_.filename with
@@ -177,7 +177,7 @@ module Location = struct
   ;;
 
   let of_source_code_position (pos : Source_code_position.t) =
-    { filename = Name.of_string (Caml.Filename.basename pos.pos_fname)
+    { filename = Name.of_string (Stdlib.Filename.basename pos.pos_fname)
     ; line_number = pos.pos_lnum
     ; line_start = pos.pos_bol
     ; start_pos = pos.pos_cnum

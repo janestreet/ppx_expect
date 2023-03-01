@@ -19,8 +19,8 @@ let generate filenames =
             [ "./inline_tests_runner"; "./inline_tests_runner.exe"; `glob_files "*.ml" ]
         ; targets : string list
         ; action =
-            "rm -f *.ml.corrected 2>/dev/null; ! %{first_dep} -diff-cmd true \
-             -allow-output-patterns 2> test-output"
+            "rm -f *.ml.corrected 2>/dev/null; ! %{first_dep} -diff-cmd true 2> \
+             test-output"
         }];
   List.iter targets ~f:(fun target ->
     let deps = [ target ^ ".expected"; target ] in

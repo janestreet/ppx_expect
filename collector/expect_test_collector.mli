@@ -33,10 +33,13 @@ module Make (Config : Expect_test_config_types.S) : sig
     -> tags:string list
     -> expectations:Expectation.Raw.t list
     -> uncaught_exn_expectation:Expectation.Raw.t option
-    -> inline_test_config:Ppx_inline_test_lib.Runtime.config
+    -> inline_test_config:Ppx_inline_test_lib.config
     -> (unit -> unit Config.IO.t)
     -> unit
 end
+
+(** Returns true if and only if an expect test is currently collecting output. *)
+val am_running_expect_test : unit -> bool
 
 (** Flushes stdout/stderr. Same as [Make().save_and_return_output], without monad. *)
 val save_and_return_output : File.Location.t -> string

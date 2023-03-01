@@ -206,7 +206,6 @@ module Expect_test_config :
   module IO_run = Lwt_io_run
   module IO_flush = Lwt_io_flush
   let run x = Lwt_main.run (x ())
-  let flushed () = Lwt_io.(buffered stdout = 0)
   let upon_unreleasable_issue = `CR
 end
 #+end_src
@@ -286,43 +285,3 @@ new =%expect= node.
 Follow the same rules as for [[https://github.com/janestreet/ppx_inline_test][ppx_inline_test]]. Just make sure to
 include =ppx_expect.evaluator= as a dependency of the test runner. The
 [[https://github.com/janestreet/jane-street-tests][Jane Street tests]] contains a few working examples using oasis.
-
-** Output patterns
-
-Lines in an =%expect= can end with a "tag" indicating the kind of
-match to perform.  This functionality is deprecated because it
-interferes with the smooth expect-test workflow of accepting output.
-One should instead use output post-processing.
-
-To enable support for output patterns, your =jbuild= file should have:
-
-=((inline_tests ((flags (-allow-output-patterns)))))=
-
-Here are the different kinds of output patterns.
-
-The =(regexp)= tag will perform regexp matching on the given line:
-
-#+begin_src ocaml
-printf "foo";
-[%expect {| foo\|bar (regexp) |}]
-#+end_src
-
-Similarly, the =(glob)= tag will perform glob matching on the given
-line:
-
-#+begin_src ocaml
-printf "foobarbaz";
-[%expect {| {foo,hello}* (glob) |}]
-#+end_src
-
-The =(literal)= tag will force a literal match on a line, and can be
-useful in edge cases:
-
-#+begin_src ocaml
-printf "foo*bar (regexp)";
-[%expect {| foo*bar (regexp) (literal) |}]
-#+end_src
-
-The =(escaped)= tag will treat the line as an escaped literal string,
-which can be useful for matching unprintable characters. It doesn't
-support escaped newlines right now.

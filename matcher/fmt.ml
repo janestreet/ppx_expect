@@ -29,7 +29,7 @@ let _ = sexp_of_t
 
 let compare =
   (fun a__007_ b__008_ ->
-     if Ppx_compare_lib.phys_equal a__007_ b__008_
+     if Stdlib.( == ) a__007_ b__008_
      then 0
      else (
        match a__007_, b__008_ with
@@ -47,7 +47,7 @@ let _ = compare
 
 let equal =
   (fun a__015_ b__016_ ->
-     if Ppx_compare_lib.phys_equal a__015_ b__016_
+     if Stdlib.( == ) a__015_ b__016_
      then true
      else (
        match a__015_, b__016_ with

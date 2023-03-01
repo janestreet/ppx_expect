@@ -1,8 +1,7 @@
 open Base
-open Stdio
 open Expect_test_common
 
-let fprintf = Out_channel.fprintf
+let bprintf = Printf.bprintf
 
 module Saved_output = struct
   type t =
@@ -298,43 +297,41 @@ type mode =
   | Inline_expect_test
   | Toplevel_expect_test
 
-let output_slice out s a b =
-  Out_channel.output_string out (String.sub s ~pos:a ~len:(b - a))
-;;
+let output_slice buf s a b = Buffer.add_string buf (String.sub s ~pos:a ~len:(b - a))
 
 let is_space = function
   | '\t' | '\011' | '\012' | '\r' | ' ' | '\n' -> true
   | _ -> false
 ;;
 
-let rec output_semi_colon_if_needed oc file_contents pos =
+let rec output_semi_colon_if_needed buf file_contents pos =
   if pos >= 0
   then (
     match file_contents.[pos] with
-    | c when is_space c -> output_semi_colon_if_needed oc file_contents (pos - 1)
+    | c when is_space c -> output_semi_colon_if_needed buf file_contents (pos - 1)
     | ';' -> ()
-    | _ -> Out_channel.output_char oc ';')
+    | _ -> Buffer.add_char buf ';')
 ;;
 
 let split_lines s = String.split s ~on:'\n'
 
-let output_corrected oc ~file_contents ~mode test_corrections =
+let output_corrected buf ~file_contents ~mode test_corrections =
   let id_and_string_of_body : _ Expectation.Body.t -> string * string = function
     | Exact x -> "expect_exact", x
     | Output -> "expect.output", ""
     | Pretty x -> "expect", Cst.to_string x
     | Unreachable -> assert false
   in
-  let output_body oc tag body =
+  let output_body buf tag body =
     match tag with
     | None ->
-      fprintf
-        oc
+      bprintf
+        buf
         "\"%s\""
         (String.concat ~sep:"\n" (split_lines body |> List.map ~f:String.escaped))
     | Some tag ->
       let tag = Choose_tag.choose ~default:tag body in
-      fprintf oc "{%s|%s|%s}" tag body tag
+      bprintf buf "{%s|%s|%s}" tag body tag
   in
   let ofs =
     List.fold_left
@@ -390,19 +387,19 @@ let output_corrected oc ~file_contents ~mode test_corrections =
             ~f:(fun ofs (e, correction) ->
               match (correction : Test_correction.Node_correction.t) with
               | Collector_never_triggered ->
-                output_slice oc file_contents ofs e.Expectation.extid_location.start_pos;
-                fprintf oc "expect.unreachable";
+                output_slice buf file_contents ofs e.Expectation.extid_location.start_pos;
+                bprintf buf "expect.unreachable";
                 e.body_location.end_pos
               | Correction c ->
                 let id, body = id_and_string_of_body c in
-                output_slice oc file_contents ofs e.extid_location.start_pos;
-                Out_channel.output_string oc id;
+                output_slice buf file_contents ofs e.extid_location.start_pos;
+                Buffer.add_string buf id;
                 output_slice
-                  oc
+                  buf
                   file_contents
                   e.extid_location.end_pos
                   e.body_location.start_pos;
-                output_body oc e.tag body;
+                output_body buf e.tag body;
                 e.body_location.end_pos)
         in
         let ofs =
@@ -410,22 +407,22 @@ let output_corrected oc ~file_contents ~mode test_corrections =
           | Match -> ofs
           | Correction c ->
             let loc = test_correction.location in
-            output_slice oc file_contents ofs loc.end_pos;
+            output_slice buf file_contents ofs loc.end_pos;
             if match mode with
               | Inline_expect_test -> true
               | Toplevel_expect_test -> false
-            then output_semi_colon_if_needed oc file_contents loc.end_pos;
+            then output_semi_colon_if_needed buf file_contents loc.end_pos;
             let id, body = id_and_string_of_body c in
             (match mode with
              | Inline_expect_test ->
                let indent = loc.start_pos - loc.line_start + 2 in
-               fprintf oc "\n%*s[%%%s " indent "" id
+               bprintf buf "\n%*s[%%%s " indent "" id
              | Toplevel_expect_test ->
                if loc.end_pos = 0 || Char.( <> ) file_contents.[loc.end_pos - 1] '\n'
-               then Out_channel.output_char oc '\n';
-               fprintf oc "[%%%%%s" id);
-            output_body oc (Some "") body;
-            fprintf oc "]";
+               then Buffer.add_char buf '\n';
+               bprintf buf "[%%%%%s" id);
+            output_body buf (Some "") body;
+            bprintf buf "]";
             loc.end_pos
         in
         let ofs =
@@ -436,31 +433,32 @@ let output_corrected oc ~file_contents ~mode test_corrections =
             ofs
           | Without_expectation c ->
             let loc = test_correction.location in
-            output_slice oc file_contents ofs loc.end_pos;
+            output_slice buf file_contents ofs loc.end_pos;
             let indent = loc.start_pos - loc.line_start in
-            fprintf oc "\n%*s[@@expect.uncaught_exn " indent "";
-            output_body oc (Some "") (snd (id_and_string_of_body c));
-            fprintf oc "]";
+            bprintf buf "\n%*s[@@expect.uncaught_exn " indent "";
+            output_body buf (Some "") (snd (id_and_string_of_body c));
+            bprintf buf "]";
             loc.end_pos
           | Correction (e, c) ->
-            output_slice oc file_contents ofs e.body_location.start_pos;
-            output_body oc e.tag (snd (id_and_string_of_body c));
+            output_slice buf file_contents ofs e.body_location.start_pos;
+            output_body buf e.tag (snd (id_and_string_of_body c));
             e.body_location.end_pos
         in
         match to_skip with
         | None -> ofs
         | Some (start, stop) ->
-          output_slice oc file_contents ofs start;
+          output_slice buf file_contents ofs start;
           stop)
   in
-  output_slice oc file_contents ofs (String.length file_contents)
+  output_slice buf file_contents ofs (String.length file_contents)
 ;;
 
-let write_corrected ~file ~file_contents ~mode test_corrections =
-  Out_channel.with_file file ~f:(fun oc ->
-    output_corrected
-      oc
-      ~file_contents
-      ~mode
-      (List.sort test_corrections ~compare:Test_correction.compare_locations))
+let get_contents_for_corrected_file ~file_contents ~mode test_corrections =
+  let buf = Buffer.create 4096 in
+  output_corrected
+    buf
+    ~file_contents
+    ~mode
+    (List.sort test_corrections ~compare:Test_correction.compare_locations);
+  Buffer.contents buf
 ;;

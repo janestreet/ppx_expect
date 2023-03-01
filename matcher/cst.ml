@@ -1,5 +1,5 @@
 open! Base
-open Import
+open! Import
 
 let for_all_string s ~f =
   let b = ref true in
@@ -68,7 +68,7 @@ module Line = struct
 
   let compare_not_blank : 'a. ('a -> 'a -> int) -> 'a not_blank -> 'a not_blank -> int =
     fun _cmp__a a__009_ b__010_ ->
-    if Ppx_compare_lib.phys_equal a__009_ b__010_
+    if Stdlib.( == ) a__009_ b__010_
     then 0
     else (
       match compare_string a__009_.trailing_blanks b__010_.trailing_blanks with
@@ -83,12 +83,12 @@ module Line = struct
 
   let equal_not_blank : 'a. ('a -> 'a -> bool) -> 'a not_blank -> 'a not_blank -> bool =
     fun _cmp__a a__011_ b__012_ ->
-    if Ppx_compare_lib.phys_equal a__011_ b__012_
+    if Stdlib.( == ) a__011_ b__012_
     then true
     else
-      Ppx_compare_lib.( && )
+      Stdlib.( && )
         (equal_string a__011_.trailing_blanks b__012_.trailing_blanks)
-        (Ppx_compare_lib.( && )
+        (Stdlib.( && )
            (equal_string a__011_.orig b__012_.orig)
            (_cmp__a a__011_.data b__012_.data))
   ;;
@@ -123,7 +123,7 @@ module Line = struct
 
   let compare : 'a. ('a -> 'a -> int) -> 'a t -> 'a t -> int =
     fun _cmp__a a__021_ b__022_ ->
-    if Ppx_compare_lib.phys_equal a__021_ b__022_
+    if Stdlib.( == ) a__021_ b__022_
     then 0
     else (
       match a__021_, b__022_ with
@@ -142,7 +142,7 @@ module Line = struct
 
   let equal : 'a. ('a -> 'a -> bool) -> 'a t -> 'a t -> bool =
     fun _cmp__a a__031_ b__032_ ->
-    if Ppx_compare_lib.phys_equal a__031_ b__032_
+    if Stdlib.( == ) a__031_ b__032_
     then true
     else (
       match a__031_, b__032_ with
@@ -246,7 +246,7 @@ let _ = sexp_of_single_line
 let compare_single_line : 'a. ('a -> 'a -> int) -> 'a single_line -> 'a single_line -> int
   =
   fun _cmp__a a__051_ b__052_ ->
-  if Ppx_compare_lib.phys_equal a__051_ b__052_
+  if Stdlib.( == ) a__051_ b__052_
   then 0
   else (
     match compare_string a__051_.leading_blanks b__052_.leading_blanks with
@@ -265,14 +265,14 @@ let _ = compare_single_line
 let equal_single_line : 'a. ('a -> 'a -> bool) -> 'a single_line -> 'a single_line -> bool
   =
   fun _cmp__a a__053_ b__054_ ->
-  if Ppx_compare_lib.phys_equal a__053_ b__054_
+  if Stdlib.( == ) a__053_ b__054_
   then true
   else
-    Ppx_compare_lib.( && )
+    Stdlib.( && )
       (equal_string a__053_.leading_blanks b__054_.leading_blanks)
-      (Ppx_compare_lib.( && )
+      (Stdlib.( && )
          (equal_string a__053_.trailing_spaces b__054_.trailing_spaces)
-         (Ppx_compare_lib.( && )
+         (Stdlib.( && )
             (equal_string a__053_.orig b__054_.orig)
             (_cmp__a a__053_.data b__054_.data)))
 ;;
@@ -328,7 +328,7 @@ let _ = sexp_of_multi_lines
 let compare_multi_lines : 'a. ('a -> 'a -> int) -> 'a multi_lines -> 'a multi_lines -> int
   =
   fun _cmp__a a__065_ b__066_ ->
-  if Ppx_compare_lib.phys_equal a__065_ b__066_
+  if Stdlib.( == ) a__065_ b__066_
   then 0
   else (
     match compare_string a__065_.leading_spaces b__066_.leading_spaces with
@@ -351,14 +351,14 @@ let _ = compare_multi_lines
 let equal_multi_lines : 'a. ('a -> 'a -> bool) -> 'a multi_lines -> 'a multi_lines -> bool
   =
   fun _cmp__a a__071_ b__072_ ->
-  if Ppx_compare_lib.phys_equal a__071_ b__072_
+  if Stdlib.( == ) a__071_ b__072_
   then true
   else
-    Ppx_compare_lib.( && )
+    Stdlib.( && )
       (equal_string a__071_.leading_spaces b__072_.leading_spaces)
-      (Ppx_compare_lib.( && )
+      (Stdlib.( && )
          (equal_string a__071_.trailing_spaces b__072_.trailing_spaces)
-         (Ppx_compare_lib.( && )
+         (Stdlib.( && )
             (equal_string a__071_.indentation b__072_.indentation)
             (equal_list
                (fun a__073_ b__074_ -> Line.equal _cmp__a a__073_ b__074_)
@@ -396,7 +396,7 @@ let _ = sexp_of_t
 
 let compare : 'a. ('a -> 'a -> int) -> 'a t -> 'a t -> int =
   fun _cmp__a a__085_ b__086_ ->
-  if Ppx_compare_lib.phys_equal a__085_ b__086_
+  if Stdlib.( == ) a__085_ b__086_
   then 0
   else (
     match a__085_, b__086_ with
@@ -415,7 +415,7 @@ let _ = compare
 
 let equal : 'a. ('a -> 'a -> bool) -> 'a t -> 'a t -> bool =
   fun _cmp__a a__097_ b__098_ ->
-  if Ppx_compare_lib.phys_equal a__097_ b__098_
+  if Stdlib.( == ) a__097_ b__098_
   then true
   else (
     match a__097_, b__098_ with

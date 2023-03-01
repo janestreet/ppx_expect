@@ -29,35 +29,5 @@ let%expect_test _ =
   one
   two
   three
-|}];
-  text ();
-  [%expect {|
-  one
-  two   (literal)
-  three
-|}];
-  text ();
-  [%expect {|
-  one
-  two   (regexp)
-  three
-|}];
-  text ();
-  [%expect {|
-  one
-  t.o   (regexp)
-  three
-|}];
-  text ();
-  [%expect {|
-  one
-  t.*o  (regexp)
-  three
-|}];
-  text ();
-  [%expect {|
-  one
-  t[wxy]o (regexp)
-  three
 |}]
 ;;

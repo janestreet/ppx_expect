@@ -64,10 +64,8 @@ type mode =
   | Inline_expect_test
   | Toplevel_expect_test
 
-(** Write a list of correction to a file. *)
-val write_corrected
-  :  file:string
-  -> file_contents:string
+val get_contents_for_corrected_file
+  :  file_contents:string
   -> mode:mode
   -> Test_correction.t list
-  -> unit
+  -> string

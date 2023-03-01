@@ -1,0 +1,3 @@
+(library (name make_corrected_file)
+ (public_name ppx_expect.make_corrected_file)
+ (libraries base ppxlib.print_diff stdio) (preprocess no_preprocessing))
