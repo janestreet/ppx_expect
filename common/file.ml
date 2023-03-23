@@ -95,8 +95,9 @@ module Location = struct
              | _ -> -1)
            ~allow_extra_fields:false
            ~create:
-             (fun (filename, (line_number, (line_start, (start_pos, (end_pos, ()))))) : t ->
-                { filename; line_number; line_start; start_pos; end_pos })
+             (fun
+               (filename, (line_number, (line_start, (start_pos, (end_pos, ()))))) : t ->
+               { filename; line_number; line_start; start_pos; end_pos })
            x__003_
          : Sexplib0.Sexp.t -> t)
     ;;

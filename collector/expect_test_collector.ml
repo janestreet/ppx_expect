@@ -158,6 +158,7 @@ module Make (C : Expect_test_config_types.S) = struct
     ;;
 
     let get_outputs_and_cleanup t =
+      Sys.chdir (File.initial_dir ());
       let last_ofs = get_position () in
       after_test ~stdout ~stderr;
       close_out t.chan;

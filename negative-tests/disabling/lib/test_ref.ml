@@ -14,5 +14,4 @@ let%expect_test _ =
 ;;
 
 let%test_unit _ = inner := Set_by_inline_test
-
 let value () = !inner

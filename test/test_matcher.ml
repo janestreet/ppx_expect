@@ -12,15 +12,12 @@ let%test_module "Choose_tag" =
     open Choose_tag
 
     let test body = [%test_result: string] (choose ~default:"" body)
-
     let%test_unit _ = test "nice text" ~expect:""
     let%test_unit _ = test "with embedded |} somewhere" ~expect:"xxx"
     let%test_unit _ = test "with embedded |a} somewhere" ~expect:""
     let%test_unit _ = test "with embedded |xxx} somewhere" ~expect:""
     let%test_unit _ = test "double - |} and |xxx} - embedding" ~expect:"xxxx"
-
     let testD body = [%test_result: string] (choose ~default:"default" body)
-
     let%test_unit _ = testD "nice text" ~expect:"default"
     let%test_unit _ = testD "with embedded |} somewhere" ~expect:"default"
     let%test_unit _ = testD "with embedded |default} somewhere" ~expect:"default_xxx"
@@ -39,6 +36,7 @@ let%test_module "Reconcile" =
     let%test _ = not (line_matches ~expect:(Regexp "f.*o") ~actual:"foo (regexp)")
     let%test _ = not (line_matches ~expect:(Regexp "[a]") ~actual:"[a]")
     let%test _ = line_matches ~expect:(Regexp "f.*o") ~actual:"foo"
+
     (* Regexp provides the possibility to match trailing *)
     let%test _ = line_matches ~expect:(Regexp "f.*o[ ]") ~actual:"foo "
 

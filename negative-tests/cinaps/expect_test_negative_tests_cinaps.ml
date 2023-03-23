@@ -26,7 +26,6 @@ let generate filenames =
     let deps = [ target ^ ".expected"; target ] in
     print_newline ();
     print_s
-      [%sexp
-        `alias { name = "runtest"; deps : string list; action = "diff -a %{deps}" }]);
+      [%sexp `alias { name = "runtest"; deps : string list; action = "diff -a %{deps}" }]);
   print_newline ()
 ;;

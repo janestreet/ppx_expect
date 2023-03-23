@@ -4,8 +4,9 @@
 (rule
  (deps (:first_dep ./inline_tests_runner) ./inline_tests_runner.exe
   (glob_files *.ml))
- (targets exact.ml.corrected exn.ml.corrected exn_and_trailing.ml.corrected
-  exn_missing.ml.corrected expect_output.ml.corrected flexible.ml.corrected
+ (targets chdir.ml.corrected exact.ml.corrected exn.ml.corrected
+  exn_and_trailing.ml.corrected exn_missing.ml.corrected
+  expect_output.ml.corrected flexible.ml.corrected
   function_with_distinct_outputs.ml.corrected functor.ml.corrected
   missing.ml.corrected normal_strings.ml.corrected semicolon.ml.corrected
   spacing.ml.corrected string_padding.ml.corrected tag.ml.corrected
@@ -13,6 +14,9 @@
  (action
   (bash
    "rm -f *.ml.corrected 2>/dev/null; ! %{first_dep} -diff-cmd true 2> test-output")))
+
+(alias (name runtest) (deps chdir.ml.corrected.expected chdir.ml.corrected)
+ (action (bash "diff -a %{deps}")))
 
 (alias (name runtest) (deps exact.ml.corrected.expected exact.ml.corrected)
  (action (bash "diff -a %{deps}")))

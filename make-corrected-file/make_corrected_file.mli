@@ -1,19 +1,19 @@
 open! Base
 
+(** [f ~next_contents ~path ()] compares the contents of [path] against [next_contents].
+    If the contents are unchanged, [f] returns [Ok ()]. If they are changed, it writes
+    [next_contents] to [corrected_path], emits a build error, and returns [Error _]. The
+    caller should exit nonzero (possibly by raising the returned error) to indicate to the
+    build that an error occurred. If it doesn't, the build system may not recognize that a
+    corrected file has been generated and needs to be moved out of a sandbox.
 
-(** [f ~contents ~path] compares the contents of [path] against [contents]. If they are
-    not equal, it writes [contents] to [corrected_path], emits a build error, and
-    returns [Error _].
-
-    Regardless of [corrected_path], the diff is shown in terms of [path ^ ".corrected"].
-
-    The caller should exit nonzero to indicate that a build error occurred. *)
+    The optional arguments support "expert" use cases. Most clients do not need them. *)
 val f
   :  ?use_dot_patdiff:bool (** default: [false] *)
   -> ?corrected_path:string (** default: [path ^ ".corrected"] *)
   -> ?use_color:bool (** default: [false] *)
   -> ?diff_command:string
-  -> message:string option
+  -> ?diff_path_prefix:string
   -> next_contents:string
   -> path:string
   -> unit

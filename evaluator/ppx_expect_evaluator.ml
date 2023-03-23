@@ -143,6 +143,7 @@ let process_group
       ~use_color
       ~in_place
       ~diff_command
+      ~diff_path_prefix
       ~allow_output_patterns
       { filename; file_contents; tests }
   : Test_result.t
@@ -204,7 +205,7 @@ let process_group
               ~corrected_path:tmp_corrected
               ~use_color
               ?diff_command
-              ~message:None
+              ?diff_path_prefix
               ~next_contents
               ~path:filename
               ()
@@ -213,11 +214,23 @@ let process_group
           Failure))
 ;;
 
-let evaluate_tests ~use_color ~in_place ~diff_command ~allow_output_patterns =
+let evaluate_tests
+      ~use_color
+      ~in_place
+      ~diff_command
+      ~diff_path_prefix
+      ~allow_output_patterns
+  =
   convert_collector_tests (Expect_test_collector.tests_run ()) ~allow_output_patterns
   |> List.map ~f:(fun group ->
     match
-      process_group ~use_color ~in_place ~diff_command ~allow_output_patterns group
+      process_group
+        ~use_color
+        ~in_place
+        ~diff_command
+        ~diff_path_prefix
+        ~allow_output_patterns
+        group
     with
     | exception exn ->
       let bt = Stdlib.Printexc.get_raw_backtrace () in
@@ -238,5 +251,6 @@ let () =
       ~use_color:Ppx_inline_test_lib.use_color
       ~in_place:Ppx_inline_test_lib.in_place
       ~diff_command:Ppx_inline_test_lib.diff_command
+      ~diff_path_prefix:Ppx_inline_test_lib.diff_path_prefix
       ~allow_output_patterns:false)
 ;;
