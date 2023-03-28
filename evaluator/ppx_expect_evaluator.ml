@@ -32,8 +32,7 @@ let convert_collector_test ~allow_output_patterns (test : Collector_test_outcome
         try Exn.to_string exn with
         | exn ->
           let name =
-            Stdlib.Obj.Extension_constructor.of_val exn
-            |> Stdlib.Obj.Extension_constructor.name
+            Caml.Obj.Extension_constructor.of_val exn |> Caml.Obj.Extension_constructor.name
           in
           Printf.sprintf "(\"%s(Cannot print more details, Exn.to_string failed)\")" name
       in
