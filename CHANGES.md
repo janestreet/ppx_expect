@@ -1,3 +1,16 @@
+## Release v0.16.0
+
+* Made `[%expect]` blocks always have type `unit`. Removed the need for monadic flush
+  operations. Expect tests inside concurrent frameworks like `Async` now expect output
+  during testing to be synchronous, or manually flushed. `Async` has, for some time, used
+  synchronous i/o for stdout and stderr when running expect tests.
+
+* Moved corrected-file generation to a library `Make_corrected_file`. This allows expect
+  tests and other testing tools to share a method for writing out corrected files and
+  printing out errors for corrections.
+
+## Old pre-v0.15 changelogs (very likely stale and incomplete)
+
 ## git version
 
 
