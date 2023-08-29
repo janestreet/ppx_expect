@@ -202,8 +202,22 @@ let evaluate_test
         test.upon_unreleasable_issue
     in
     let cr = Printf.sprintf "(* %sexpect_test: %s *)" prefix cr_body in
-    let sep = String.init (String.length cr) ~f:(fun _ -> '=') in
-    List.intersperse (cr :: outputs) ~sep |> String.concat ~sep:"\n"
+    let header index =
+      let header =
+        Printf.sprintf "=== Output %d / %d ===" (index + 1) (List.length outputs)
+      in
+      let pad_length = String.length cr - String.length header in
+      if pad_length <= 0
+      then header
+      else (
+        let lpad = String.make (pad_length / 2) '=' in
+        let rpad = String.make (pad_length - (pad_length / 2)) '=' in
+        Printf.sprintf "%s%s%s" lpad header rpad)
+    in
+    let outputs_with_headers =
+      List.concat_mapi outputs ~f:(fun index output -> [ header index; output ])
+    in
+    String.concat (cr :: outputs_with_headers) ~sep:"\n"
   in
   let corrections =
     Map.to_alist test.expectations
