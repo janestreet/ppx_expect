@@ -97,9 +97,9 @@ module Location = struct
            ~create:
              (fun
                (filename, (line_number, (line_start, (start_pos, (end_pos, ()))))) : t ->
-               { filename; line_number; line_start; start_pos; end_pos })
+             { filename; line_number; line_start; start_pos; end_pos })
            x__003_
-         : Sexplib0.Sexp.t -> t)
+        : Sexplib0.Sexp.t -> t)
     ;;
 
     let _ = t_of_sexp
@@ -111,35 +111,35 @@ module Location = struct
            ; start_pos = start_pos__011_
            ; end_pos = end_pos__013_
            } ->
-        let bnds__004_ = ([] : _ Stdlib.List.t) in
-        let bnds__004_ =
-          let arg__014_ = sexp_of_int end_pos__013_ in
-          (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "end_pos"; arg__014_ ] :: bnds__004_
-           : _ Stdlib.List.t)
-        in
-        let bnds__004_ =
-          let arg__012_ = sexp_of_int start_pos__011_ in
-          (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "start_pos"; arg__012_ ] :: bnds__004_
-           : _ Stdlib.List.t)
-        in
-        let bnds__004_ =
-          let arg__010_ = sexp_of_int line_start__009_ in
-          (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "line_start"; arg__010_ ]
-           :: bnds__004_
-           : _ Stdlib.List.t)
-        in
-        let bnds__004_ =
-          let arg__008_ = sexp_of_int line_number__007_ in
-          (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "line_number"; arg__008_ ]
-           :: bnds__004_
-           : _ Stdlib.List.t)
-        in
-        let bnds__004_ =
-          let arg__006_ = Name.sexp_of_t filename__005_ in
-          (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "filename"; arg__006_ ] :: bnds__004_
-           : _ Stdlib.List.t)
-        in
-        Sexplib0.Sexp.List bnds__004_
+         let bnds__004_ = ([] : _ Stdlib.List.t) in
+         let bnds__004_ =
+           let arg__014_ = sexp_of_int end_pos__013_ in
+           (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "end_pos"; arg__014_ ] :: bnds__004_
+             : _ Stdlib.List.t)
+         in
+         let bnds__004_ =
+           let arg__012_ = sexp_of_int start_pos__011_ in
+           (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "start_pos"; arg__012_ ] :: bnds__004_
+             : _ Stdlib.List.t)
+         in
+         let bnds__004_ =
+           let arg__010_ = sexp_of_int line_start__009_ in
+           (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "line_start"; arg__010_ ]
+            :: bnds__004_
+             : _ Stdlib.List.t)
+         in
+         let bnds__004_ =
+           let arg__008_ = sexp_of_int line_number__007_ in
+           (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "line_number"; arg__008_ ]
+            :: bnds__004_
+             : _ Stdlib.List.t)
+         in
+         let bnds__004_ =
+           let arg__006_ = Name.sexp_of_t filename__005_ in
+           (Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "filename"; arg__006_ ] :: bnds__004_
+             : _ Stdlib.List.t)
+         in
+         Sexplib0.Sexp.List bnds__004_
         : t -> Sexplib0.Sexp.t)
     ;;
 
@@ -162,7 +162,7 @@ module Location = struct
                  | n -> n)
               | n -> n)
            | n -> n)
-           : t -> t -> int)
+        : t -> t -> int)
     ;;
 
     let _ = compare

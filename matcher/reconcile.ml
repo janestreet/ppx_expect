@@ -15,10 +15,10 @@ module Result = struct
   let sexp_of_t : 'a. ('a -> Sexplib0.Sexp.t) -> 'a t -> Sexplib0.Sexp.t =
     fun (type a__004_) : ((a__004_ -> Sexplib0.Sexp.t) -> a__004_ t -> Sexplib0.Sexp.t) ->
     fun _of_a__001_ -> function
-      | Match -> Sexplib0.Sexp.Atom "Match"
-      | Correction arg0__002_ ->
-        let res0__003_ = _of_a__001_ arg0__002_ in
-        Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Correction"; res0__003_ ]
+    | Match -> Sexplib0.Sexp.Atom "Match"
+    | Correction arg0__002_ ->
+      let res0__003_ = _of_a__001_ arg0__002_ in
+      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Correction"; res0__003_ ]
   ;;
 
   let _ = sexp_of_t
@@ -52,10 +52,7 @@ module Result = struct
   ;;
 end
 
-let matches_regexp ~(pat : Re.t) s =
-  Re.execp (Re.compile (Re.whole_string pat)) s
-;;
-
+let matches_regexp ~(pat : Re.t) s = Re.execp (Re.compile (Re.whole_string pat)) s
 let glob = Re.Glob.glob ~anchored:true ~pathname:false ~expand_braces:true
 
 let line_matches ~(expect : Fmt.t) ~actual =
@@ -92,9 +89,9 @@ let reconcile_line ~(expect : Fmt.t) ~actual ~allow_output_patterns
 ;;
 
 let rec lines_match
-          ~(expect_lines : Fmt.t Cst.Line.t list)
-          ~(actual_lines : string list)
-          ~allow_output_patterns
+  ~(expect_lines : Fmt.t Cst.Line.t list)
+  ~(actual_lines : string list)
+  ~allow_output_patterns
   : bool
   =
   match expect_lines, actual_lines with
@@ -113,10 +110,10 @@ let rec lines_match
 ;;
 
 let rec corrected_rev
-          acc
-          ~(expect_lines : Fmt.t Cst.Line.t list)
-          ~(actual_lines : string list)
-          ~allow_output_patterns
+  acc
+  ~(expect_lines : Fmt.t Cst.Line.t list)
+  ~(actual_lines : string list)
+  ~allow_output_patterns
   : Fmt.t Cst.Line.t list
   =
   match expect_lines, actual_lines with
@@ -148,11 +145,11 @@ let reconcile_lines ~expect_lines ~actual_lines ~allow_output_patterns
 ;;
 
 let expectation_body_internal
-      ~(expect : Fmt.t Cst.t Expectation.Body.t)
-      ~actual
-      ~default_indent
-      ~pad_single_line
-      ~allow_output_patterns
+  ~(expect : Fmt.t Cst.t Expectation.Body.t)
+  ~actual
+  ~default_indent
+  ~pad_single_line
+  ~allow_output_patterns
   : Fmt.t Cst.t Expectation.Body.t Result.t
   =
   match expect with
@@ -192,11 +189,11 @@ let expectation_body_internal
 ;;
 
 let expectation_body
-      ~(expect : Fmt.t Cst.t Expectation.Body.t)
-      ~actual
-      ~default_indent
-      ~pad_single_line
-      ~allow_output_patterns
+  ~(expect : Fmt.t Cst.t Expectation.Body.t)
+  ~actual
+  ~default_indent
+  ~pad_single_line
+  ~allow_output_patterns
   : Fmt.t Cst.t Expectation.Body.t Result.t
   =
   let res =

@@ -172,8 +172,8 @@ module Make (C : Expect_test_config_types.S) = struct
                 (List.rev t.saved)
                 ~init:(0, [])
                 ~f:(fun (ofs, acc) (loc, next_ofs) ->
-                  let s = extract_output_and_sanitize ic (next_ofs - ofs) in
-                  next_ofs, (loc, s) :: acc)
+                let s = extract_output_and_sanitize ic (next_ofs - ofs) in
+                next_ofs, (loc, s) :: acc)
             in
             let trailing_output = extract_output_and_sanitize ic (last_ofs - ofs) in
             List.rev outputs, trailing_output))
@@ -220,16 +220,16 @@ module Make (C : Expect_test_config_types.S) = struct
              current_test := None;
              let saved_output, trailing_output = get_outputs_and_cleanup t in
              tests_run
-             := { file_digest
-                ; location
-                ; expectations
-                ; uncaught_exn_expectation
-                ; saved_output
-                ; trailing_output
-                ; upon_unreleasable_issue = C.upon_unreleasable_issue
-                ; uncaught_exn
-                }
-                :: !tests_run))
+               := { file_digest
+                  ; location
+                  ; expectations
+                  ; uncaught_exn_expectation
+                  ; saved_output
+                  ; trailing_output
+                  ; upon_unreleasable_issue = C.upon_unreleasable_issue
+                  ; uncaught_exn
+                  }
+                  :: !tests_run))
       in
       match C.run f with
       | () -> finally None
@@ -243,15 +243,15 @@ module Make (C : Expect_test_config_types.S) = struct
   let save_and_return_output = Instance_io.save_and_return_output
 
   let run
-        ~file_digest
-        ~(location : File.Location.t)
-        ~absolute_filename:defined_in
-        ~description
-        ~tags
-        ~expectations
-        ~uncaught_exn_expectation
-        ~inline_test_config
-        f
+    ~file_digest
+    ~(location : File.Location.t)
+    ~absolute_filename:defined_in
+    ~description
+    ~tags
+    ~expectations
+    ~uncaught_exn_expectation
+    ~inline_test_config
+    f
     =
     Ppx_inline_test_lib.test
       ~config:inline_test_config
@@ -266,27 +266,27 @@ module Make (C : Expect_test_config_types.S) = struct
       ~start_pos:(location.start_pos - location.line_start)
       ~end_pos:(location.end_pos - location.line_start)
       (fun () ->
-         let registering_tests_for = Current_file.get () in
-         if defined_in <> registering_tests_for
-         then
-           Printf.ksprintf
-             failwith
-             "Trying to run an expect test from the wrong file.\n\
-              - test declared at %s:%d\n\
-              - trying to run it from %s\n"
-             defined_in
-             location.line_number
-             registering_tests_for
-         else (
-           (* To avoid capturing not-yet flushed data of the stdout buffer *)
-           C.run (fun () -> C.IO.return (flush ()));
-           Instance_io.exec
-             ~file_digest
-             ~location
-             ~expectations
-             ~uncaught_exn_expectation
-             ~f;
-           true))
+        let registering_tests_for = Current_file.get () in
+        if defined_in <> registering_tests_for
+        then
+          Printf.ksprintf
+            failwith
+            "Trying to run an expect test from the wrong file.\n\
+             - test declared at %s:%d\n\
+             - trying to run it from %s\n"
+            defined_in
+            location.line_number
+            registering_tests_for
+        else (
+          (* To avoid capturing not-yet flushed data of the stdout buffer *)
+          C.run (fun () -> C.IO.return (flush ()));
+          Instance_io.exec
+            ~file_digest
+            ~location
+            ~expectations
+            ~uncaught_exn_expectation
+            ~f;
+          true))
   ;;
 end
 [@@inline never]

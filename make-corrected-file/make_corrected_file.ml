@@ -6,14 +6,14 @@ let chop_if_exists ~ancestor ~from:path =
 ;;
 
 let f
-      ?(use_dot_patdiff = false)
-      ?corrected_path
-      ?(use_color = false)
-      ?diff_command
-      ?diff_path_prefix
-      ~next_contents
-      ~path
-      ()
+  ?(use_dot_patdiff = false)
+  ?corrected_path
+  ?(use_color = false)
+  ?diff_command
+  ?diff_path_prefix
+  ~next_contents
+  ~path
+  ()
   =
   let prev_contents = Stdio.In_channel.with_file path ~f:Stdio.In_channel.input_all in
   match String.( = ) prev_contents next_contents with

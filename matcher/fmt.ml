@@ -13,16 +13,16 @@ let _ = fun (_ : t) -> ()
 
 let sexp_of_t =
   (function
-    | Regexp arg0__001_ ->
-      let res0__002_ = sexp_of_string arg0__001_ in
-      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Regexp"; res0__002_ ]
-    | Glob arg0__003_ ->
-      let res0__004_ = sexp_of_string arg0__003_ in
-      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Glob"; res0__004_ ]
-    | Literal arg0__005_ ->
-      let res0__006_ = sexp_of_string arg0__005_ in
-      Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Literal"; res0__006_ ]
-      : t -> Sexplib0.Sexp.t)
+   | Regexp arg0__001_ ->
+     let res0__002_ = sexp_of_string arg0__001_ in
+     Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Regexp"; res0__002_ ]
+   | Glob arg0__003_ ->
+     let res0__004_ = sexp_of_string arg0__003_ in
+     Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Glob"; res0__004_ ]
+   | Literal arg0__005_ ->
+     let res0__006_ = sexp_of_string arg0__005_ in
+     Sexplib0.Sexp.List [ Sexplib0.Sexp.Atom "Literal"; res0__006_ ]
+    : t -> Sexplib0.Sexp.t)
 ;;
 
 let _ = sexp_of_t
@@ -40,7 +40,7 @@ let compare =
        | Glob _, _ -> -1
        | _, Glob _ -> 1
        | Literal _a__013_, Literal _b__014_ -> compare_string _a__013_ _b__014_)
-       : t -> t -> int)
+    : t -> t -> int)
 ;;
 
 let _ = compare
@@ -58,7 +58,7 @@ let equal =
        | Glob _, _ -> false
        | _, Glob _ -> false
        | Literal _a__021_, Literal _b__022_ -> equal_string _a__021_ _b__022_)
-       : t -> t -> bool)
+    : t -> t -> bool)
 ;;
 
 let _ = equal

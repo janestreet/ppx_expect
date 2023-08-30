@@ -1,4 +1,3 @@
-
 open Ppx_compare_lib.Builtin
 open Ppx_sexp_conv_lib.Conv
 open Expect_test_common

@@ -18,7 +18,6 @@ module type S = sig
   (** [sanitize] can be used to map all output strings, e.g. for cleansing. *)
   val sanitize : string -> string
 
-
   (** [upon_unreleasable_issue] specifies how to deal with output that should not be
       released even if it is accepted (e.g. backtraces). The default is [`CR].  *)
   val upon_unreleasable_issue : Upon_unreleasable_issue.t

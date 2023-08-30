@@ -3,7 +3,6 @@ open Expect_test_common
 (** Strip all surrounding whitespace and return the result as a list of lines *)
 val strip_surrounding_whitespaces : string -> unit Cst.t
 
-
 val parse_pretty_line : allow_output_patterns:bool -> string -> Fmt.t
 val parse_pretty : allow_output_patterns:bool -> string -> Fmt.t Cst.t
 

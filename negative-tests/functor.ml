@@ -5,8 +5,8 @@ module Expect_test_config = struct
 end
 
 module M (S : sig
-    val output : string
-  end) =
+  val output : string
+end) =
 struct
   let%expect_test _ =
     print_string S.output;
@@ -15,9 +15,9 @@ struct
 end
 
 module A = M (struct
-    let output = "foo"
-  end)
+  let output = "foo"
+end)
 
 module B = M (struct
-    let output = "bar"
-  end)
+  let output = "bar"
+end)

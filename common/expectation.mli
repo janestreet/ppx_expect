@@ -28,10 +28,10 @@ type 'a t =
   { tag : string option (** Tag of the string payload *)
   ; body : 'a Body.t
   ; extid_location : File.Location.t
-  (** Location of the extension id ("expect" or
+      (** Location of the extension id ("expect" or
       "expect_exact") *)
   ; body_location : File.Location.t
-  (** Location of the string payload of the extension
+      (** Location of the string payload of the extension
       point *)
   }
 [@@deriving_inline sexp_of, compare, equal]

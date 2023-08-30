@@ -14,39 +14,39 @@ module Line : sig
   type 'a not_blank =
     { trailing_blanks : string (** regexp: "[ \t]*" *)
     ; orig : string
-    (** Original contents of the line without the trailing blanks or indentation.
+        (** Original contents of the line without the trailing blanks or indentation.
         regexp: "[^\n]*[^ \t\n]" *)
-    ; data : 'a
-    (** Data associated to the line. *)
+    ; data : 'a (** Data associated to the line. *)
     }
   [@@deriving_inline sexp_of, compare, equal]
 
-  include
-    sig
-      [@@@ocaml.warning "-32"]
-      val sexp_of_not_blank :
-        ('a -> Sexplib0.Sexp.t) -> 'a not_blank -> Sexplib0.Sexp.t
-      val compare_not_blank :
-        ('a -> 'a -> int) -> 'a not_blank -> 'a not_blank -> int
-      val equal_not_blank :
-        ('a -> 'a -> bool) -> 'a not_blank -> 'a not_blank -> bool
-    end[@@ocaml.doc "@inline"]
+  include sig
+    [@@@ocaml.warning "-32"]
+
+    val sexp_of_not_blank : ('a -> Sexplib0.Sexp.t) -> 'a not_blank -> Sexplib0.Sexp.t
+    val compare_not_blank : ('a -> 'a -> int) -> 'a not_blank -> 'a not_blank -> int
+    val equal_not_blank : ('a -> 'a -> bool) -> 'a not_blank -> 'a not_blank -> bool
+  end
+  [@@ocaml.doc "@inline"]
+
   [@@@end]
 
   type 'a t =
-    | Blank           of string (** regexp: "[ \t]*" *)
+    | Blank of string (** regexp: "[ \t]*" *)
     | Conflict_marker of string (** regexp: "^(<{7} |[|]{7} |>{7} |={7})" *)
-    | Not_blank       of 'a not_blank
+    | Not_blank of 'a not_blank
   [@@deriving_inline sexp_of, compare, equal]
 
+  include sig
+    [@@@ocaml.warning "-32"]
 
-  include
-    sig
-      [@@@ocaml.warning "-32"]
-      val sexp_of_t : ('a -> Sexplib0.Sexp.t) -> 'a t -> Sexplib0.Sexp.t
-      include Ppx_compare_lib.Comparable.S1 with type 'a t :=  'a t
-      include Ppx_compare_lib.Equal.S1 with type 'a t :=  'a t
-    end[@@ocaml.doc "@inline"]
+    val sexp_of_t : ('a -> Sexplib0.Sexp.t) -> 'a t -> Sexplib0.Sexp.t
+
+    include Ppx_compare_lib.Comparable.S1 with type 'a t := 'a t
+    include Ppx_compare_lib.Equal.S1 with type 'a t := 'a t
+  end
+  [@@ocaml.doc "@inline"]
+
   [@@@end]
 
   val invariant : ('a -> unit) -> 'a t -> unit
@@ -72,22 +72,22 @@ end
     ]}
 *)
 type 'a single_line =
-  { leading_blanks  : string    (** regexp: "[ \t]*" *)
+  { leading_blanks : string (** regexp: "[ \t]*" *)
   ; trailing_spaces : string (** regexp: "[ \t\n]*" *)
-  ; orig            : string (** regexp: "[^ \t\n]([^\n]*[^ \t\n])?" *)
-  ; data            : 'a
+  ; orig : string (** regexp: "[^ \t\n]([^\n]*[^ \t\n])?" *)
+  ; data : 'a
   }
 [@@deriving_inline sexp_of, compare, equal]
-include
-  sig
-    [@@@ocaml.warning "-32"]
-    val sexp_of_single_line :
-      ('a -> Sexplib0.Sexp.t) -> 'a single_line -> Sexplib0.Sexp.t
-    val compare_single_line :
-      ('a -> 'a -> int) -> 'a single_line -> 'a single_line -> int
-    val equal_single_line :
-      ('a -> 'a -> bool) -> 'a single_line -> 'a single_line -> bool
-  end[@@ocaml.doc "@inline"]
+
+include sig
+  [@@@ocaml.warning "-32"]
+
+  val sexp_of_single_line : ('a -> Sexplib0.Sexp.t) -> 'a single_line -> Sexplib0.Sexp.t
+  val compare_single_line : ('a -> 'a -> int) -> 'a single_line -> 'a single_line -> int
+  val equal_single_line : ('a -> 'a -> bool) -> 'a single_line -> 'a single_line -> bool
+end
+[@@ocaml.doc "@inline"]
+
 [@@@end]
 
 (** Any [%expect] node with one or more newlines and at least one non-blank line.
@@ -124,48 +124,47 @@ include
     ]}
 *)
 type 'a multi_lines =
-  { leading_spaces  : string (** regexp: "\([ \t]*\n\)*" *)
+  { leading_spaces : string (** regexp: "\([ \t]*\n\)*" *)
   ; trailing_spaces : string (** regexp: "[ \t]*" or "\(\n[ \t]*\)*" *)
-  ; indentation     : string (** regexp: "[ \t]*" *)
-  ; lines           : 'a Line.t list (** regexp: not_blank (.* not_blank)? *)
+  ; indentation : string (** regexp: "[ \t]*" *)
+  ; lines : 'a Line.t list (** regexp: not_blank (.* not_blank)? *)
   }
 [@@deriving_inline sexp_of, compare, equal]
-include
-  sig
-    [@@@ocaml.warning "-32"]
-    val sexp_of_multi_lines :
-      ('a -> Sexplib0.Sexp.t) -> 'a multi_lines -> Sexplib0.Sexp.t
-    val compare_multi_lines :
-      ('a -> 'a -> int) -> 'a multi_lines -> 'a multi_lines -> int
-    val equal_multi_lines :
-      ('a -> 'a -> bool) -> 'a multi_lines -> 'a multi_lines -> bool
-  end[@@ocaml.doc "@inline"]
+
+include sig
+  [@@@ocaml.warning "-32"]
+
+  val sexp_of_multi_lines : ('a -> Sexplib0.Sexp.t) -> 'a multi_lines -> Sexplib0.Sexp.t
+  val compare_multi_lines : ('a -> 'a -> int) -> 'a multi_lines -> 'a multi_lines -> int
+  val equal_multi_lines : ('a -> 'a -> bool) -> 'a multi_lines -> 'a multi_lines -> bool
+end
+[@@ocaml.doc "@inline"]
+
 [@@@end]
 
 type 'a t =
-  | Empty       of string (** regexp: "[ \t\n]*" *)
+  | Empty of string (** regexp: "[ \t\n]*" *)
   | Single_line of 'a single_line
   | Multi_lines of 'a multi_lines
 [@@deriving_inline sexp_of, compare, equal]
-include
-  sig
-    [@@@ocaml.warning "-32"]
-    val sexp_of_t : ('a -> Sexplib0.Sexp.t) -> 'a t -> Sexplib0.Sexp.t
-    include Ppx_compare_lib.Comparable.S1 with type 'a t :=  'a t
-    include Ppx_compare_lib.Equal.S1 with type 'a t :=  'a t
-  end[@@ocaml.doc "@inline"]
+
+include sig
+  [@@@ocaml.warning "-32"]
+
+  val sexp_of_t : ('a -> Sexplib0.Sexp.t) -> 'a t -> Sexplib0.Sexp.t
+
+  include Ppx_compare_lib.Comparable.S1 with type 'a t := 'a t
+  include Ppx_compare_lib.Equal.S1 with type 'a t := 'a t
+end
+[@@ocaml.doc "@inline"]
+
 [@@@end]
 
 val invariant : ('a -> unit) -> 'a t -> unit
-
 val empty : 'a t
-
 val map : 'a t -> f:(string -> 'a -> 'b) -> 'b t
-
 val data : 'a t -> blank:'a -> conflict_marker:(string -> 'a) -> 'a list
-
 val strip : 'a t -> 'a t
-
 val to_string : _ t -> string
 
 (** For single line expectation, leading blanks and trailing spaces are dropped. *)
@@ -181,9 +180,9 @@ val trim_lines : 'a Line.t list -> 'a Line.t list
     (for instance if [t] is [Single_line] or [Empty]). *)
 val reconcile
   :  'a t
-  -> lines               : 'a Line.t list
-  -> default_indentation : int
-  -> pad_single_line     : bool
+  -> lines:'a Line.t list
+  -> default_indentation:int
+  -> pad_single_line:bool
   -> 'a t
 
 (** Compute the longest indentation of a list of lines and trim it from every line. It

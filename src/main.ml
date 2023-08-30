@@ -4,8 +4,8 @@ open Ppxlib
 open Ast_builder.Default
 
 let lift_location
-      ~loc
-      ({ filename; line_number; line_start; start_pos; end_pos } : File.Location.t)
+  ~loc
+  ({ filename; line_number; line_start; start_pos; end_pos } : File.Location.t)
   =
   Merlin_helpers.hide_expression
     [%expr
@@ -17,7 +17,7 @@ let lift_location
        ; start_pos = [%e eint ~loc start_pos]
        ; end_pos = [%e eint ~loc end_pos]
        }
-       : Expect_test_common.File.Location.t)]
+        : Expect_test_common.File.Location.t)]
 ;;
 
 let eoption ~loc x =
@@ -43,7 +43,7 @@ let lift_expectation ~loc ({ tag; body; extid_location; body_location } : _ Expe
        ; extid_location = [%e lift_location ~loc extid_location]
        ; body_location = [%e lift_location ~loc body_location]
        }
-       : string Expect_test_common.Expectation.t)]
+        : string Expect_test_common.Expectation.t)]
 ;;
 
 (* Grab a list of all the output expressions *)
@@ -131,7 +131,7 @@ module P = struct
       Attribute.Context.value_binding
       (map1' (Ppx_expect_payload.pattern ()) ~f:(fun loc x -> loc, x))
       (fun ~name_loc (loc, x) ->
-         loc, Ppx_expect_payload.make x ~kind:Normal ~extension_id_loc:name_loc)
+        loc, Ppx_expect_payload.make x ~kind:Normal ~extension_id_loc:name_loc)
   ;;
 
   let opt_name () =
@@ -175,18 +175,18 @@ let expect_test =
     Structure_item
     (P.pattern ())
     (fun ~ctxt uncaught_exn ~name ~tags code ->
-       let loc = Ppxlib.Expansion_context.Extension.extension_point_loc ctxt in
-       let loc = { loc with loc_ghost = true } in
-       let called_by_merlin =
-         String.equal (Ppxlib.Expansion_context.Extension.tool_name ctxt) "merlin"
-       in
-       Has_tests.set true;
-       Ppx_inline_test.validate_extension_point_exn
-         ~name_of_ppx_rewriter:"ppx_expect"
-         ~loc
-         ~tags;
-       rewrite_test_body ~descr:name ~tags ~uncaught_exn ~called_by_merlin loc code
-       |> Ppx_inline_test.maybe_drop loc)
+    let loc = Ppxlib.Expansion_context.Extension.extension_point_loc ctxt in
+    let loc = { loc with loc_ghost = true } in
+    let called_by_merlin =
+      String.equal (Ppxlib.Expansion_context.Extension.tool_name ctxt) "merlin"
+    in
+    Has_tests.set true;
+    Ppx_inline_test.validate_extension_point_exn
+      ~name_of_ppx_rewriter:"ppx_expect"
+      ~loc
+      ~tags;
+    rewrite_test_body ~descr:name ~tags ~uncaught_exn ~called_by_merlin loc code
+    |> Ppx_inline_test.maybe_drop loc)
 ;;
 
 let () =

@@ -140,12 +140,12 @@ let convert_collector_tests ~allow_output_patterns tests : group list =
 ;;
 
 let process_group
-      ~use_color
-      ~in_place
-      ~diff_command
-      ~diff_path_prefix
-      ~allow_output_patterns
-      { filename; file_contents; tests }
+  ~use_color
+  ~in_place
+  ~diff_command
+  ~diff_path_prefix
+  ~allow_output_patterns
+  { filename; file_contents; tests }
   : Test_result.t
   =
   let bad_outcomes =
@@ -215,33 +215,33 @@ let process_group
 ;;
 
 let evaluate_tests
-      ~use_color
-      ~in_place
-      ~diff_command
-      ~diff_path_prefix
-      ~allow_output_patterns
+  ~use_color
+  ~in_place
+  ~diff_command
+  ~diff_path_prefix
+  ~allow_output_patterns
   =
   convert_collector_tests (Expect_test_collector.tests_run ()) ~allow_output_patterns
   |> List.map ~f:(fun group ->
-    match
-      process_group
-        ~use_color
-        ~in_place
-        ~diff_command
-        ~diff_path_prefix
-        ~allow_output_patterns
-        group
-    with
-    | exception exn ->
-      let bt = Stdlib.Printexc.get_raw_backtrace () in
-      raise_s
-        (Sexp.message
-           "Expect test evaluator bug"
-           [ "exn", sexp_of_exn exn
-           ; "backtrace", Atom (Stdlib.Printexc.raw_backtrace_to_string bt)
-           ; "filename", File.Name.sexp_of_t group.filename
-           ])
-    | res -> res)
+       match
+         process_group
+           ~use_color
+           ~in_place
+           ~diff_command
+           ~diff_path_prefix
+           ~allow_output_patterns
+           group
+       with
+       | exception exn ->
+         let bt = Stdlib.Printexc.get_raw_backtrace () in
+         raise_s
+           (Sexp.message
+              "Expect test evaluator bug"
+              [ "exn", sexp_of_exn exn
+              ; "backtrace", Atom (Stdlib.Printexc.raw_backtrace_to_string bt)
+              ; "filename", File.Name.sexp_of_t group.filename
+              ])
+       | res -> res)
   |> Test_result.combine_all
 ;;
 

@@ -41,4 +41,3 @@ let%expect_test (_ [@tags "no-js"]) =
       Raised by primitive operation at Ppx_expect_test__Bad_test.get_a_trace.loop in file "bad_test.ml", line 12, characters 17-29
     |}]
 ;;
-

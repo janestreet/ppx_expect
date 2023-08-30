@@ -44,13 +44,13 @@ module Test_outcome = struct
          Map.compare_m__t
            (module File.Location)
            (fun a__003_ b__004_ ->
-              Expectation.compare
-                (fun a__005_ b__006_ -> Cst.compare Fmt.compare a__005_ b__006_)
-                a__003_
-                b__004_)
+             Expectation.compare
+               (fun a__005_ b__006_ -> Cst.compare Fmt.compare a__005_ b__006_)
+               a__003_
+               b__004_)
            a__001_
            b__002_
-         : t -> t -> int)
+        : t -> t -> int)
     ;;
 
     let _ = compare
@@ -60,13 +60,13 @@ module Test_outcome = struct
          Map.equal_m__t
            (module File.Location)
            (fun a__011_ b__012_ ->
-              Expectation.equal
-                (fun a__013_ b__014_ -> Cst.equal Fmt.equal a__013_ b__014_)
-                a__011_
-                b__012_)
+             Expectation.equal
+               (fun a__013_ b__014_ -> Cst.equal Fmt.equal a__013_ b__014_)
+               a__011_
+               b__012_)
            a__009_
            b__010_
-         : t -> t -> bool)
+        : t -> t -> bool)
     ;;
 
     let _ = equal
@@ -84,14 +84,14 @@ module Test_outcome = struct
     }
 
   let merge_exn
-        t
-        { expectations
-        ; uncaught_exn_expectation
-        ; saved_output
-        ; trailing_output
-        ; uncaught_exn
-        ; upon_unreleasable_issue
-        }
+    t
+    { expectations
+    ; uncaught_exn_expectation
+    ; saved_output
+    ; trailing_output
+    ; uncaught_exn
+    ; upon_unreleasable_issue
+    }
     =
     if not (Expectations.equal t.expectations expectations)
     then failwith "merging tests of different expectations";
@@ -153,8 +153,8 @@ module Test_correction = struct
         List.map t.corrections ~f:(fun (e, c) ->
           ( e
           , match c with
-          | Collector_never_triggered -> c
-          | Correction body -> Correction (Expectation.Body.map_pretty body ~f) ))
+            | Collector_never_triggered -> c
+            | Correction body -> Correction (Expectation.Body.map_pretty body ~f) ))
     ; uncaught_exn =
         (match t.uncaught_exn with
          | (Match | Unused_expectation _) as x -> x
@@ -170,13 +170,13 @@ module Test_correction = struct
 
   let make ~location ~corrections ~uncaught_exn ~trailing_output : t Reconcile.Result.t =
     if List.is_empty corrections
-    && (match (trailing_output : _ Reconcile.Result.t) with
-        | Match -> true
-        | Correction _ -> false)
-    &&
-    match (uncaught_exn : Uncaught_exn.t) with
-    | Match -> true
-    | Correction _ | Without_expectation _ | Unused_expectation _ -> false
+       && (match (trailing_output : _ Reconcile.Result.t) with
+           | Match -> true
+           | Correction _ -> false)
+       &&
+       match (uncaught_exn : Uncaught_exn.t) with
+       | Match -> true
+       | Correction _ | Without_expectation _ | Unused_expectation _ -> false
     then Match
     else Correction { location; corrections; uncaught_exn; trailing_output }
   ;;
@@ -191,10 +191,10 @@ let indentation_at file_contents (loc : File.Location.t) =
 ;;
 
 let evaluate_test
-      ~file_contents
-      ~(location : File.Location.t)
-      ~allow_output_patterns
-      (test : Test_outcome.t)
+  ~file_contents
+  ~(location : File.Location.t)
+  ~allow_output_patterns
+  (test : Test_outcome.t)
   =
   let cr_for_multiple_outputs ~cr_body outputs =
     let prefix =
@@ -222,35 +222,35 @@ let evaluate_test
   let corrections =
     Map.to_alist test.expectations
     |> List.filter_map ~f:(fun (location, (expect : Fmt.t Cst.t Expectation.t)) ->
-      let correction_for actual =
-        let default_indent = indentation_at file_contents expect.body_location in
-        match
-          Reconcile.expectation_body
-            ~expect:expect.body
-            ~actual
-            ~default_indent
-            ~pad_single_line:(Option.is_some expect.tag)
-            ~allow_output_patterns
-        with
-        | Match -> None
-        | Correction c -> Some (expect, Test_correction.Node_correction.Correction c)
-      in
-      match Map.find test.saved_output location with
-      | None ->
-        (match expect.body with
-         | Unreachable | Output -> None
-         | Exact _ | Pretty _ ->
-           Some (expect, Test_correction.Node_correction.Collector_never_triggered))
-      | Some (One actual) -> correction_for actual
-      | Some (Many_distinct outputs) ->
-        let matches_expectation output = Option.is_none (correction_for output) in
-        if List.for_all outputs ~f:matches_expectation
-        then None
-        else
-          cr_for_multiple_outputs
-            outputs
-            ~cr_body:"Collector ran multiple times with different outputs"
-          |> correction_for)
+         let correction_for actual =
+           let default_indent = indentation_at file_contents expect.body_location in
+           match
+             Reconcile.expectation_body
+               ~expect:expect.body
+               ~actual
+               ~default_indent
+               ~pad_single_line:(Option.is_some expect.tag)
+               ~allow_output_patterns
+           with
+           | Match -> None
+           | Correction c -> Some (expect, Test_correction.Node_correction.Correction c)
+         in
+         match Map.find test.saved_output location with
+         | None ->
+           (match expect.body with
+            | Unreachable | Output -> None
+            | Exact _ | Pretty _ ->
+              Some (expect, Test_correction.Node_correction.Collector_never_triggered))
+         | Some (One actual) -> correction_for actual
+         | Some (Many_distinct outputs) ->
+           let matches_expectation output = Option.is_none (correction_for output) in
+           if List.for_all outputs ~f:matches_expectation
+           then None
+           else
+             cr_for_multiple_outputs
+               outputs
+               ~cr_body:"Collector ran multiple times with different outputs"
+             |> correction_for)
   in
   let trailing_output =
     let indent = location.start_pos - location.line_start + 2 in
@@ -352,117 +352,117 @@ let output_corrected buf ~file_contents ~mode test_corrections =
       test_corrections
       ~init:0
       ~f:(fun ofs (test_correction : Test_correction.t) ->
-        let test_correction, to_skip =
-          (* If we need to remove an [%%expect.uncaught_exn] node, start by adjusting the
+      let test_correction, to_skip =
+        (* If we need to remove an [%%expect.uncaught_exn] node, start by adjusting the
              end position of the test. *)
-          match test_correction.uncaught_exn with
-          | Unused_expectation e ->
-            (* Unfortunately, the OCaml parser doesn't give us the location of the whole
+        match test_correction.uncaught_exn with
+        | Unused_expectation e ->
+          (* Unfortunately, the OCaml parser doesn't give us the location of the whole
                extension point, so we have to find the square brackets ourselves :( *)
-            let start = ref e.extid_location.start_pos in
-            while not (Char.equal file_contents.[!start] '[') do
-              if Int.( >= ) ofs !start
-              then
-                raise_s
-                  (Sexp.message
-                     "Cannot find '[' marking the start of [%expect.uncaught_exn]"
-                     [ "ofs", Int.sexp_of_t ofs
-                     ; "start", Int.sexp_of_t e.extid_location.start_pos
-                     ]);
-              Int.decr start
-            done;
-            while !start - 1 > ofs && is_space file_contents.[!start - 1] do
-              Int.decr start
-            done;
-            let file_len = String.length file_contents in
-            let stop = ref e.body_location.end_pos in
-            while !stop < file_len && not (Char.equal file_contents.[!stop] ']') do
-              Int.incr stop
-            done;
-            if Int.( >= ) !stop file_len
+          let start = ref e.extid_location.start_pos in
+          while not (Char.equal file_contents.[!start] '[') do
+            if Int.( >= ) ofs !start
             then
               raise_s
                 (Sexp.message
-                   "Cannot find ']' marking the end of [%expect.uncaught_exn]"
-                   [ "stop", Int.sexp_of_t e.body_location.end_pos ]);
-            Int.incr stop;
-            let test_correction =
-              { test_correction with
-                location = { test_correction.location with end_pos = !start }
-              }
-            in
-            test_correction, Some (!start, !stop)
-          | Match | Without_expectation _ | Correction _ -> test_correction, None
-        in
-        let ofs =
-          List.fold_left
-            test_correction.corrections
-            ~init:ofs
-            ~f:(fun ofs (e, correction) ->
-              match (correction : Test_correction.Node_correction.t) with
-              | Collector_never_triggered ->
-                output_slice buf file_contents ofs e.Expectation.extid_location.start_pos;
-                bprintf buf "expect.unreachable";
-                e.body_location.end_pos
-              | Correction c ->
-                let id, body = id_and_string_of_body c in
-                output_slice buf file_contents ofs e.extid_location.start_pos;
-                Buffer.add_string buf id;
-                output_slice
-                  buf
-                  file_contents
-                  e.extid_location.end_pos
-                  e.body_location.start_pos;
-                output_body buf e.tag body;
-                e.body_location.end_pos)
-        in
-        let ofs =
-          match test_correction.trailing_output with
-          | Match -> ofs
-          | Correction c ->
-            let loc = test_correction.location in
-            output_slice buf file_contents ofs loc.end_pos;
-            if match mode with
-              | Inline_expect_test -> true
-              | Toplevel_expect_test -> false
-            then output_semi_colon_if_needed buf file_contents loc.end_pos;
-            let id, body = id_and_string_of_body c in
-            (match mode with
-             | Inline_expect_test ->
-               let indent = loc.start_pos - loc.line_start + 2 in
-               bprintf buf "\n%*s[%%%s " indent "" id
-             | Toplevel_expect_test ->
-               if loc.end_pos = 0 || Char.( <> ) file_contents.[loc.end_pos - 1] '\n'
-               then Buffer.add_char buf '\n';
-               bprintf buf "[%%%%%s" id);
-            output_body buf (Some "") body;
-            bprintf buf "]";
-            loc.end_pos
-        in
-        let ofs =
-          match test_correction.uncaught_exn with
-          | Match -> ofs
-          | Unused_expectation _ ->
-            (* handled above *)
-            ofs
-          | Without_expectation c ->
-            let loc = test_correction.location in
-            output_slice buf file_contents ofs loc.end_pos;
-            let indent = loc.start_pos - loc.line_start in
-            bprintf buf "\n%*s[@@expect.uncaught_exn " indent "";
-            output_body buf (Some "") (snd (id_and_string_of_body c));
-            bprintf buf "]";
-            loc.end_pos
-          | Correction (e, c) ->
-            output_slice buf file_contents ofs e.body_location.start_pos;
-            output_body buf e.tag (snd (id_and_string_of_body c));
+                   "Cannot find '[' marking the start of [%expect.uncaught_exn]"
+                   [ "ofs", Int.sexp_of_t ofs
+                   ; "start", Int.sexp_of_t e.extid_location.start_pos
+                   ]);
+            Int.decr start
+          done;
+          while !start - 1 > ofs && is_space file_contents.[!start - 1] do
+            Int.decr start
+          done;
+          let file_len = String.length file_contents in
+          let stop = ref e.body_location.end_pos in
+          while !stop < file_len && not (Char.equal file_contents.[!stop] ']') do
+            Int.incr stop
+          done;
+          if Int.( >= ) !stop file_len
+          then
+            raise_s
+              (Sexp.message
+                 "Cannot find ']' marking the end of [%expect.uncaught_exn]"
+                 [ "stop", Int.sexp_of_t e.body_location.end_pos ]);
+          Int.incr stop;
+          let test_correction =
+            { test_correction with
+              location = { test_correction.location with end_pos = !start }
+            }
+          in
+          test_correction, Some (!start, !stop)
+        | Match | Without_expectation _ | Correction _ -> test_correction, None
+      in
+      let ofs =
+        List.fold_left
+          test_correction.corrections
+          ~init:ofs
+          ~f:(fun ofs (e, correction) ->
+          match (correction : Test_correction.Node_correction.t) with
+          | Collector_never_triggered ->
+            output_slice buf file_contents ofs e.Expectation.extid_location.start_pos;
+            bprintf buf "expect.unreachable";
             e.body_location.end_pos
-        in
-        match to_skip with
-        | None -> ofs
-        | Some (start, stop) ->
-          output_slice buf file_contents ofs start;
-          stop)
+          | Correction c ->
+            let id, body = id_and_string_of_body c in
+            output_slice buf file_contents ofs e.extid_location.start_pos;
+            Buffer.add_string buf id;
+            output_slice
+              buf
+              file_contents
+              e.extid_location.end_pos
+              e.body_location.start_pos;
+            output_body buf e.tag body;
+            e.body_location.end_pos)
+      in
+      let ofs =
+        match test_correction.trailing_output with
+        | Match -> ofs
+        | Correction c ->
+          let loc = test_correction.location in
+          output_slice buf file_contents ofs loc.end_pos;
+          if match mode with
+             | Inline_expect_test -> true
+             | Toplevel_expect_test -> false
+          then output_semi_colon_if_needed buf file_contents loc.end_pos;
+          let id, body = id_and_string_of_body c in
+          (match mode with
+           | Inline_expect_test ->
+             let indent = loc.start_pos - loc.line_start + 2 in
+             bprintf buf "\n%*s[%%%s " indent "" id
+           | Toplevel_expect_test ->
+             if loc.end_pos = 0 || Char.( <> ) file_contents.[loc.end_pos - 1] '\n'
+             then Buffer.add_char buf '\n';
+             bprintf buf "[%%%%%s" id);
+          output_body buf (Some "") body;
+          bprintf buf "]";
+          loc.end_pos
+      in
+      let ofs =
+        match test_correction.uncaught_exn with
+        | Match -> ofs
+        | Unused_expectation _ ->
+          (* handled above *)
+          ofs
+        | Without_expectation c ->
+          let loc = test_correction.location in
+          output_slice buf file_contents ofs loc.end_pos;
+          let indent = loc.start_pos - loc.line_start in
+          bprintf buf "\n%*s[@@expect.uncaught_exn " indent "";
+          output_body buf (Some "") (snd (id_and_string_of_body c));
+          bprintf buf "]";
+          loc.end_pos
+        | Correction (e, c) ->
+          output_slice buf file_contents ofs e.body_location.start_pos;
+          output_body buf e.tag (snd (id_and_string_of_body c));
+          e.body_location.end_pos
+      in
+      match to_skip with
+      | None -> ofs
+      | Some (start, stop) ->
+        output_slice buf file_contents ofs start;
+        stop)
   in
   output_slice buf file_contents ofs (String.length file_contents)
 ;;
