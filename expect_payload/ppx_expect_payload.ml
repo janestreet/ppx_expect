@@ -54,33 +54,33 @@ let make ~kind payload ~(extension_id_loc : Location.t) =
                 |}]
      ]}
   *)
+ let check_expectation_body (kind : expectation_kind) (body : expectation_body) ~body_loc : result =
+  let rec rest_must_be_empty i =
+    match get i with
+    | None -> `Ok
+    | Some (' ' | '\t' | '\r' | '\n') -> rest_must_be_empty (i + 1)
+    | Some _ ->
+      `Error (body_loc, "Multi-line expectations must start with an empty line")
+  in
   match body with
-  | Exact _ | Output | Unreachable -> res
+  | Exact _ | Output | Unreachable -> `Ok
   | Pretty s ->
     let len = String.length s in
     let get i = if i >= len then None else Some s.[i] in
     let rec first_line i =
       match get i with
-      | None -> ()
+      | None -> `Ok
       | Some (' ' | '\t' | '\r') -> first_line (i + 1)
-      | Some '\n' -> ()
+      | Some '\n' -> `Ok
       | Some _ -> first_line_has_stuff (i + 1)
     and first_line_has_stuff i =
       match get i with
-      | None -> ()
+      | None -> `Ok
       | Some '\n' -> rest_must_be_empty (i + 1)
       | Some _ -> first_line_has_stuff (i + 1)
-    and rest_must_be_empty i =
-      match get i with
-      | None -> ()
-      | Some (' ' | '\t' | '\r' | '\n') -> rest_must_be_empty (i + 1)
-      | Some _ ->
-        Location.raise_errorf
-          ~loc:body_loc
-          "Multi-line expectations must start with an empty line"
     in
-    if kind = Normal then first_line 0;
-    res
+    if kind = Normal then first_line 0 else `Ok
+
 ;;
 
 let pattern () =
