@@ -1,0 +1,33 @@
+PPX EXPECT
+==========
+
+This directory contains the logic used by [ppx_expect] to:
+- Expand [let%expect_test], [[%expect]], etc. extension points in
+  files containing expect tests
+- Report the results of these tests to the inline testing harness at
+  runtime
+- Rewrite failing tests as [.corrected] files
+
+The layout of the subdirectories is summarized below:
+
+ppx/ppx_expect
+└── config: [Expect_test_config], containing default values for
+│   │       overridable user-facing test configurations
+│   └── types: [Expect_test_config_types], which defines the interface
+│              for [Expect_test_config]
+└── evaluator: The [ppx_expect_evaluator] executable that jenga
+│              expects to exist when running tests; it is in fact
+│              unnecessary and therefore empty in this rewrite, and we
+│              hope to delete it soon
+└── runtime: [Ppx_expect_runtime], containing the logic used to
+│            evaluate expect tests at runtime
+└── src: [Ppx_expect], the ppx rewriter that replaces [ppx_expect]
+│        extensions with the appropriate logic from
+│        [Ppx_expect_runtime]
+└── test: [Ppx_expect_test], containing examples of passing expect
+    │     tests that stress different facets of the testing framework,
+    │     taken from the old [ppx_expect] framework
+    └── example: [Expect_test_examples], with small examples
+    └── no-output-patterns: [Ppx_expect_test_no_output_patterns],
+                            additional tests used by the old
+                            [ppx_expect] framework

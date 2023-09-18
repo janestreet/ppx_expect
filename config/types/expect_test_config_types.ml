@@ -1,26 +1,26 @@
-module type S = Expect_test_config_types_intf.S
-
-module type Expect_test_config_types =
-  Expect_test_config_types_intf.Expect_test_config_types
+(** Configuration for running expect tests *)
 
 module Upon_unreleasable_issue = struct
-  include Expect_test_config_types_intf.Upon_unreleasable_issue
+  type t =
+    [ `CR (** Leaves a CR, so that features cannot be released. *)
+    | `Warning_for_collector_testing (** Only for ppx_expect testing; do not use. *)
+    ]
+end
 
-  let equal t1 t2 = t1 = t2
+module type S = sig
+  module IO : sig
+    type 'a t
 
-  let comment_prefix = function
-    | `CR -> "CR "
-    | `Warning_for_collector_testing -> ""
-  ;;
+    val return : 'a -> 'a t
+  end
 
-  let message_when_expectation_contains_backtrace t =
-    Printf.sprintf
-      {|
-(* %sexpect_test_collector: This test expectation appears to contain a backtrace.
-   This is strongly discouraged as backtraces are fragile.
-   Please change this test to not include a backtrace. *)
+  (** Run an IO operation until completion *)
+  val run : (unit -> unit IO.t) -> unit
 
-|}
-      (comment_prefix t)
-  ;;
+  (** [sanitize] can be used to map all output strings, e.g. for cleansing. *)
+  val sanitize : string -> string
+
+  (** [upon_unreleasable_issue] specifies how to deal with output that should not be
+      released even if it is accepted (e.g. backtraces). The default is [`CR].  *)
+  val upon_unreleasable_issue : Upon_unreleasable_issue.t
 end

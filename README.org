@@ -86,14 +86,14 @@ actual line in the final output.
 
 *** Whitespace
 
-Inside =%expect= nodes, whitespace around patterns are ignored, and
+Inside =%expect= nodes, whitespace around expectations are ignored, and
 the user is free to put any amount for formatting purposes. The same
 goes for the actual output.
 
 Ignoring surrounding whitespace allows to write nicely formatted
 expectation and focus only on matching the bits that matter.
 
-To do this, ppx_expect strips patterns and outputs by taking the
+To do this, ppx_expect strips expectations and outputs by taking the
 smallest rectangle of text that contains the non-whitespace
 material. All end of line whitespace are ignored as well. So for
 instance all these lines are equivalent:
@@ -125,10 +125,10 @@ However, the last one is nicer to read.
 For the rare cases where one does care about what the exact output is,
 ppx_expect provides the =%expect_exact= extension point, which only
 succeed when the untouched output is exactly equal to the untouched
-pattern.
+expectation.
 
 When producing a correction, ppx_expect tries to respect as much as
-possible the formatting of the pattern.
+possible the formatting of the expectation.
 
 ** Output capture
 
@@ -145,8 +145,6 @@ let exit_status = discard_pid pid_and_exit_status in
 print_endline exit_status;
 [%expect {| 1 |}]
 #+END_SRC
-
-This is preferred over output patterns (see below).
 
 ** Integration with Async, Lwt or other cooperative libraries
 
