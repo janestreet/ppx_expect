@@ -71,8 +71,8 @@ module Definitions = struct
           -> ('output, [ `Expect ]) t
       | Unreachable :
           { reachability_of_corrected : Expect_reachability.t
-              (** The reachability of the node inserted if this unreachable node is unexpectedly
-              reached *)
+              (** The reachability of the node inserted if this unreachable node is
+              unexpectedly reached *)
           }
           -> (Payload.Pretty.Contents.t, [ `Unreachable ]) t
   end

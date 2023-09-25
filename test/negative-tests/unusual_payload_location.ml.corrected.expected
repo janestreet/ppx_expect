@@ -1,0 +1,14 @@
+
+let%expect_test _ =
+  print_endline "Does it get moved?";
+  print_endline "Let's hope not.";
+  [%expect {|
+    Does it get moved?
+    Let's hope not. |}]
+
+let%expect_test _ =
+  print_endline "Does it get moved?";
+  print_endline "Let's hope not.";
+  [%expect_exact {|Does it get moved?
+Let's hope not.
+|}]

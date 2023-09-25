@@ -13,7 +13,8 @@
   similar_distinct_outputs.ml.corrected spacing.ml.corrected
   string_extension_syntax.ml.corrected string_padding.ml.corrected
   tag.ml.corrected trailing.ml.corrected trailing_in_module.ml.corrected
-  unidiomatic_syntax.ml.corrected test-output)
+  unidiomatic_syntax.ml.corrected unusual_payload_location.ml.corrected
+  test-output)
  (action
   (bash
    "rm -f *.ml.corrected 2>/dev/null; ! %{first_dep} -diff-cmd true 2> test-output")))
@@ -105,6 +106,11 @@
 (alias (name runtest)
  (deps unidiomatic_syntax.ml.corrected.expected
   unidiomatic_syntax.ml.corrected)
+ (action (bash "diff -a %{deps}")))
+
+(alias (name runtest)
+ (deps unusual_payload_location.ml.corrected.expected
+  unusual_payload_location.ml.corrected)
  (action (bash "diff -a %{deps}")))
 
 (alias (name runtest) (deps test-output.expected test-output)
