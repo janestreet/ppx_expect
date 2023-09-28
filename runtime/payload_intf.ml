@@ -2,13 +2,6 @@ open! Base
 open Types
 
 module Payload_types = struct
-  module Delimiter = struct
-    (** Delimiters used when representing a string in source code *)
-    type t =
-      | Quote (** [Quote] represents a ["string"] *)
-      | Tag of string (** [Tag "x"] represents a [{x|string|x}] *)
-  end
-
   (** Payloads given as arguments to expectation AST nodes.
 
       ['a] is the structured runtime representation of the expectation, which may differ
@@ -17,7 +10,7 @@ module Payload_types = struct
   type 'a t =
     { contents : 'a
         (** The contents of the payload, representing the output expected at some point *)
-    ; tag : Delimiter.t (** The delimiters used in the payload *)
+    ; tag : String_node_format.Delimiter.t (** The delimiters used in the payload *)
     }
 
   (** The outcome produced by a single expect node when it is reached. [Pass] if the real
@@ -56,7 +49,7 @@ module Payload_types = struct
     val to_source_code_string
       :  expect_node_formatting:Expect_node_formatting.t
       -> indent:int option
-      -> tag:Delimiter.t
+      -> tag:String_node_format.Delimiter.t
            (** The formatting of the result is affected by [tag] in some cases, but does not
           include the [tag] itself. *)
       -> t
@@ -79,8 +72,14 @@ module Payload_types = struct
       -> string payload
       -> t
 
+    (** The source-code representation of the payload [t].
+
+        If [node_shape] is [Some shape], then the produced string is an extension point or
+        attribute containing the payload [t], with the name and syntax specified in
+        [shape]. If [node_shape] is [None], the produced string is a string literal. *)
     val to_source_code_string
       :  expect_node_formatting:Expect_node_formatting.t
+      -> node_shape:String_node_format.Shape.t option
       -> indent:int option
       -> t
       -> string
@@ -92,17 +91,6 @@ module type Payload = sig
     include Payload_types
   end
   [@@inline_doc]
-
-  module Delimiter : sig
-    include module type of struct
-      include Payload_types.Delimiter
-    end
-    [@@inline_doc]
-
-    (** The default delimiter ([Tag ""]) used for new strings in payloads; this represents
-        a preference for [{|strings|}] *)
-    val default : t
-  end
 
   (** Add the default tags to a payload *)
   val default : 'a -> 'a t

@@ -12,10 +12,10 @@ module Create : sig
       the e.g. [[%expect]] test *)
 
   (** [[%expect _]] *)
-  val expect : Compact_loc.t -> string Payload.t -> t
+  val expect : Compact_loc.t -> Compact_loc.t option -> string Payload.t -> t
 
   (** [[%expect_exact _]] *)
-  val expect_exact : Compact_loc.t -> string Payload.t -> t
+  val expect_exact : Compact_loc.t -> Compact_loc.t option -> string Payload.t -> t
 
   (** [[%expect.unreachable]] *)
   val expect_unreachable : Compact_loc.t -> t
@@ -23,7 +23,7 @@ end
 
 (** Functions exported for use in other modules of the expect test runtime. *)
 
-val of_expectation : ('a, [< Expectation.Behavior_type.t ]) Expectation.t -> t
+val of_expectation : (_, [< Expectation.Behavior_type.t ]) Expectation.t -> t
 
 (** Updates reachedness information for [t]. *)
 val record_end_of_run : t -> unit

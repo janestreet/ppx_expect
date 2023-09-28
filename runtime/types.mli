@@ -121,3 +121,65 @@ module Expectation_id : sig
       guaranteed if [of_int_exn] is used to create an id. *)
   val mint : unit -> t
 end
+
+(** The syntactic format of attributes and extension points carrying string payloads. *)
+module String_node_format : sig
+  (** Phantom type for longhand syntax: [[%foo {||}]] or [[@foo {||}]]. *)
+  type longhand = Longhand
+
+  (** Phantom type for shorthand syntax: [{%foo||}]. *)
+  type shorthand = Shorthand
+
+  (** "Handedness" of syntax: longhand or shorthand, as described above. **)
+  module Hand : sig
+    type _ t =
+      | Longhand : longhand t
+      | Shorthand : shorthand t
+  end
+
+  (** Kind of node: attribute or extension. There is no shorthand for attributes with
+      string payloads, so attributes can only be longhand here. *)
+  module Kind : sig
+    type _ t =
+      | Attribute : longhand t
+      | Extension : _ t
+  end
+
+  (** Shape of a string node: its name (e.g. "expect"), handedness, and node kind. This is
+      preserved when rewriting the node. *)
+  module Shape : sig
+    type 'hand unpacked =
+      { name : string
+      ; hand : 'hand Hand.t
+      ; kind : 'hand Kind.t
+      }
+
+    type t = T : _ unpacked -> t [@@unboxed]
+  end
+
+  (** Delimiter around string constant. *)
+  module Delimiter : sig
+    type _ unpacked =
+      | Quote : longhand unpacked (** Quoted strings, e.g. ["foo"]. *)
+      | Tag : string -> _ unpacked (** Tagged strings, e.g. [{tag|foo|tag}]. *)
+
+    type t = T : _ unpacked -> t [@@unboxed]
+
+    (** Default delimiter: [T (Tag "")]. *)
+    val default : t
+
+    (** If given [Quoted] and [Shorthand], produces [Tag ""]. In any other case, produces
+        the given delimiter. *)
+    val handed : t -> 'a Hand.t -> 'a unpacked
+  end
+
+  (** Format of a string node: its shape, and a compatible delimiter. We preserve its
+      shape across rewrites, but may have to change its delimiter. For example, if
+      [{bar|foo|bar}] needs to match ["bar"], we must replace its tag. *)
+  type 'a unpacked =
+    { shape : 'a Shape.unpacked
+    ; delimiter : 'a Delimiter.unpacked
+    }
+
+  type t = T : _ unpacked -> t [@@unboxed]
+end

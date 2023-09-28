@@ -2,13 +2,7 @@ open! Base
 open Types
 include Payload_intf.Payload_types
 
-module Delimiter = struct
-  include Payload_intf.Payload_types.Delimiter
-
-  let default = Tag ""
-end
-
-let default contents = { contents; tag = Delimiter.default }
+let default contents = { contents; tag = String_node_format.Delimiter.default }
 
 module Result = struct
   include Result
@@ -32,7 +26,11 @@ module Payload_of (Contents : Contents) : Type = struct
     { contents = Contents.of_located_string ~loc contents; tag }
   ;;
 
-  let to_source_code_string ~expect_node_formatting ~indent t =
+  let to_source_code_string
+    :  expect_node_formatting:Expect_node_formatting.t
+    -> node_shape:String_node_format.Shape.t option -> indent:int option -> t -> string
+    =
+    fun ~expect_node_formatting ~node_shape ~indent t ->
     let rec fix_tag_conflicts test_output tag =
       let bad_tag tag fstr =
         String.is_substring ~substring:(Printf.sprintf fstr tag) test_output
@@ -47,14 +45,42 @@ module Payload_of (Contents : Contents) : Type = struct
       |> List.map ~f:String.escaped
       |> String.concat ~sep:"\n"
     in
+    let tag, extension =
+      match node_shape with
+      | None -> t.tag, None
+      | Some (T shape) ->
+        let delimiter = String_node_format.Delimiter.handed t.tag shape.hand in
+        T delimiter, Some (String_node_format.T { shape; delimiter })
+    in
     let printed =
       Contents.to_source_code_string ~indent ~expect_node_formatting ~tag:t.tag t.contents
     in
-    match t.tag with
-    | Tag tag ->
-      let tag = fix_tag_conflicts printed tag in
-      Printf.sprintf "{%s|%s|%s}" tag printed tag
-    | Quote -> Printf.sprintf {|"%s"|} (escape_lines printed)
+    let payload_string () =
+      match tag with
+      | T (Tag tag) ->
+        let tag = fix_tag_conflicts printed tag in
+        Printf.sprintf "{%s|%s|%s}" tag printed tag
+      | T Quote -> Printf.sprintf {|"%s"|} (escape_lines printed)
+    in
+    match extension with
+    | None -> payload_string ()
+    | Some (T { shape; delimiter }) ->
+      (match shape.hand with
+       | Longhand ->
+         let prefix =
+           match shape.kind with
+           | Extension -> expect_node_formatting.extension_sigil
+           | Attribute -> expect_node_formatting.attribute_sigil
+         in
+         Printf.sprintf "[%s%s %s]" prefix shape.name (payload_string ())
+       | Shorthand ->
+         let prefix =
+           match shape.kind with
+           | Extension -> expect_node_formatting.extension_sigil
+         in
+         (match delimiter with
+          | Tag "" -> Printf.sprintf "{%s%s|%s|}" prefix shape.name printed
+          | Tag tag -> Printf.sprintf "{%s%s %s|%s|%s}" prefix shape.name tag printed tag))
   ;;
 end
 
@@ -313,9 +339,9 @@ module Pretty = Payload_of (struct
       | None, None -> 0
     in
     let tag_spacing =
-      match (tag : Delimiter.t) with
-      | Tag _ -> " " (* Delimited strings get padding like [{x| this |x}]. *)
-      | Quote -> "" (* Quoted strings get no padding like ["this"]. *)
+      match (tag : String_node_format.Delimiter.t) with
+      | T (Tag _) -> " " (* Delimited strings get padding like [{x| this |x}]. *)
+      | T Quote -> "" (* Quoted strings get no padding like ["this"]. *)
     in
     match leading_lines, body_lines, trailing_lines with
     | _, [], _ ->

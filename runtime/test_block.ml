@@ -265,8 +265,8 @@ module Make (C : Expect_test_config_types.S) = struct
           in
           let exn_test =
             match expected_exn with
-            | Some payload ->
-              Expectation.expect_uncaught_exn payload trailing_loc
+            | Some (payload_loc, payload) ->
+              Expectation.expect_uncaught_exn ~payload_loc payload trailing_loc
               |> Test_node.of_expectation
             | None ->
               Expectation.expect_no_uncaught_exn { loc = trailing_loc; body_loc }

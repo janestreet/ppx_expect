@@ -2,21 +2,20 @@ open! Base
 open Types
 
 module Definitions = struct
-  (** The type of AST node used to represent this expectation *)
-  module Node_type = struct
-    type t =
-      | Extension
-      | Attribute
-  end
-
   module Insert_loc = struct
     (** Whether this expectation is tied to an AST node already present in the source, and
         the location information needed to determine where to insert corrections for this
         expectation *)
     type t =
-      | Overwrite of Compact_loc.t
-          (** An expectation parsed from the test file at [loc] which should be overwritten
-          by corrections *)
+      | Overwrite of
+          { whole_node : Compact_loc.t
+          ; payload : Compact_loc.t option
+          }
+          (** An expectation parsed from the test file and which should be overwritten by
+          corrections. Corrections to just the payload should overwrite just the [payload]
+          location, if present. If no [payload] location is present, or for corrections
+          that change the entire node (e.g. a change from [[%expect _]] to
+          [[%expect.unreachable]]), overwrite the [whole_node] loc. *)
       | Insert of Virtual_loc.t
           (** An expectation not parsed from the file that should be inserted into
           [Virtual_loc.loc] and is associated with a test whose body is at
@@ -83,17 +82,16 @@ module Definitions = struct
       [('output, 'behavior_type) behavior].
   *)
   type ('output, 'behavior_type) t =
-    { node_type : Node_type.t
-    ; position : Insert_loc.t
+    { position : Insert_loc.t
     ; behavior : ('output, 'behavior_type) Behavior.t
     ; payload_type : (module Payload.Type with type Contents.t = 'output)
-    ; on_incorrect_output : string
-        (** The name of the extension point or attribute used to write corrections when
-        receiving "incorrect" output for this test node. For each [t], there is only one
-        such node. For example, if an [[%expect_exact]] node is reached with incorrect
-        output, it is always corrected to a different [[%expect_exact]] node, and an
-        [[%expect.unreachable]] that is reached is always corrected to an [[%expect]]
-        node.
+    ; on_incorrect_output : String_node_format.Shape.t
+        (** The name and syntax style of the extension point or attribute used to write
+        corrections when receiving "incorrect" output for this test node. For each [t],
+        there is only one such node. For example, if an [{%expect_exact||}] node is
+        reached with incorrect output, it is always corrected to a different
+        [{%expect_exact||}] node, and an [[%expect.unreachable]] that is reached is
+        always corrected to an [[%expect]] node.
 
         Note that for a node that should be reachable, the correction when it is found to
         be unreachable is instead governed by [on_unreachable] in the [Expect] constructor
@@ -117,13 +115,15 @@ module type Expectation = sig
 
   (** [[%expect _]] *)
   val expect
-    :  string Payload.t
+    :  payload_loc:Compact_loc.t option
+    -> string Payload.t
     -> Compact_loc.t
     -> (Payload.Pretty.Contents.t, [ `Expect ]) t
 
   (** [[%expect_exact _]] *)
   val expect_exact
-    :  string Payload.t
+    :  payload_loc:Compact_loc.t option
+    -> string Payload.t
     -> Compact_loc.t
     -> (Payload.Exact.Contents.t, [ `Expect ]) t
 
@@ -134,7 +134,8 @@ module type Expectation = sig
 
   (** [[@@expect.uncaught_exn _]] *)
   val expect_uncaught_exn
-    :  string Payload.t
+    :  payload_loc:Compact_loc.t option
+    -> string Payload.t
     -> Compact_loc.t
     -> (Payload.Pretty.Contents.t, [ `Expect ]) t
 

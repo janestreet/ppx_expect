@@ -9,13 +9,17 @@ module Expr = struct
     | None -> [%expr None]
   ;;
 
-  let delimiter ~loc (delimiter : Payload.Delimiter.t) =
+  let pair ~loc expression_of_a expression_of_b (a, b) =
+    [%expr [%e expression_of_a ~loc a], [%e expression_of_b ~loc b]]
+  ;;
+
+  let delimiter ~loc (delimiter : Delimiter.t) =
     [%expr
       ([%e
          match delimiter with
-         | Quote -> [%expr Quote]
-         | Tag tag -> [%expr Tag [%e estring ~loc tag]]]
-        : Ppx_expect_runtime.Payload.Delimiter.t)]
+         | T Quote -> [%expr T Quote]
+         | T (Tag tag) -> [%expr T (Tag [%e estring ~loc tag])]]
+        : Ppx_expect_runtime.Delimiter.t)]
   ;;
 
   let id ~loc id =
@@ -43,29 +47,49 @@ module Expr = struct
   ;;
 end
 
+let compact_loc_of_ppxlib_location { loc_start; loc_end; loc_ghost = _ } : Compact_loc.t =
+  { start_bol = loc_start.pos_bol
+  ; start_pos = loc_start.pos_cnum
+  ; end_pos = loc_end.pos_cnum
+  }
+;;
+
 module Expectation_node = struct
+  type expect_node_info =
+    { payload_loc : Compact_loc.t option
+    ; payload : string Payload.t
+    ; node_loc : Compact_loc.t
+    }
+
   type t =
-    | Expect of string Payload.t * Compact_loc.t
-    | Expect_exact of string Payload.t * Compact_loc.t
+    | Expect of expect_node_info
+    | Expect_exact of expect_node_info
     | Expect_unreachable of Compact_loc.t
 
   let to_expr ~loc t =
-    let name, payload, compact_loc =
+    let name, payload_loc, payload, node_loc =
       match t with
-      | Expect (payload, compact_loc) -> "expect", Some payload, compact_loc
-      | Expect_exact (payload, compact_loc) -> "expect_exact", Some payload, compact_loc
-      | Expect_unreachable compact_loc -> "expect_unreachable", None, compact_loc
+      | Expect { payload_loc; payload; node_loc } ->
+        "expect", Some payload_loc, Some payload, node_loc
+      | Expect_exact { payload_loc; payload; node_loc } ->
+        "expect_exact", Some payload_loc, Some payload, node_loc
+      | Expect_unreachable node_loc -> "expect_unreachable", None, None, node_loc
     in
     pexp_apply
       ~loc
       (pexp_ident
          ~loc
          (Located.lident ~loc ("Ppx_expect_runtime.Test_node.Create." ^ name)))
-      ((Nolabel, Expr.compact_loc ~loc compact_loc)
-       ::
-       (match payload with
-        | Some payload -> [ Nolabel, Expr.payload ~loc estring payload ]
-        | None -> []))
+      (List.concat
+         [ [ Nolabel, Expr.compact_loc ~loc node_loc ]
+         ; (match payload_loc with
+            | Some payload_loc ->
+              [ Nolabel, Expr.option ~loc Expr.compact_loc payload_loc ]
+            | None -> [])
+         ; (match payload with
+            | Some payload -> [ Nolabel, Expr.payload ~loc estring payload ]
+            | None -> [])
+         ])
   ;;
 end
 
@@ -74,18 +98,22 @@ module Pattern = struct
 
   let string () =
     map
-      (single_expr_payload (pexp_constant (pconst_string __ __ __)))
-      ~f:(fun f contents _loc tag ->
-        let (tag : Payload.Delimiter.t) =
+      (single_expr_payload (as__ (pexp_constant (pconst_string __ __ __))))
+      ~f:(fun f payload_expr contents _loc tag ->
+        let (tag : Delimiter.t) =
           match tag with
-          | None -> Quote
-          | Some tag -> Tag tag
+          | None -> T Quote
+          | Some tag -> T (Tag tag)
         in
-        f ({ contents; tag } : _ Payload.t))
+        let payload_loc = Some (compact_loc_of_ppxlib_location payload_expr.pexp_loc) in
+        f ~payload_loc ({ contents; tag } : _ Payload.t))
   ;;
 
   let empty () = pstr nil
-  let maybe_string () = string () ||| map (empty ()) ~f:(fun f -> f (Payload.default ""))
+
+  let maybe_string () =
+    string () ||| map (empty ()) ~f:(fun f -> f ~payload_loc:None (Payload.default ""))
+  ;;
 end
 
 let maybe_string_payload = Pattern.maybe_string
@@ -100,8 +128,8 @@ module Parsed_node = struct
       "expect"
       Expression
       (Pattern.maybe_string ())
-      (fun payload compact_loc ->
-      Expectation_node (Expectation_id.mint (), Expect (payload, compact_loc)))
+      (fun ~payload_loc payload node_loc ->
+      Expectation_node (Expectation_id.mint (), Expect { payload_loc; payload; node_loc }))
   ;;
 
   let expect_exact =
@@ -109,8 +137,9 @@ module Parsed_node = struct
       "expect_exact"
       Expression
       (Pattern.maybe_string ())
-      (fun payload compact_loc ->
-      Expectation_node (Expectation_id.mint (), Expect_exact (payload, compact_loc)))
+      (fun ~payload_loc payload node_loc ->
+      Expectation_node
+        (Expectation_id.mint (), Expect_exact { payload_loc; payload; node_loc }))
   ;;
 
   let expect_output =
@@ -138,13 +167,6 @@ module Parsed_node = struct
 end
 
 let is_a_ppx_expect_ext_node e = Option.is_some (Parsed_node.match_expectation e)
-
-let compact_loc_of_ppxlib_location { loc_start; loc_end; loc_ghost = _ } : Compact_loc.t =
-  { start_bol = loc_start.pos_bol
-  ; start_pos = loc_start.pos_cnum
-  ; end_pos = loc_end.pos_cnum
-  }
-;;
 
 let replace_and_collect_expects =
   object
@@ -188,7 +210,12 @@ let transform_let_expect ~trailing_location ~tags ~expected_exn ~description ~lo
       ~location:[%e Expr.compact_loc ~loc (compact_loc_of_ppxlib_location loc)]
       ~trailing_loc:[%e Expr.compact_loc ~loc trailing_location]
       ~body_loc:[%e Expr.compact_loc ~loc body_loc]
-      ~expected_exn:[%e Expr.option ~loc (Expr.payload estring) expected_exn]
+      ~expected_exn:
+        [%e
+          Expr.option
+            ~loc
+            (Expr.pair (Expr.option Expr.compact_loc) (Expr.payload estring))
+            expected_exn]
       ~trailing_test_id:[%e Expr.id ~loc trailing_test_id]
       ~exn_test_id:[%e Expr.id ~loc exn_test_id]
       ~description:[%e Expr.option estring ~loc description]
@@ -206,7 +233,8 @@ let let_expect_pat =
       "@expect.uncaught_exn"
       Attribute.Context.value_binding
       (Pattern.string ())
-      (fun ~attr_loc expect_payload -> attr_loc, expect_payload)
+      (fun ~attr_loc ~payload_loc expect_payload ->
+      attr_loc, (payload_loc, expect_payload))
   in
   let opt_name =
     map (pstring __) ~f:(fun f x -> f ~name:(Some x))

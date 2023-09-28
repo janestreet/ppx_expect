@@ -108,17 +108,12 @@ let () = Stdlib.at_exit Test_block.at_exit
 module Expect_node_formatting = Types.Expect_node_formatting
 module Compact_loc = Types.Compact_loc
 module Expectation_id = Types.Expectation_id
+module Delimiter = Types.String_node_format.Delimiter
 
 module Payload : sig
-  module Delimiter : sig
-    type t = Payload.Delimiter.t =
-      | Quote
-      | Tag of string
-  end
-
   type 'a t = 'a Payload.t =
     { contents : 'a
-    ; tag : Payload.Delimiter.t
+    ; tag : Delimiter.t
     }
 
   val default : 'a -> 'a t
