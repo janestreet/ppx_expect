@@ -105,3 +105,9 @@ CAMLprim value ppx_expect_runtime_out_channel_position(value vchan) {
     caml_failwith("ppx_expect_runtime_out_channel_position: overflow");
   return Val_long(ret);
 }
+
+CAMLprim value ppx_expect_runtime_flush_stubs_streams(value vunit) {
+  fflush(stdout);
+  fflush(stderr);
+  return vunit;
+}

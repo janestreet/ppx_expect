@@ -42,6 +42,7 @@ end = struct
     = "ppx_expect_runtime_after_test"
 
   external pos_out : Stdlib.out_channel -> int = "ppx_expect_runtime_out_channel_position"
+  external flush_stubs : unit -> unit = "ppx_expect_runtime_flush_stubs_streams"
 
   (* Save std file descriptors, open a temp file for test output, and reroute stdout and
      stderr there. *)
@@ -75,7 +76,8 @@ end = struct
     Stdlib.Format.pp_print_flush Stdlib.Format.std_formatter ();
     Stdlib.Format.pp_print_flush Stdlib.Format.err_formatter ();
     Stdlib.flush Stdlib.stdout;
-    Stdlib.flush Stdlib.stderr
+    Stdlib.flush Stdlib.stderr;
+    flush_stubs ()
   ;;
 
   let read_test_output_unsanitized { test_output_reader; old_offset; _ } =

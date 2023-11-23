@@ -5,4 +5,821 @@ File "export_test.ml", line 2, characters 2-24 threw
   \n- trying to run it from ppx/ppx_expect/test/negative-tests/import_test.ml\
   \n").
 
-FAILED 1 / 66 tests
+FAILED 1 / 69 tests
+------ chdir.ml
+++++++ chdir.ml.corrected
+File "chdir.ml", line 6, characters 0-1:
+ |let%expect_test _ =
+ |  print_string "About to change dir";
+ |  Sys.mkdir "tmp" 0o755;
+ |  Sys.chdir "tmp";
+ |  Sys.rmdir "../tmp";
+-|  [%expect]
++|  [%expect {| About to change dir |}]
+ |;;
+------ comment.ml
+++++++ comment.ml.corrected
+File "comment.ml", line 4, characters 0-1:
+ |let () = Printexc.record_backtrace false
+ |
+ |let%expect_test _ = raise (Failure "RIP")
+-|(* this fails, but the comment stays *) [@@expect.uncaught_exn {||}]
++|(* this fails, but the comment stays *) [@@expect.uncaught_exn {| (Failure RIP) |}]
+ |;;
+------ escaped_strings.ml
+++++++ escaped_strings.ml.corrected
+File "escaped_strings.ml", line 3, characters 0-1:
+ |let%expect_test "escaped carriage return" =
+ |  print_string "a\rb";
+-|  [%expect ""];
++|  [%expect "a\rb"];
+ |  print_string "a\rb";
+-|  [%expect_exact ""];
++|  [%expect_exact "a\rb"];
+ |  print_string "a\r\nb";
+-|  [%expect ""];
+-|  print_string "a\r\nb";
+-|  [%expect_exact ""];
+-|  print_string "a\n\rb";
+-|  [%expect ""];
+-|  print_string "a\n\rb";
+-|  [%expect_exact ""]
++|  [%expect "
++|    a
++|    b"];
++|  print_string "a\r\nb";
++|  [%expect_exact "a\r
++|b"];
++|  print_string "a\n\rb";
++|  [%expect "
++|    a
++|    b"];
++|  print_string "a\n\rb";
++|  [%expect_exact "a
++|\rb"]
+ |;;
+ |
+ |let%expect_test "escaped tab" =
+ |  print_string "a\tb";
+-|  [%expect ""];
++|  [%expect "a\tb"];
+ |  print_string "a\tb";
+-|  [%expect_exact ""];
++|  [%expect_exact "a\tb"];
+ |  print_string "a\t\nb";
+-|  [%expect ""];
+-|  print_string "a\t\nb";
+-|  [%expect_exact ""];
+-|  print_string "a\n\tb";
+-|  [%expect ""];
+-|  print_string "a\n\tb";
+-|  [%expect_exact ""]
++|  [%expect "
++|    a
++|    b"];
++|  print_string "a\t\nb";
++|  [%expect_exact "a\t
++|b"];
++|  print_string "a\n\tb";
++|  [%expect "
++|    a
++|    b"];
++|  print_string "a\n\tb";
++|  [%expect_exact "a
++|\tb"]
+ |;;
+ |
+ |let%expect_test "escaped quote" =
+ |  print_string "a\"b";
+-|  [%expect ""];
++|  [%expect "a\"b"];
+ |  print_string "a\"b";
+-|  [%expect_exact ""]
++|  [%expect_exact "a\"b"]
+ |;;
+ |
+ |let%expect_test "escaped trailing carriage return" =
+ |  print_string "a\r\nb\r\n";
+-|  [%expect ""];
+-|  print_string "a\r\nb\r\n";
+-|  [%expect_exact ""];
+-|  print_string "a\r\nb\r\n";
+-|  [%expect];
+-|  print_string "a\r\nb\r\n";
+-|  [%expect_exact]
++|  [%expect "
++|    a
++|    b"];
++|  print_string "a\r\nb\r\n";
++|  [%expect_exact "a\r
++|b\r
++|"];
++|  print_string "a\r\nb\r\n";
++|  [%expect {|
++|    a
++|    b |}];
++|  print_string "a\r\nb\r\n";
++|  [%expect_exact {|a
++|b
++||}]
+ |;;
+ |
+ |let%expect_test "unescaped carriage return --- empty expect" =
+ |  print_string "a\r\nb";
+-|  [%expect];
+-|  print_string "a\r\nb";
+-|  [%expect_exact]
++|  [%expect {|
++|    a
++|    b |}];
++|  print_string "a\r\nb";
++|  [%expect_exact {|a
++|b|}]
+ |;;
+ |
+ |let%expect_test "unescaped carriage return --- populated expect" =
+ |  print_string "a\r\nb";
+ |  [%expect {|
+ |    a
+ |    b |}];
+ |  print_string "a\r\nb";
+ |  [%expect_exact {|a
+ |b|}]
+ |;;
+------ exact.ml
+++++++ exact.ml.corrected
+File "exact.ml", line 6, characters 0-1:
+ |open! Core
+ |
+ |(* Check that [%expect_exact] does not strip leading/trailing newlines *)
+ |let%expect_test _ =
+ |  print_string "foobarbaz";
+-|  [%expect_exact {|
+-|  foobarbaz
+-|  |}]
++|  [%expect_exact {|foobarbaz|}]
+ |;;
+ |
+ |(* Check that [%expect_exact] does not treat whitespace as indentation *)
+ |let%expect_test _ =
+ |  print_string "\nfoobarbaz\n";
+ |  [%expect_exact {|
+-|    foobarbaz
+-|  |}]
++|foobarbaz
++||}]
+ |;;
+ |
+ |(* Check that [%expect_exact] does not strip whitespace on single lines *)
+ |let%expect_test _ =
+ |  print_string "foobarbaz";
+-|  [%expect_exact {| foobarbaz |}]
++|  [%expect_exact {|foobarbaz|}]
+ |;;
+------ exn.ml
+++++++ exn.ml.corrected
+File "exn.ml", line 4, characters 0-1:
+ |open! Core
+ |
+ |let%expect_test _ =
+-|  [%expect {| hi ho |}];
++|  [%expect {| |}];
+ |  Printexc.record_backtrace false;
+ |  ignore (failwith "hi ho" : unit);
+-|  [%expect {| it's off to work we go |}]
++|  [%expect.unreachable]
++|[@@expect.uncaught_exn {| (Failure "hi ho") |}]
+ |;;
+ |
+ |let%expect_test _ =
+ |  Printexc.record_backtrace false;
+ |  ignore (failwith "hi ho" : unit);
+ |  [%expect.unreachable]
+ |[@@expect.uncaught_exn {|
+ |  (Failure "hi ho")
+ ||}]
+ |;;
+------ exn_and_trailing.ml
+++++++ exn_and_trailing.ml.corrected
+File "exn_and_trailing.ml", line 4, characters 0-1:
+ |let%expect_test _ =
+ |  print_endline "hello";
+ |  if true then raise Exit;
+-|  [%expect {| hello |}]
+-|[@@expect.uncaught_exn {| Exit |}]
++|  [%expect.unreachable]
++|[@@expect.uncaught_exn {|
++|  Exit
++|  Trailing output
++|  ---------------
++|  hello |}]
+ |;;
+------ exn_missing.ml
+++++++ exn_missing.ml.corrected
+File "exn_missing.ml", line 6, characters 0-1:
+ |open! Core
+ |
+ |let%expect_test "without trailing output" =
+ |  printf "hello world";
+ |  [%expect "hello world"]
+-|[@@expect.uncaught_exn {| (Failure "hi ho") |}]
+ |;;
+ |
+-|let%expect_test "with trailing output" = printf "hello world"
+-|[@@expect.uncaught_exn {| (Failure "hi ho") |}]
++|let%expect_test "with trailing output" = printf "hello world";
++|  [%expect {| hello world |}]
+ |;;
+------ expect_output.ml
+++++++ expect_output.ml.corrected
+File "expect_output.ml", line 8, characters 0-1:
+ |open! Core
+ |
+ |let%expect_test _ =
+ |  if false
+ |  then (
+ |    print_string "hello";
+ |    print_string [%expect.output];
+-|    [%expect {||}])
++|    [%expect.unreachable])
+ |;;
+------ flexible.ml
+++++++ flexible.ml.corrected
+File "flexible.ml", line 10, characters 0-1:
+ |open! Core
+ |
+ |(* The generated expectation should follow user formatting when present, otherwise it
+ |   should follow a sensible default *)
+ |
+ |(* Single line actual.. *)
+ |
+ |let%expect_test _ =
+ |  print_string "hello";
+-|  [%expect {||}]
++|  [%expect {| hello |}]
+ |;;
+ |
+ |let%expect_test _ =
+ |  print_string "hello";
+-|  [%expect {|
+-|  |}]
++|  [%expect {| hello |}]
+ |;;
+ |
+ |let%expect_test _ =
+ |  print_string "hello";
+-|  [%expect {|
+-|           |}]
++|  [%expect {| hello |}]
+ |;;
+ |
+ |let%expect_test _ =
+ |  print_string "hello";
+-|  [%expect {|  WRONG
++|  [%expect {|  hello
+ |           |}]
+ |;;
+ |
+ |let%expect_test _ =
+ |  print_string "hello";
+-|  [%expect {|  WRONG
++|  [%expect {|  hello
+ |           |}]
+ |;;
+ |
+ |let%expect_test _ =
+ |  print_string "hello";
+ |  [%expect {|
+-|  WRONG |}]
++|  hello |}]
+ |;;
+ |
+ |let%expect_test _ =
+ |  print_string "hello";
+ |  [%expect {|
+-|       WRONG
++|       hello
+ |  |}]
+ |;;
+ |
+ |(* Multi line actual... *)
+ |
+ |let%expect_test _ =
+ |  print_string "one1\ntwo";
+-|  [%expect {||}]
++|  [%expect {|
++|    one1
++|    two |}]
+ |;;
+ |
+ |let%expect_test _ =
+ |  print_string "one2\ntwo";
+ |  [%expect {|
++|    one2
++|    two
+ |  |}]
+ |;;
+ |
+ |let%expect_test _ =
+ |  print_string "one3\ntwo";
+ |  [%expect {|
++|    one3
++|    two
+ |           |}]
+ |;;
+ |
+ |let%expect_test _ =
+ |  print_string "one4\ntwo";
+-|  [%expect {|  WRONG
++|  [%expect {|
++|    one4
++|    two
+ |           |}]
+ |;;
+ |
+ |let%expect_test _ =
+ |  print_string "one5\ntwo";
+ |  [%expect {|
+-|  WRONG |}]
++|  one5
++|  two |}]
+ |;;
+ |
+ |let%expect_test _ =
+ |  print_string "one6\ntwo";
+ |  [%expect {|
+-|       WRONG
++|       one6
++|       two
+ |  |}]
+ |;;
+ |
+ |let%expect_test _ =
+ |  print_string "one8\ntwo";
+ |  [%expect {|
+-|  WRONG
+-|  THING |}]
++|  one8
++|  two |}]
+ |;;
+ |
+ |let%expect_test _ =
+ |  print_string "one9\ntwo";
+ |  [%expect {|
+-|       WRONG
+-|       THING
++|       one9
++|       two
+ |  |}]
+ |;;
+ |
+ |let%expect_test _ =
+ |  print_string "one10\ntwo";
+ |  [%expect {|
+-|       WRONG
+-|          THING
++|       one10
++|       two
+ |  |}]
+ |;;
+ |
+ |let%expect_test _ =
+ |  print_string "one11\ntwo";
+ |  [%expect {|
+-|          WRONG
+-|       THING
++|       one11
++|       two
+ |  |}]
+ |;;
+------ function_with_distinct_outputs.ml
+++++++ function_with_distinct_outputs.ml.corrected
+File "function_with_distinct_outputs.ml", line 10, characters 0-1:
+ |module Expect_test_config = struct
+ |  include Expect_test_config
+ |
+ |  let upon_unreleasable_issue = `Warning_for_collector_testing
+ |end
+ |
+ |let%expect_test _ =
+ |  let f output =
+ |    print_string output;
+-|    [%expect {| hello world |}]
++|    [%expect {|
++|      (* expect_test: Test ran multiple times with different test outputs *)
++|      ============================ Output 1 / 2 ============================
++|      foo
++|      ============================ Output 2 / 2 ============================
++|      bar |}]
+ |  in
+ |  f "foo";
+ |  f "bar"
+ |;;
+------ functor.ml
+++++++ functor.ml.corrected
+File "functor.ml", line 13, characters 0-1:
+ |module Expect_test_config = struct
+ |  include Expect_test_config
+ |
+ |  let upon_unreleasable_issue = `Warning_for_collector_testing
+ |end
+ |
+ |module M (S : sig
+ |    val output : string
+ |  end) =
+ |struct
+ |  let%expect_test _ =
+ |    print_string S.output;
+-|    [%expect {| hello world |}];
+-|    print_string S.output
++|    [%expect {|
++|      (* expect_test: Test ran multiple times with different test outputs *)
++|      ============================ Output 1 / 3 ============================
++|      foo
++|      ============================ Output 2 / 3 ============================
++|      bar
++|      ============================ Output 3 / 3 ============================
++|      cat |}];
++|    print_string S.output;
++|    [%expect {|
++|      (* expect_test: Test ran multiple times with different trailing outputs *)
++|      ============================== Output 1 / 3 ==============================
++|      foo
++|      ============================== Output 2 / 3 ==============================
++|      bar
++|      ============================== Output 3 / 3 ==============================
++|      cat |}]
+ |  ;;
+ |
+ |  let%expect_test _ =
+ |    print_string S.output;
+ |    if not (String.equal S.output "foo") then failwith "wrong output";
+ |    [%expect {| foo |}]
++|  [@@expect.uncaught_exn {|
++|    (* expect_test: Test ran multiple times with different uncaught exceptions *)
++|    =============================== Output 1 / 3 ================================
++|    <expect test ran without uncaught exception>
++|    =============================== Output 2 / 3 ================================
++|    (Failure "wrong output")
++|    Trailing output
++|    ---------------
++|    bar
++|    =============================== Output 3 / 3 ================================
++|    (Failure "wrong output")
++|    Trailing output
++|    ---------------
++|    cat |}]
+ |  ;;
+ |
+ |  let%expect_test _ =
+ |    if String.equal S.output "bar" then print_string S.output else failwith "wrong output";
+-|    [%expect.unreachable]
+-|  [@@expect.uncaught_exn {| (Failure "wrong output") |}]
++|    [%expect {| bar |}]
++|  [@@expect.uncaught_exn {|
++|    (* expect_test: Test ran multiple times with different uncaught exceptions *)
++|    =============================== Output 1 / 3 ================================
++|    (Failure "wrong output")
++|    =============================== Output 2 / 3 ================================
++|    <expect test ran without uncaught exception>
++|    =============================== Output 3 / 3 ================================
++|    (Failure "wrong output") |}]
+ |  ;;
+ |end
+ |
+ |module A = M (struct
+ |    let output = "foo"
+ |  end)
+ |
+ |module B = M (struct
+ |    let output = "bar"
+ |  end)
+ |
+ |module C = M (struct
+ |    let output = "cat"
+ |  end)
+------ missing.ml
+++++++ missing.ml.corrected
+File "missing.ml", line 7, characters 0-1:
+ |open! Core
+ |
+ |(* Example with no [%expect] node at all *)
+ |
+ |let%expect_test _ =
+ |  print_string "hello\n";
+-|  print_string "goodbye\n"
++|  print_string "goodbye\n";
++|  [%expect {|
++|    hello
++|    goodbye |}]
+ |;;
+ |
+ |(* Example with an [%expect] node that has no payload *)
+ |
+ |let%expect_test _ =
+ |  print_string "hello\n";
+ |  print_string "goodbye\n";
+-|  [%expect];
++|  [%expect {|
++|    hello
++|    goodbye |}];
+ |  ignore ("don't print" : string);
+ |  [%expect]
+ |;;
+------ normal_strings.ml
+++++++ normal_strings.ml.corrected
+File "normal_strings.ml", line 3, characters 0-1:
+ |let%expect_test "short quoted string" =
+ |  print_string "foo\nbar\n";
+-|  [%expect ""]
++|  [%expect "
++|    foo
++|    bar"]
+ |;;
+ |
+ |let%expect_test "long quoted string" =
+ |  print_string
+ |    {|
+ |    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ |    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ |    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ |    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+ |    XXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXX
+ |    |};
+-|  [%expect ""]
++|  [%expect "
++|    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
++|    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
++|    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
++|    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
++|    XXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXX"]
+ |;;
+ |
+ |let%expect_test "quoted strings with leading spaces" =
+ |  print_string {|
+ |    live
+ |      long
+ |        and
+ |    prosper
+ |    |};
+-|  [%expect ""];
++|  [%expect "
++|    live
++|      long
++|        and
++|    prosper"];
+ |  print_string
+ |    {|
+ |    live
+ |      loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong
+ |        and
+ |    prosper
+ |    |};
+-|  [%expect ""]
++|  [%expect "
++|    live
++|      loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong
++|        and
++|    prosper"]
+ |;;
+------ semicolon.ml
+++++++ semicolon.ml.corrected
+File "semicolon.ml", line 3, characters 0-1:
+ |let%expect_test _ =
+ |  print_string "one";
+-|  [%expect {| two |}]
++|  [%expect {| one |}]
+ |;;
+------ similar_distinct_outputs.ml
+++++++ similar_distinct_outputs.ml.corrected
+File "similar_distinct_outputs.ml", line 12, characters 0-1:
+ |module M (S : sig
+ |    val foo : string
+ |  end) =
+ |struct
+ |  let%expect_test "similar passing" =
+ |    print_string S.foo;
+ |    [%expect {| foo |}]
+ |  ;;
+ |
+ |  let%expect_test "similar failing" =
+ |    print_string S.foo;
+-|    [%expect {| bar |}]
++|    [%expect {| foo |}]
+ |  ;;
+ |end
+ |
+ |module M1 = M (struct
+ |    let foo = "foo"
+ |  end)
+ |
+ |module M2 = M (struct
+ |    let foo = "\n\nfoo\n\n"
+ |  end)
+------ spacing.ml
+++++++ spacing.ml.corrected
+File "spacing.ml", line 10, characters 0-1:
+ |open Core
+ |
+ |let%expect_test _ =
+ |  let text_no_final_nl () = print_string "one\ntwo(no newline)\nthree" in
+ |  text_no_final_nl ();
+ |  [%expect {|
+ |
+ |  one
+ |  two(no newline)
+-|
+ |  three
+ |  |}];
+ |  (* take an integer tag to [text] help the different tests be distinguished somewhat in the
+ |     .expected.patdiff *)
+ |  let text n = Printf.printf "one\ntwo(%d)\nthree\n" n in
+ |  text 1;
+ |  [%expect {|
+ |  one
+ |  two(1)
+ |  three|}];
+ |  text 2;
+ |  [%expect {|
+-|    one
++|  one
+ |  two(2)
+-|    three
++|  three
+ |  |}];
+ |  (* Check that it reindents expectation properly *)
+ |  printf "  one\n blah\n  three";
+ |  [%expect {|
+-|      one
+-|    two
+-|      three
++|     one
++|    blah
++|     three
+ |  |}]
+ |;;
+------ string_extension_syntax.ml
+++++++ string_extension_syntax.ml.corrected
+File "string_extension_syntax.ml", line 6, characters 0-1:
+ |let%expect_test "correction for expect node" =
+ |  print_endline "Testing";
+ |  print_endline "1";
+ |  print_endline "2";
+ |  print_endline "3";
+-|  {%expect xxx|what|xxx}
++|  {%expect xxx|
++|    Testing
++|    1
++|    2
++|    3 |xxx}
+ |;;
+ |
+ |let%expect_test "correction for expect exact node" =
+ |  print_endline "Testing";
+ |  print_endline "1";
+ |  print_endline "2";
+ |  print_endline "3";
+-|  {%expect_exact|what|}
++|  {%expect_exact|Testing
++|1
++|2
++|3
++||}
+ |;;
+------ string_padding.ml
+++++++ string_padding.ml.corrected
+File "string_padding.ml", line 3, characters 0-1:
+ |let%expect_test _ =
+ |  print_string "hello";
+-|  [%expect "goodbye"]
++|  [%expect "hello"]
+ |;;
+------ tag.ml
+++++++ tag.ml.corrected
+File "tag.ml", line 6, characters 0-1:
+ |open! Core
+ |
+ |let%expect_test _ =
+ |  (* Correction should include a string tag *)
+ |  print_string "{|String tag required|}";
+-|  [%expect {||}];
++|  [%expect {xxx| {|String tag required|} |xxx}];
+ |  print_string "{|String tag required|}";
+-|  [%expect_exact {||}]
++|  [%expect_exact {xxx|{|String tag required|}|xxx}]
+ |;;
+ |
+ |let%expect_test _ =
+ |  (* The correction should use the same string-kind (normal,quoted) as the [%expect] *)
+ |  print_string "foo\\bar";
+-|  [%expect {||}];
++|  [%expect {| foo\bar |}];
+ |  print_string "hey\\ho";
+-|  [%expect_exact ""];
++|  [%expect_exact "hey\\ho"];
+ |  print_string {|
+ |    Foo
+ |    "bar baz"|};
+-|  [%expect.unreachable]
++|  [%expect {|
++|    Foo
++|    "bar baz" |}]
+ |;;
+------ trailing.ml
+++++++ trailing.ml.corrected
+File "trailing.ml", line 8, characters 0-1:
+ |open! Core
+ |
+ |(* Example with trailing output after last [%expect] node *)
+ |
+ |let%expect_test _ =
+ |  print_string "hello";
+ |  [%expect {| hello |}];
+-|  print_string "goodbye\n"
++|  print_string "goodbye\n";
++|  [%expect {| goodbye |}]
+ |;;
+ |
+ |let%expect_test _ =
+ |  print_string "foo";
+ |  [%expect {| foo |}];
+-|  print_string "bar"
++|  print_string "bar";
++|  [%expect {| bar |}]
+ |;;
+ |
+ |let%expect_test _ =
+ |  print_string "hello world";
+ |  [%expect {| hello world |}]
+ |;;
+------ trailing_in_module.ml
+++++++ trailing_in_module.ml.corrected
+File "trailing_in_module.ml", line 10, characters 0-1:
+ |open! Core
+ |
+ |module M (X : Sexpable) = struct
+ |  module N (Y : sig
+ |      val x : X.t
+ |    end) =
+ |  struct
+ |    let%expect_test "trailing output" =
+ |      let sexp = X.sexp_of_t Y.x in
+-|      print_s sexp
++|      print_s sexp;
++|      [%expect {|
++|         "a\
++|        \nb\
++|        \nc" |}]
+ |    ;;
+ |
+ |    let%expect_test "error" =
+ |      if String.length (string_of_sexp (X.sexp_of_t Y.x)) > 1
+ |      then raise_s (Base.Sexp.message "sexp is too long" [ "input: ", X.sexp_of_t Y.x ])
++|    [@@expect.uncaught_exn {|
++|      ("sexp is too long" ("input: "  "a\
++|                                     \nb\
++|                                     \nc")) |}]
+ |    ;;
+ |  end
+ |end
+ |
+ |module String_tests = M (String)
+ |
+ |module Run_on_abc = String_tests.N (struct
+ |    let x = "a\nb\nc"
+ |  end)
+------ unidiomatic_syntax.ml
+++++++ unidiomatic_syntax.ml.corrected
+File "unidiomatic_syntax.ml", line 4, characters 0-1:
+ |[%%expect_test
+ |  let _ =
+ |    Printf.printf "Hello, world.\n";
+-|    [%expect {| Good night, moon. |}]
++|    [%expect {| Hello, world. |}]
+ |  ;;]
+------ unusual_payload_location.ml
+++++++ unusual_payload_location.ml.corrected
+File "unusual_payload_location.ml", line 6, characters 0-1:
+ |let%expect_test _ =
+ |  print_endline "Does it get moved?";
+ |  print_endline "Let's hope not.";
+ |  [%expect
+ |
+-|    {| Do not move this payload |}
++|    {|
++|    Does it get moved?
++|    Let's hope not. |}
+ |
+ |    ]
+ |
+ |let%expect_test _ =
+ |  print_endline "Does it get moved?";
+ |  print_endline "Let's hope not.";
+ |  [%expect_exact
+ |
+-|    {| Do not move this payload |}
++|    {|Does it get moved?
++|Let's hope not.
++||}
+ |
+ |    ]

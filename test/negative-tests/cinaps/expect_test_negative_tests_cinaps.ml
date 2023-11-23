@@ -16,11 +16,26 @@ let generate filenames =
     [%sexp
       `rule
         { deps =
-            [ "./inline_tests_runner"; "./inline_tests_runner.exe"; `glob_files "*.ml" ]
+            [ "./inline_tests_runner"
+            ; "./inline_tests_runner.exe"
+            ; "%{root}/bin/apply-style"
+            ; "jbuild"
+            ; `glob_files "*.ml"
+            ]
         ; targets : string list
-        ; action =
-            "rm -f *.ml.corrected 2>/dev/null; ! %{first_dep} -diff-cmd true 2> \
-             test-output"
+        ; action : string =
+            {|
+rm -f *.ml.corrected 2>/dev/null
+! %{first_dep} -no-color > test-output 2>&1
+for f in *.ml.corrected
+do
+  %{root}/bin/apply-style \
+    -directory-config jbuild \
+    -original-file $(basename $f .corrected) \
+    - < $f > $f.tmp
+  mv $f.tmp $f
+done
+|}
         }];
   List.iter targets ~f:(fun target ->
     let deps = [ target ^ ".expected"; target ] in

@@ -30,3 +30,8 @@ function ppx_expect_runtime_out_channel_position(chan){
   var info = caml_ml_channels[chan];
   return info.offset
 }
+
+//Provides: ppx_expect_runtime_flush_stubs_streams
+function ppx_expect_runtime_flush_stubs_streams(vunit){
+  return 0
+}

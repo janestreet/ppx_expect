@@ -106,10 +106,26 @@ module type Expectation = sig
     include Definitions
   end
 
+  module Insert_loc : sig
+    include module type of struct
+      include Insert_loc
+    end
+
+    val loc : t -> Compact_loc.t
+  end
+
   val with_behavior
     :  ('output, 'old_behavior) t
     -> ('output, 'new_behavior) Behavior.t
     -> ('output, 'new_behavior) t
+
+  (** [formatter ~expect_node_formatting t] returns the [Output.Formatter.t] that formats
+      test output according to the type ([exact] or [pretty]) of [t], using information
+      about the location and payload of [t] for formatting. *)
+  val formatter
+    :  expect_node_formatting:Expect_node_formatting.t
+    -> (_, _) t
+    -> Output.Formatter.t
 
   val loc : _ t -> Compact_loc.t
 
@@ -149,4 +165,16 @@ module type Expectation = sig
   val expect_no_uncaught_exn
     :  Virtual_loc.t
     -> (Payload.Pretty.Contents.t, [ `Unreachable ]) t
+
+  module For_apply_style : sig
+    type format_payload :=
+      expect_node_formatting:Expect_node_formatting.t
+      -> loc:Compact_loc.t
+      -> String_node_format.Delimiter.t
+      -> string
+      -> string option
+
+    val format_expect_payload : format_payload
+    val format_uncaught_exn_payload : format_payload
+  end
 end

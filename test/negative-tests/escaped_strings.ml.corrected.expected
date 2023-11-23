@@ -4,19 +4,13 @@ let%expect_test "escaped carriage return" =
   print_string "a\rb";
   [%expect_exact "a\rb"];
   print_string "a\r\nb";
-  [%expect "
-    a
-    b"];
+  [%expect "\n    a\n    b"];
   print_string "a\r\nb";
-  [%expect_exact "a\r
-b"];
+  [%expect_exact "a\r\nb"];
   print_string "a\n\rb";
-  [%expect "
-    a
-    b"];
+  [%expect "\n    a\n    b"];
   print_string "a\n\rb";
-  [%expect_exact "a
-\rb"]
+  [%expect_exact "a\n\rb"]
 ;;
 
 let%expect_test "escaped tab" =
@@ -25,19 +19,13 @@ let%expect_test "escaped tab" =
   print_string "a\tb";
   [%expect_exact "a\tb"];
   print_string "a\t\nb";
-  [%expect "
-    a
-    b"];
+  [%expect "\n    a\n    b"];
   print_string "a\t\nb";
-  [%expect_exact "a\t
-b"];
+  [%expect_exact "a\t\nb"];
   print_string "a\n\tb";
-  [%expect "
-    a
-    b"];
+  [%expect "\n    a\n    b"];
   print_string "a\n\tb";
-  [%expect_exact "a
-\tb"]
+  [%expect_exact "a\n\tb"]
 ;;
 
 let%expect_test "escaped quote" =
@@ -49,13 +37,9 @@ let%expect_test "escaped quote" =
 
 let%expect_test "escaped trailing carriage return" =
   print_string "a\r\nb\r\n";
-  [%expect "
-    a
-    b"];
+  [%expect "\n    a\n    b"];
   print_string "a\r\nb\r\n";
-  [%expect_exact "a\r
-b\r
-"];
+  [%expect_exact "a\r\nb\r\n"];
   print_string "a\r\nb\r\n";
   [%expect {|
     a

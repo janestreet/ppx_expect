@@ -3,7 +3,7 @@
 
 (rule
  (deps (:first_dep ./inline_tests_runner) ./inline_tests_runner.exe
-  (glob_files *.ml))
+  %{workspace_root}/bin/apply-style jbuild (glob_files *.ml))
  (targets chdir.ml.corrected comment.ml.corrected
   escaped_strings.ml.corrected exact.ml.corrected exn.ml.corrected
   exn_and_trailing.ml.corrected exn_missing.ml.corrected
@@ -17,7 +17,18 @@
   test-output)
  (action
   (bash
-   "rm -f *.ml.corrected 2>/dev/null; ! %{first_dep} -diff-cmd true 2> test-output")))
+    "\
+   \nrm -f *.ml.corrected 2>/dev/null\
+   \n! %{first_dep} -no-color > test-output 2>&1\
+   \nfor f in *.ml.corrected\
+   \ndo\
+   \n  %{workspace_root}/bin/apply-style \\\
+   \n    -directory-config jbuild \\\
+   \n    -original-file $(basename $f .corrected) \\\
+   \n    - < $f > $f.tmp\
+   \n  mv $f.tmp $f\
+   \ndone\
+   \n")))
 
 (alias (name runtest) (deps chdir.ml.corrected.expected chdir.ml.corrected)
  (action (bash "diff -a %{deps}")))

@@ -10,5 +10,5 @@ let%expect_test "Expectation with uncaught expectation" =
   ignore (assert false);
   [%expect.unreachable]
   [@@expect.uncaught_exn {|
-  "Assert_failure uncaught_exn.ml:10:9" |}]
+  "Assert_failure uncaught_exn.ml:10:10" |}]
 ;;

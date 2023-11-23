@@ -1,2 +1,2 @@
 (library (name ppx_expect_test) (flags :standard -principal)
- (preprocess (pps ppx_assert ppx_expect)))
+ (c_names non_flushing) (preprocess (pps ppx_assert ppx_expect)))

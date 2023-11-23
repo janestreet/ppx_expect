@@ -314,6 +314,7 @@ module Global_results_table = struct
   let process_each_file ~f =
     global_results_table
     |> Hashtbl.to_alist
+    |> List.sort ~compare:(Comparable.lift ~f:fst String.compare)
     |> List.map ~f:(fun (filename, { expectations; postprocess }) ->
          let test_nodes = Hashtbl.data expectations in
          f ~filename ~test_nodes ~postprocess)

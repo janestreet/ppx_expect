@@ -20,4 +20,3 @@ module M1 = M (struct
 module M2 = M (struct
     let foo = "\n\nfoo\n\n"
   end)
-

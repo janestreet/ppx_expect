@@ -17,7 +17,8 @@ module M (X : Sexpable) = struct
     let%expect_test "error" =
       if String.length (string_of_sexp (X.sexp_of_t Y.x)) > 1
       then raise_s (Base.Sexp.message "sexp is too long" [ "input: ", X.sexp_of_t Y.x ])
-    [@@expect.uncaught_exn {|
+    [@@expect.uncaught_exn
+      {|
       ("sexp is too long" ("input: "  "a\
                                      \nb\
                                      \nc")) |}]
