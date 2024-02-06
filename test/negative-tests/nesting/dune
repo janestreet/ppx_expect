@@ -1,0 +1,27 @@
+(library
+ (name expect_test_nesting_tests)
+ (libraries)
+ (preprocess
+  (pps ppx_jane)))
+
+(rule
+ (deps
+  (:first_dep ./inline_tests_runner)
+  ./inline_tests_runner.exe
+  (glob_files *.ml))
+ (targets nested.ml.corrected test-output)
+ (action
+  (bash
+    "\nrm -f *.ml.corrected 2>/dev/null\n# Setting b=0 in OCAMLRUNPARAM suppresses backtraces from the output.\n! OCAMLRUNPARAM=b=0 %{first_dep} -require-tag fast-flambda -no-color > test-output 2>&1\n")))
+
+(rule
+ (alias runtest)
+ (deps nested.ml.corrected.expected nested.ml.corrected)
+ (action
+  (bash "diff -a %{deps}")))
+
+(rule
+ (alias runtest)
+ (deps test-output.expected test-output)
+ (action
+  (bash "diff -a %{deps}")))

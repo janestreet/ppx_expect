@@ -5,7 +5,8 @@ open! Core
 let%expect_test _ =
   print_string "hello\n";
   print_string "goodbye\n";
-  [%expect {|
+  [%expect
+    {|
     hello
     goodbye |}]
 ;;
@@ -15,7 +16,8 @@ let%expect_test _ =
 let%expect_test _ =
   print_string "hello\n";
   print_string "goodbye\n";
-  [%expect {|
+  [%expect
+    {|
     hello
     goodbye |}];
   ignore ("don't print" : string);

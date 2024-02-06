@@ -8,7 +8,8 @@ module M (X : Sexpable) = struct
     let%expect_test "trailing output" =
       let sexp = X.sexp_of_t Y.x in
       print_s sexp;
-      [%expect {|
+      [%expect
+        {|
          "a\
         \nb\
         \nc" |}]

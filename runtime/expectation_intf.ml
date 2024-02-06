@@ -169,6 +169,7 @@ module type Expectation = sig
   module For_apply_style : sig
     type format_payload :=
       expect_node_formatting:Expect_node_formatting.t
+      -> payload_loc:Compact_loc.t
       -> loc:Compact_loc.t
       -> String_node_format.Delimiter.t
       -> string

@@ -2,7 +2,8 @@ let%expect_test _ =
   print_endline "hello";
   if true then raise Exit;
   [%expect.unreachable]
-[@@expect.uncaught_exn {|
+[@@expect.uncaught_exn
+  {|
   Exit
   Trailing output
   ---------------

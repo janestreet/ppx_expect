@@ -14,10 +14,12 @@ let%expect_test _ =
   [%expect {| foo\bar |}];
   print_string "hey\\ho";
   [%expect_exact "hey\\ho"];
-  print_string {|
+  print_string
+    {|
     Foo
     "bar baz"|};
-  [%expect {|
+  [%expect
+    {|
     Foo
     "bar baz" |}]
 ;;

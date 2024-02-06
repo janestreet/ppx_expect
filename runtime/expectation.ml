@@ -36,16 +36,19 @@ let formatter
    } :
     (output, behavior) t)
   =
+  let count_leading_spaces line =
+    line |> String.to_list |> List.take_while ~f:(Char.( = ) ' ') |> List.length
+  in
   Output.Formatter.create
   @@ fun str ->
   let lines =
-    (* Whitespace splitting/stripping specifically targets ['\n'] and [' '] so that
-       unusual characters like ['\r'] and ['\t'] get displayed explicitly in
-       expectations. *)
+    (* In pretty payloads, we normalize all newlines to ['\n']. [[%expect_exact ""]]
+       can be used in cases where a user wants to inspect the whitespace produced by
+       their output more closely. *)
     let stripped =
       str
-      |> String.split ~on:'\n'
-      |> List.map ~f:(String.rstrip ~drop:(Char.equal ' '))
+      |> String.split_lines
+      |> List.map ~f:(String.rstrip ~drop:Char.is_whitespace)
       |> List.drop_while ~f:String.is_empty
       |> List.rev
       |> List.drop_while ~f:String.is_empty
@@ -53,8 +56,11 @@ let formatter
     in
     let indent_and_contents =
       List.map stripped ~f:(fun line ->
-        let unindented = String.lstrip ~drop:(Char.equal ' ') line in
-        String.length line - String.length unindented, unindented)
+        (* The legacy behavior is to only count the longest prefix of actual spaces
+           ([' ']) for indentation, but to strip all whitespace (including, e.g., ['\t']).
+           Note that this means [" \t contents"] is counted as having contents
+           ["contents"] and indentation [1]. *)
+        count_leading_spaces line, String.strip line)
     in
     match
       indent_and_contents
@@ -216,23 +222,23 @@ let expect_no_uncaught_exn virtual_loc =
 module For_apply_style = struct
   let format_payload mk_node =
     Staged.stage
-    @@ fun ~expect_node_formatting ~loc tag contents ->
+    @@ fun ~expect_node_formatting ~payload_loc ~loc tag contents ->
+    let node =
+      mk_node ~payload_loc:(Some payload_loc) ({ tag; contents } : _ Payload.t) loc
+    in
     let formatted_contents =
-      Output.Formatter.apply
-        (formatter
-           ~expect_node_formatting
-           (mk_node ~payload_loc:None ({ tag; contents } : _ Payload.t) loc))
-        contents
+      Output.Formatter.apply (formatter ~expect_node_formatting node) contents
+    in
+    let node_shape =
+      match node.on_incorrect_output with
+      | T { hand = Longhand; name = _; kind = _ } -> None
+      | node_shape -> Some node_shape
     in
     match Output.reconcile ~expected_output:contents ~test_output:formatted_contents with
     | Pass -> None
     | Fail contents ->
       Some
-        (Output.to_source_code_string
-           ~expect_node_formatting
-           ~node_shape:None
-           ~tag
-           contents)
+        (Output.to_source_code_string ~expect_node_formatting ~node_shape ~tag contents)
   ;;
 
   let format_expect_payload = format_payload expect |> Staged.unstage

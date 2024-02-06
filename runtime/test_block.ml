@@ -175,6 +175,7 @@ module Current_test : sig
   val current_test : unit -> Shared.t option
   val current_test_exn : unit -> Shared.t
   val iter : f:(t -> unit) -> unit
+  val assert_no_test_running : basename:string -> line_number:int -> unit
 end = struct
   type t =
     { line_number : int
@@ -194,6 +195,33 @@ end = struct
 
   let current_test_exn () = Option.value_exn (current_test ())
   let iter ~f = Option.iter !test_is_running ~f
+
+  let assert_no_test_running ~basename ~line_number =
+    iter
+      ~f:
+        (fun
+          { line_number = outer_line_number
+          ; basename = outer_basename
+          ; location = _
+          ; test_block = _
+          }
+          ->
+      let sexp_here ~basename ~line_number : Sexp.t =
+        List
+          [ List [ Atom "file"; sexp_of_string basename ]
+          ; List [ Atom "line"; sexp_of_int line_number ]
+          ]
+      in
+      raise_s
+        (Sexp.message
+           "Expect_test_runtime: reached one [let%expect_test] from another. Nesting \
+            expect\n\
+            tests is prohibited."
+           [ ( "outer_test"
+             , sexp_here ~basename:outer_basename ~line_number:outer_line_number )
+           ; "inner_test", sexp_here ~basename ~line_number
+           ]))
+  ;;
 end
 
 (* The main testing functions of a test block, which depend on configurations. *)
@@ -244,6 +272,9 @@ module Make (C : Expect_test_config_types.S) = struct
     =
     let ({ start_bol; start_pos; end_pos } : Compact_loc.t) = location in
     let basename = Stdlib.Filename.basename filename_rel_to_project_root in
+    (* Even if the current tag set indicates this test should be dropped, check that it
+       wasn't reached from another expect test *)
+    Current_test.assert_no_test_running ~basename ~line_number;
     Ppx_inline_test_lib.test
       ~config:inline_test_config
       ~descr:(lazy (Option.value description ~default:""))
@@ -290,9 +321,8 @@ module Make (C : Expect_test_config_types.S) = struct
                    ~expect_node_formatting:Expect_node_formatting.default
                    ~original_file_contents))
         in
-        (* To avoid capturing not-yet flushed data of the stdout/stderr buffers. Lifting
-            into the provided [IO] monad is required to preserve legacy behavior. *)
-        C.run (fun () -> C.IO.return (Shared.flush ()));
+        (* To avoid capturing not-yet flushed data of the stdout/stderr buffers. *)
+        Shared.flush ();
         (* Redirect stdout/stderr *)
         let test_block = Shared.set_up_block absolute_filename in
         (* Run the test *)

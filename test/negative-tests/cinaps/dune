@@ -1,2 +1,5 @@
-(library (name expect_test_negative_tests_cinaps)
- (libraries base sexp_pretty stdio) (preprocess (pps ppx_jane)))
+(library
+ (name expect_test_negative_tests_cinaps)
+ (libraries base sexp_pretty stdio)
+ (preprocess
+  (pps ppx_jane)))

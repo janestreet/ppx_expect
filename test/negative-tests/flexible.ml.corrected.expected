@@ -22,25 +22,29 @@ let%expect_test _ =
 
 let%expect_test _ =
   print_string "hello";
-  [%expect {|  hello
+  [%expect
+    {|  hello
            |}]
 ;;
 
 let%expect_test _ =
   print_string "hello";
-  [%expect {|  hello
+  [%expect
+    {|  hello
            |}]
 ;;
 
 let%expect_test _ =
   print_string "hello";
-  [%expect {|
+  [%expect
+    {|
   hello |}]
 ;;
 
 let%expect_test _ =
   print_string "hello";
-  [%expect {|
+  [%expect
+    {|
        hello
   |}]
 ;;
@@ -49,14 +53,16 @@ let%expect_test _ =
 
 let%expect_test _ =
   print_string "one1\ntwo";
-  [%expect {|
+  [%expect
+    {|
     one1
     two |}]
 ;;
 
 let%expect_test _ =
   print_string "one2\ntwo";
-  [%expect {|
+  [%expect
+    {|
     one2
     two
   |}]
@@ -64,7 +70,8 @@ let%expect_test _ =
 
 let%expect_test _ =
   print_string "one3\ntwo";
-  [%expect {|
+  [%expect
+    {|
     one3
     two
            |}]
@@ -72,7 +79,8 @@ let%expect_test _ =
 
 let%expect_test _ =
   print_string "one4\ntwo";
-  [%expect {|
+  [%expect
+    {|
     one4
     two
            |}]
@@ -80,14 +88,16 @@ let%expect_test _ =
 
 let%expect_test _ =
   print_string "one5\ntwo";
-  [%expect {|
+  [%expect
+    {|
   one5
   two |}]
 ;;
 
 let%expect_test _ =
   print_string "one6\ntwo";
-  [%expect {|
+  [%expect
+    {|
        one6
        two
   |}]
@@ -95,14 +105,16 @@ let%expect_test _ =
 
 let%expect_test _ =
   print_string "one8\ntwo";
-  [%expect {|
+  [%expect
+    {|
   one8
   two |}]
 ;;
 
 let%expect_test _ =
   print_string "one9\ntwo";
-  [%expect {|
+  [%expect
+    {|
        one9
        two
   |}]
@@ -110,7 +122,8 @@ let%expect_test _ =
 
 let%expect_test _ =
   print_string "one10\ntwo";
-  [%expect {|
+  [%expect
+    {|
        one10
        two
   |}]
@@ -118,7 +131,8 @@ let%expect_test _ =
 
 let%expect_test _ =
   print_string "one11\ntwo";
-  [%expect {|
+  [%expect
+    {|
        one11
        two
   |}]

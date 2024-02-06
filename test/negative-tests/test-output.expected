@@ -139,31 +139,35 @@ File "escaped_strings.ml", line 3, characters 0-1:
  |
  |let%expect_test "unescaped carriage return --- populated expect" =
  |  print_string "a\r\nb";
- |  [%expect {|
+ |  [%expect
+ |    {|
  |    a
  |    b |}];
  |  print_string "a\r\nb";
- |  [%expect_exact {|a
+ |  [%expect_exact
+ |    {|a
  |b|}]
  |;;
 ------ exact.ml
 ++++++ exact.ml.corrected
-File "exact.ml", line 6, characters 0-1:
+File "exact.ml", line 7, characters 0-1:
  |open! Core
  |
  |(* Check that [%expect_exact] does not strip leading/trailing newlines *)
  |let%expect_test _ =
  |  print_string "foobarbaz";
--|  [%expect_exact {|
+ |  [%expect_exact
+-|    {|
 -|  foobarbaz
 -|  |}]
-+|  [%expect_exact {|foobarbaz|}]
++|    {|foobarbaz|}]
  |;;
  |
  |(* Check that [%expect_exact] does not treat whitespace as indentation *)
  |let%expect_test _ =
  |  print_string "\nfoobarbaz\n";
- |  [%expect_exact {|
+ |  [%expect_exact
+ |    {|
 -|    foobarbaz
 -|  |}]
 +|foobarbaz
@@ -195,7 +199,8 @@ File "exn.ml", line 4, characters 0-1:
  |  Printexc.record_backtrace false;
  |  ignore (failwith "hi ho" : unit);
  |  [%expect.unreachable]
- |[@@expect.uncaught_exn {|
+ |[@@expect.uncaught_exn
+ |  {|
  |  (Failure "hi ho")
  ||}]
  |;;
@@ -261,42 +266,48 @@ File "flexible.ml", line 10, characters 0-1:
  |
  |let%expect_test _ =
  |  print_string "hello";
--|  [%expect {|
+ |  [%expect
+-|    {|
 -|  |}]
-+|  [%expect {| hello |}]
++|    {| hello |}]
  |;;
  |
  |let%expect_test _ =
  |  print_string "hello";
--|  [%expect {|
+ |  [%expect
+-|    {|
 -|           |}]
-+|  [%expect {| hello |}]
++|    {| hello |}]
  |;;
  |
  |let%expect_test _ =
  |  print_string "hello";
--|  [%expect {|  WRONG
-+|  [%expect {|  hello
+ |  [%expect
+-|    {|  WRONG
++|    {|  hello
  |           |}]
  |;;
  |
  |let%expect_test _ =
  |  print_string "hello";
--|  [%expect {|  WRONG
-+|  [%expect {|  hello
+ |  [%expect
+-|    {|  WRONG
++|    {|  hello
  |           |}]
  |;;
  |
  |let%expect_test _ =
  |  print_string "hello";
- |  [%expect {|
+ |  [%expect
+ |    {|
 -|  WRONG |}]
 +|  hello |}]
  |;;
  |
  |let%expect_test _ =
  |  print_string "hello";
- |  [%expect {|
+ |  [%expect
+ |    {|
 -|       WRONG
 +|       hello
  |  |}]
@@ -314,7 +325,8 @@ File "flexible.ml", line 10, characters 0-1:
  |
  |let%expect_test _ =
  |  print_string "one2\ntwo";
- |  [%expect {|
+ |  [%expect
+ |    {|
 +|    one2
 +|    two
  |  |}]
@@ -322,7 +334,8 @@ File "flexible.ml", line 10, characters 0-1:
  |
  |let%expect_test _ =
  |  print_string "one3\ntwo";
- |  [%expect {|
+ |  [%expect
+ |    {|
 +|    one3
 +|    two
  |           |}]
@@ -330,8 +343,9 @@ File "flexible.ml", line 10, characters 0-1:
  |
  |let%expect_test _ =
  |  print_string "one4\ntwo";
--|  [%expect {|  WRONG
-+|  [%expect {|
+ |  [%expect
+-|    {|  WRONG
++|    {|
 +|    one4
 +|    two
  |           |}]
@@ -339,7 +353,8 @@ File "flexible.ml", line 10, characters 0-1:
  |
  |let%expect_test _ =
  |  print_string "one5\ntwo";
- |  [%expect {|
+ |  [%expect
+ |    {|
 -|  WRONG |}]
 +|  one5
 +|  two |}]
@@ -347,7 +362,8 @@ File "flexible.ml", line 10, characters 0-1:
  |
  |let%expect_test _ =
  |  print_string "one6\ntwo";
- |  [%expect {|
+ |  [%expect
+ |    {|
 -|       WRONG
 +|       one6
 +|       two
@@ -356,7 +372,8 @@ File "flexible.ml", line 10, characters 0-1:
  |
  |let%expect_test _ =
  |  print_string "one8\ntwo";
- |  [%expect {|
+ |  [%expect
+ |    {|
 -|  WRONG
 -|  THING |}]
 +|  one8
@@ -365,7 +382,8 @@ File "flexible.ml", line 10, characters 0-1:
  |
  |let%expect_test _ =
  |  print_string "one9\ntwo";
- |  [%expect {|
+ |  [%expect
+ |    {|
 -|       WRONG
 -|       THING
 +|       one9
@@ -375,7 +393,8 @@ File "flexible.ml", line 10, characters 0-1:
  |
  |let%expect_test _ =
  |  print_string "one10\ntwo";
- |  [%expect {|
+ |  [%expect
+ |    {|
 -|       WRONG
 -|          THING
 +|       one10
@@ -385,7 +404,8 @@ File "flexible.ml", line 10, characters 0-1:
  |
  |let%expect_test _ =
  |  print_string "one11\ntwo";
- |  [%expect {|
+ |  [%expect
+ |    {|
 -|          WRONG
 -|       THING
 +|       one11
@@ -556,7 +576,8 @@ File "normal_strings.ml", line 3, characters 0-1:
  |;;
  |
  |let%expect_test "quoted strings with leading spaces" =
- |  print_string {|
+ |  print_string
+ |    {|
  |    live
  |      long
  |        and
@@ -618,13 +639,14 @@ File "similar_distinct_outputs.ml", line 12, characters 0-1:
  |  end)
 ------ spacing.ml
 ++++++ spacing.ml.corrected
-File "spacing.ml", line 10, characters 0-1:
+File "spacing.ml", line 11, characters 0-1:
  |open Core
  |
  |let%expect_test _ =
  |  let text_no_final_nl () = print_string "one\ntwo(no newline)\nthree" in
  |  text_no_final_nl ();
- |  [%expect {|
+ |  [%expect
+ |    {|
  |
  |  one
  |  two(no newline)
@@ -635,12 +657,14 @@ File "spacing.ml", line 10, characters 0-1:
  |     .expected.patdiff *)
  |  let text n = Printf.printf "one\ntwo(%d)\nthree\n" n in
  |  text 1;
- |  [%expect {|
+ |  [%expect
+ |    {|
  |  one
  |  two(1)
  |  three|}];
  |  text 2;
- |  [%expect {|
+ |  [%expect
+ |    {|
 -|    one
 +|  one
  |  two(2)
@@ -649,7 +673,8 @@ File "spacing.ml", line 10, characters 0-1:
  |  |}];
  |  (* Check that it reindents expectation properly *)
  |  printf "  one\n blah\n  three";
- |  [%expect {|
+ |  [%expect
+ |    {|
 -|      one
 -|    two
 -|      three
@@ -717,7 +742,8 @@ File "tag.ml", line 6, characters 0-1:
  |  print_string "hey\\ho";
 -|  [%expect_exact ""];
 +|  [%expect_exact "hey\\ho"];
- |  print_string {|
+ |  print_string
+ |    {|
  |    Foo
  |    "bar baz"|};
 -|  [%expect.unreachable]
