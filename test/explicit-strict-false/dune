@@ -1,0 +1,4 @@
+(library
+ (name expect_test_explicit_no_strict_indent)
+ (preprocess
+  (pps ppx_expect -expect-test-strict-indentation=false)))

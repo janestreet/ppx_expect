@@ -5,11 +5,10 @@ let%expect_test _ =
   text_no_final_nl ();
   [%expect
     {|
-
-  one
-  two(no newline)
-  three
-  |}];
+    one
+    two(no newline)
+    three
+    |}];
   (* take an integer tag to [text] help the different tests be distinguished somewhat in the
      .expected.patdiff *)
   let text n = Printf.printf "one\ntwo(%d)\nthree\n" n in
@@ -22,10 +21,10 @@ let%expect_test _ =
   text 2;
   [%expect
     {|
-  one
-  two(2)
-  three
-  |}];
+    one
+    two(2)
+    three
+    |}];
   (* Check that it reindents expectation properly *)
   printf "  one\n blah\n  three";
   [%expect
@@ -33,5 +32,5 @@ let%expect_test _ =
      one
     blah
      three
-  |}]
+    |}]
 ;;

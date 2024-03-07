@@ -3,6 +3,8 @@ open Ppxlib
 open Ast_builder.Default
 open Ppx_expect_runtime
 
+let strict_indent = ref false
+
 module Expr = struct
   let option ~loc expression_of_a = function
     | Some x -> [%expr Some [%e expression_of_a ~loc x]]
@@ -36,14 +38,22 @@ module Expr = struct
       }]
   ;;
 
-  let payload ~loc expression_of_a ({ contents; tag } : _ Payload.t) =
-    [%expr
-      { contents = [%e expression_of_a ~loc contents]; tag = [%e delimiter ~loc tag] }]
+  let payload ~loc ({ contents; tag } : Payload.t) =
+    [%expr { contents = [%e estring ~loc contents]; tag = [%e delimiter ~loc tag] }]
   ;;
 
   let id_expr_alist ~loc alist =
     List.map alist ~f:(fun (expect_id, expr) -> [%expr [%e id ~loc expect_id], [%e expr]])
     |> elist ~loc
+  ;;
+
+  let flexibility_of_strictness ~loc =
+    if !strict_indent
+    then [%expr Ppx_expect_runtime.Expect_node_formatting.Flexibility.Exactly_formatted]
+    else
+      [%expr
+        Ppx_expect_runtime.Expect_node_formatting.Flexibility.Flexible_modulo
+          Ppx_expect_runtime.Expect_node_formatting.default]
   ;;
 end
 
@@ -56,8 +66,7 @@ let compact_loc_of_ppxlib_location { loc_start; loc_end; loc_ghost = _ } : Compa
 
 module Expectation_node = struct
   type expect_node_info =
-    { payload_loc : Compact_loc.t option
-    ; payload : string Payload.t
+    { located_payload : (Payload.t * Compact_loc.t) option
     ; node_loc : Compact_loc.t
     }
 
@@ -67,29 +76,26 @@ module Expectation_node = struct
     | Expect_unreachable of Compact_loc.t
 
   let to_expr ~loc t =
-    let name, payload_loc, payload, node_loc =
-      match t with
-      | Expect { payload_loc; payload; node_loc } ->
-        "expect", Some payload_loc, Some payload, node_loc
-      | Expect_exact { payload_loc; payload; node_loc } ->
-        "expect_exact", Some payload_loc, Some payload, node_loc
-      | Expect_unreachable node_loc -> "expect_unreachable", None, None, node_loc
+    let qualify_name node_name =
+      pexp_ident
+        ~loc
+        (Located.lident ~loc ("Ppx_expect_runtime.Test_node.Create." ^ node_name))
     in
-    pexp_apply
-      ~loc
-      (pexp_ident
-         ~loc
-         (Located.lident ~loc ("Ppx_expect_runtime.Test_node.Create." ^ name)))
-      (List.concat
-         [ [ Nolabel, Expr.compact_loc ~loc node_loc ]
-         ; (match payload_loc with
-            | Some payload_loc ->
-              [ Nolabel, Expr.option ~loc Expr.compact_loc payload_loc ]
-            | None -> [])
-         ; (match payload with
-            | Some payload -> [ Nolabel, Expr.payload ~loc estring payload ]
-            | None -> [])
-         ])
+    let make_expect_node node_name { located_payload; node_loc } =
+      [%expr
+        [%e qualify_name node_name]
+          ~formatting_flexibility:[%e Expr.flexibility_of_strictness ~loc]
+          ~located_payload:
+            [%e Expr.(option ~loc (pair payload compact_loc)) located_payload]
+          ~node_loc:[%e Expr.compact_loc ~loc node_loc]]
+    in
+    match t with
+    | Expect expect_node_info -> make_expect_node "expect" expect_node_info
+    | Expect_exact expect_node_info -> make_expect_node "expect_exact" expect_node_info
+    | Expect_unreachable node_loc ->
+      [%expr
+        [%e qualify_name "expect_unreachable"]
+          ~node_loc:[%e Expr.compact_loc ~loc node_loc]]
   ;;
 end
 
@@ -105,15 +111,13 @@ module Pattern = struct
           | None -> T Quote
           | Some tag -> T (Tag tag)
         in
-        let payload_loc = Some (compact_loc_of_ppxlib_location payload_expr.pexp_loc) in
-        f ~payload_loc ({ contents; tag } : _ Payload.t))
+        let payload_loc = compact_loc_of_ppxlib_location payload_expr.pexp_loc in
+        let located_payload = Some (({ contents; tag } : Payload.t), payload_loc) in
+        f ~located_payload)
   ;;
 
   let empty () = pstr nil
-
-  let maybe_string () =
-    string () ||| map (empty ()) ~f:(fun f -> f ~payload_loc:None (Payload.default ""))
-  ;;
+  let maybe_string () = string () ||| map (empty ()) ~f:(fun f -> f ~located_payload:None)
 end
 
 let maybe_string_payload = Pattern.maybe_string
@@ -128,8 +132,8 @@ module Parsed_node = struct
       "expect"
       Expression
       (Pattern.maybe_string ())
-      (fun ~payload_loc payload node_loc ->
-      Expectation_node (Expectation_id.mint (), Expect { payload_loc; payload; node_loc }))
+      (fun ~located_payload node_loc ->
+      Expectation_node (Expectation_id.mint (), Expect { located_payload; node_loc }))
   ;;
 
   let expect_exact =
@@ -137,9 +141,8 @@ module Parsed_node = struct
       "expect_exact"
       Expression
       (Pattern.maybe_string ())
-      (fun ~payload_loc payload node_loc ->
-      Expectation_node
-        (Expectation_id.mint (), Expect_exact { payload_loc; payload; node_loc }))
+      (fun ~located_payload node_loc ->
+      Expectation_node (Expectation_id.mint (), Expect_exact { located_payload; node_loc }))
   ;;
 
   let expect_output =
@@ -210,12 +213,8 @@ let transform_let_expect ~trailing_location ~tags ~expected_exn ~description ~lo
       ~location:[%e Expr.compact_loc ~loc (compact_loc_of_ppxlib_location loc)]
       ~trailing_loc:[%e Expr.compact_loc ~loc trailing_location]
       ~body_loc:[%e Expr.compact_loc ~loc body_loc]
-      ~expected_exn:
-        [%e
-          Expr.option
-            ~loc
-            (Expr.pair (Expr.option Expr.compact_loc) (Expr.payload estring))
-            expected_exn]
+      ~formatting_flexibility:[%e Expr.flexibility_of_strictness ~loc]
+      ~expected_exn:[%e Expr.(option ~loc (pair payload compact_loc)) expected_exn]
       ~trailing_test_id:[%e Expr.id ~loc trailing_test_id]
       ~exn_test_id:[%e Expr.id ~loc exn_test_id]
       ~description:[%e Expr.option estring ~loc description]
@@ -233,8 +232,7 @@ let let_expect_pat =
       "@expect.uncaught_exn"
       Attribute.Context.value_binding
       (Pattern.string ())
-      (fun ~attr_loc ~payload_loc expect_payload ->
-      attr_loc, (payload_loc, expect_payload))
+      (fun ~attr_loc ~located_payload -> attr_loc, located_payload)
   in
   let opt_name =
     map (pstring __) ~f:(fun f x -> f ~name:(Some x))
@@ -265,7 +263,7 @@ let expect_test =
     let loc = { loc with loc_ghost = true } in
     let trailing_location, expected_exn =
       match trailing with
-      | Some (attr_loc, expected_exn) -> attr_loc, Some expected_exn
+      | Some (attr_loc, expected_exn) -> attr_loc, expected_exn
       | None -> { loc with loc_start = loc.loc_end }, None
     in
     Ppx_inline_test.validate_extension_point_exn
@@ -280,6 +278,16 @@ let expect_test =
       ~loc
       code
     |> Ppx_inline_test.maybe_drop loc)
+;;
+
+let () =
+  Driver.add_arg
+    "-expect-test-strict-indentation"
+    (Bool (( := ) strict_indent))
+    ~doc:
+      (Printf.sprintf
+         "BOOL Require standardized indentation in [[%%expect]] (default: %b)"
+         !strict_indent)
 ;;
 
 let () =

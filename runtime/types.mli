@@ -4,11 +4,11 @@ module Expect_node_formatting : sig
   (** Configurations for the formatting of rewritten expect nodes and attributes. The
       values in [default] are used by [ppx_expect], but different values can be used by
       other clients of the expect test runtime. *)
-
   type t =
     { indent : int
         (** The number of spaces that the bodies of [[%expect]] nodes are indented with
-        respect to the left edge of the extension point. *)
+        respect to the left edge of the extension point and that trailing [[%expect]]
+        nodes are indented with respect to the enclosing [let%expect] *)
     ; always_on_own_line : bool
         (** Whether the output of [[%expect]] nodes should always be formatted so it gets its
         own lines, even if it is only one line long. If this option is true, one-line
@@ -25,23 +25,6 @@ module Expect_node_formatting : sig
         {v
         [%expect {| foo |}]
         v}
-
-        and multiline expectations will be printed like
-
-        {v
-        [%expect {|
-           foo
-           bar
-        |}]
-        v}
-
-        rather than like
-
-        {v
-        [%expect {|
-           foo
-           bar |}]
-        v}
     *)
     ; extension_sigil : string
         (** The sigil that should be printed to signal the start of an extension point. By
@@ -53,6 +36,14 @@ module Expect_node_formatting : sig
 
   (** The default formatting configuration used in expect tests. *)
   val default : t
+
+  module Flexibility : sig
+    type expect_node_formatting := t
+
+    type t =
+      | Flexible_modulo of expect_node_formatting
+      | Exactly_formatted
+  end
 end
 
 module Compact_loc : sig
@@ -122,32 +113,33 @@ module Expectation_id : sig
   val mint : unit -> t
 end
 
-(** The syntactic format of attributes and extension points carrying string payloads. *)
 module String_node_format : sig
+  (** The syntactic format of attributes and extension points carrying string payloads. *)
+
   (** Phantom type for longhand syntax: [[%foo {||}]] or [[@foo {||}]]. *)
   type longhand = Longhand
 
   (** Phantom type for shorthand syntax: [{%foo||}]. *)
   type shorthand = Shorthand
 
-  (** "Handedness" of syntax: longhand or shorthand, as described above. **)
   module Hand : sig
+    (** "Handedness" of syntax: longhand or shorthand, as described above. **)
     type _ t =
       | Longhand : longhand t
       | Shorthand : shorthand t
   end
 
-  (** Kind of node: attribute or extension. There is no shorthand for attributes with
-      string payloads, so attributes can only be longhand here. *)
   module Kind : sig
+    (** Kind of node: attribute or extension. There is no shorthand for attributes with
+        string payloads, so attributes can only be longhand here. *)
     type _ t =
       | Attribute : longhand t
       | Extension : _ t
   end
 
-  (** Shape of a string node: its name (e.g. "expect"), handedness, and node kind. This is
-      preserved when rewriting the node. *)
   module Shape : sig
+    (** Shape of a string node: its name (e.g. "expect"), handedness, and node kind. This
+        is preserved when rewriting the node. *)
     type 'hand unpacked =
       { name : string
       ; hand : 'hand Hand.t
@@ -157,8 +149,8 @@ module String_node_format : sig
     type t = T : _ unpacked -> t [@@unboxed]
   end
 
-  (** Delimiter around string constant. *)
   module Delimiter : sig
+    (** Delimiter around string constant. *)
     type _ unpacked =
       | Quote : longhand unpacked (** Quoted strings, e.g. ["foo"]. *)
       | Tag : string -> _ unpacked (** Tagged strings, e.g. [{tag|foo|tag}]. *)

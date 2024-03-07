@@ -5,7 +5,8 @@ let%expect_test _ =
 
     {|
     Does it get moved?
-    Let's hope not. |}
+    Let's hope not.
+    |}
 
     ]
 

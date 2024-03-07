@@ -4,9 +4,9 @@ open Types
 module Correction = struct
   type t =
     | New_payload :
-        ('output, [< Expectation.Behavior_type.t ]) Expectation.t * 'output
+        [< Expectation.Behavior_type.t ] Expectation.t * Output.Reconciled.t
         -> t
-    | Unreachable : ('output, [ `Expect ]) Expectation.t -> t
+    | Unreachable : [ `Expect ] Expectation.t -> t
 
   (** [Some (loc, patch)] if [correction] warrants inserting [patch] into the rewritten
       file at [loc], [None] if no change is needed from [correction]. *)
@@ -15,15 +15,15 @@ module Correction = struct
     | New_payload
         ( { position
           ; behavior
-          ; payload_type
           ; on_incorrect_output = T on_incorrect_output
           ; inconsistent_outputs_message = _
+          ; payload_type = _
           }
         , test_output ) ->
-      let whitespace, indent =
+      let whitespace =
         match position with
         | Insert { body_loc = { start_pos; start_bol; _ }; _ } ->
-          (* [let_offset] is the space until the layer indentation of the
+          (* [let_offset] is the space until the layer of indentation of the
              [let%expect_test] binding. *)
           let let_offset = start_pos - start_bol in
           (* The contents of the expect node are indented an additional two spaces past
@@ -32,38 +32,45 @@ module Correction = struct
             let_offset
             +
             match on_incorrect_output.kind with
-            | Extension -> 2
+            | Extension -> expect_node_formatting.indent
             | Attribute -> 0
           in
           let whitespace = "\n" ^ String.make indent ' ' in
-          whitespace, Some indent
-        | Overwrite _ -> "", None
+          whitespace
+        | Overwrite _ -> ""
       in
-      let module Payload_type = (val payload_type) in
-      let loc, (node_shape : String_node_format.Shape.t option) =
+      let tag =
+        match behavior with
+        | Expect { payload = { tag; _ }; on_unreachable = _; reachability = _ } -> tag
+        | Unreachable _ -> String_node_format.Delimiter.default
+      in
+      let loc, correction =
         match position, on_incorrect_output with
         | ( Overwrite { payload = Some payload_loc; whole_node = _ }
-          , { kind = Extension; hand = Longhand; name = _ } ) -> payload_loc, None
+          , { kind = Extension; hand = Longhand; name = _ } ) ->
+          let correction =
+            Output.to_formatted_payload ~tag test_output
+            |> Output.Payload.to_source_code_string
+          in
+          payload_loc, correction
         | (Overwrite { payload = _; whole_node = loc } | Insert { loc; body_loc = _ }), _
-          -> loc, Some (T on_incorrect_output)
-      in
-      Some
-        ( loc
-        , whitespace
-          ^ Payload_type.to_source_code_string
+          ->
+          ( loc
+          , Output.to_source_code_string
               ~expect_node_formatting
-              ~node_shape
-              ~indent
-              (match behavior with
-               | Expect { payload = { tag; _ }; on_unreachable = _; reachability = _ } ->
-                 { tag; contents = test_output }
-               | Unreachable _ -> Payload.default test_output) )
+              ~node_shape:(T on_incorrect_output)
+              ~tag
+              test_output )
+      in
+      Some (loc, whitespace ^ correction)
     | Unreachable
-        ({ behavior = Expect { on_unreachable; payload = _; reachability = _ }
-         ; on_incorrect_output = T on_incorrect_output
-         ; _
-         } as expectation) ->
-      let loc = Expectation.loc expectation in
+        { behavior = Expect { on_unreachable; payload = _; reachability = _ }
+        ; on_incorrect_output = T on_incorrect_output
+        ; position
+        ; inconsistent_outputs_message = _
+        ; payload_type = _
+        } ->
+      let loc = Expectation.Insert_loc.loc position in
       (match on_unreachable with
        | Silent -> None
        | Delete -> Some (loc, "")
@@ -128,31 +135,31 @@ module Correction = struct
   ;;
 end
 
-type 'output one_output =
-  { result : 'output Payload.Result.t
+type one_output =
+  { result : Output.Test_result.t
   ; raw : string
   }
 
-type 'output one_run =
-  | Reached_with_output of 'output one_output
+type one_run =
+  | Reached_with_output of one_output
   | Did_not_reach
 
-type ('output, 'behavior) inner =
+type 'behavior inner =
   | Test :
-      { expectation :
-          ('output, ([< Expectation.Behavior_type.t ] as 'behavior)) Expectation.t
-      ; results : 'output one_run Queue.t
+      { expectation : ([< Expectation.Behavior_type.t ] as 'behavior) Expectation.t
+      ; results : one_run Queue.t
       ; mutable reached_this_run : bool
       }
-      -> ('output, 'behavior) inner
+      -> 'behavior inner
 
-type t = T : ('output, 'behavior) inner -> t
+type t = T : 'behavior inner -> t
 
 let to_correction
+  ~expect_node_formatting
   ~cr_for_multiple_outputs
   (T (Test { expectation; results; reached_this_run = _ }))
+  : Correction.t option
   =
-  let module Payload_type = (val expectation.payload_type) in
   let results_list = Queue.to_list results in
   let unreached_list, outputs_list =
     List.partition_map results_list ~f:(function
@@ -164,9 +171,7 @@ let to_correction
        are considered equivalent according to [Payload_type]. *)
     List.dedup_and_sort
       ~compare:
-        (Comparable.lift
-           ~f:(fun { result; _ } -> result)
-           (Payload.Result.compare Payload_type.Contents.compare))
+        (Comparable.lift ~f:(fun { result; _ } -> result) Output.Test_result.compare)
       outputs_list
   in
   let was_reached = List.is_empty unreached_list in
@@ -175,6 +180,11 @@ let to_correction
     | Expect { reachability; payload = _; on_unreachable = _ } -> reachability
     | Unreachable { reachability_of_corrected } -> reachability_of_corrected
   in
+  let correction_for_single_result : Output.Test_result.t -> Correction.t option
+    = function
+    | Pass -> None
+    | Fail received -> Some (New_payload (expectation, received))
+  in
   match distinct_outputs, (was_reached, reachability_behavior) with
   | [], (_, _) ->
     (* The test was never reached *)
@@ -182,67 +192,52 @@ let to_correction
      | Unreachable _ -> None
      | Expect _ as behavior ->
        (* Error if an expect test was not reached *)
-       Some (Correction.Unreachable (Expectation.with_behavior expectation behavior)))
+       Some (Unreachable (Expectation.with_behavior expectation behavior)))
   | [ { result; _ } ], (true, _ | _, Can_reach) ->
     (* The test only produced one unique result and:
        - The test never failed to be reached OR
        - The test sometimes failed to be reached, but the test is marked as [Can_reach]
          (or rewrites to one marked as [Can_reach]) so that's OK
     *)
-    (match result with
-     | Pass -> None
-     | Fail received -> Some (New_payload (expectation, received)))
+    correction_for_single_result result
   | _ :: _ :: _, _ | _, (false, Must_reach) ->
     (* The test results were inconsistent because:
        - The test was reached multiple times with different outputs OR
        - The test was sometimes reached and sometimes not, but the test rewrites to a
          test marked as [Must_reach]
     *)
-    let correction =
-      let outputs =
-        results_list
-        |> List.map ~f:(function
-             | Reached_with_output { raw; _ } -> raw
-             | Did_not_reach ->
-               Printf.sprintf
-                 "<expect test ran without %s>"
-                 expectation.inconsistent_outputs_message)
-      in
-      cr_for_multiple_outputs
-        ~output_name:expectation.inconsistent_outputs_message
-        ~outputs
-      |> Payload_type.Contents.of_located_string ~loc:(Some (Expectation.loc expectation))
+    let outputs =
+      results_list
+      |> List.map ~f:(function
+           | Reached_with_output { raw; _ } -> raw
+           | Did_not_reach ->
+             Printf.sprintf
+               "<expect test ran without %s>"
+               expectation.inconsistent_outputs_message)
     in
-    Some (New_payload (expectation, correction))
+    cr_for_multiple_outputs ~output_name:expectation.inconsistent_outputs_message ~outputs
+    |> Output.Formatter.apply (Expectation.formatter ~expect_node_formatting expectation)
+    |> Output.fail
+    |> correction_for_single_result
 ;;
 
 let record_and_return_result
-  : type output behavior.
-    expect_node_formatting:Expect_node_formatting.t
-    -> failure_ref:bool ref
-    -> test_output_raw:string
-    -> (output, behavior) inner
-    -> output Payload.Result.t * String_node_format.Delimiter.t
+  (type behavior)
+  ~expect_node_formatting
+  ~failure_ref
+  ~test_output_raw
+  (Test ({ expectation; results; reached_this_run = _ } as t) : behavior inner)
   =
-  fun ~expect_node_formatting
-      ~failure_ref
-      ~test_output_raw
-      (Test ({ expectation; results; reached_this_run = _ } as t)) ->
-  let module Payload_type = (val expectation.payload_type) in
   let test_output =
-    Payload_type.Contents.of_located_string
-      ~loc:(Some (Expectation.loc expectation))
+    Output.Formatter.apply
+      (Expectation.formatter ~expect_node_formatting expectation)
       test_output_raw
   in
-  let (result : _ Payload.Result.t), (tag : String_node_format.Delimiter.t) =
+  let (result : Output.Test_result.t), (tag : String_node_format.Delimiter.t) =
     match expectation.behavior with
-    | Unreachable _ -> Fail test_output, T (Tag "")
+    | Unreachable _ -> Output.fail test_output, T (Tag "")
     | Expect { payload = { contents; tag }; on_unreachable = _; reachability = _ } ->
-      ( Payload_type.Contents.reconcile
-          ~expect_node_formatting
-          ~expected_output:contents
-          ~test_output
-      , tag )
+      Output.reconcile ~expected_output:contents ~test_output, tag
   in
   (match result with
    | Fail _ -> failure_ref := true
@@ -264,7 +259,7 @@ let record_end_of_run t =
 let record_result ~expect_node_formatting ~failure_ref ~test_output_raw (T inner) =
   ignore
     (record_and_return_result ~expect_node_formatting ~failure_ref ~test_output_raw inner
-      : _ Payload.Result.t * String_node_format.Delimiter.t)
+      : Output.Test_result.t * String_node_format.Delimiter.t)
 ;;
 
 module Global_results_table = struct
@@ -322,35 +317,29 @@ module Global_results_table = struct
 end
 
 module Create = struct
-  let expect loc payload_loc payload =
-    of_expectation (Expectation.expect ~payload_loc payload loc)
+  let expect ~formatting_flexibility ~node_loc ~located_payload =
+    of_expectation (Expectation.expect ~formatting_flexibility ~node_loc ~located_payload)
   ;;
 
-  let expect_exact loc payload_loc payload =
-    of_expectation (Expectation.expect_exact ~payload_loc payload loc)
+  let expect_exact ~formatting_flexibility ~node_loc ~located_payload =
+    of_expectation
+      (Expectation.expect_exact ~formatting_flexibility ~node_loc ~located_payload)
   ;;
 
-  let expect_unreachable loc = of_expectation (Expectation.expect_unreachable loc)
+  let expect_unreachable ~node_loc =
+    of_expectation (Expectation.expect_unreachable ~node_loc)
+  ;;
 end
 
 module For_mlt = struct
-  let loc (T (Test { expectation; results = _; reached_this_run = _ })) =
-    Expectation.loc expectation
+  let loc (T (Test { expectation = { position; _ }; results = _; reached_this_run = _ })) =
+    Expectation.Insert_loc.loc position
   ;;
 
-  let expectation_of_t
-    ~expect_node_formatting
-    (T (Test { expectation; results = _; reached_this_run = _ }))
-    =
+  let expectation_of_t (T (Test { expectation; results = _; reached_this_run = _ })) =
     match expectation.behavior with
-    | Expect { payload = { contents; tag }; on_unreachable = _; reachability = _ } ->
-      let module Payload_type = (val expectation.payload_type) in
-      Some
-        (Payload_type.Contents.to_source_code_string
-           ~expect_node_formatting
-           ~indent:None
-           ~tag
-           contents)
+    | Expect { payload = { contents; tag = _ }; on_unreachable = _; reachability = _ } ->
+      Some contents
     | Unreachable _ -> None
   ;;
 
@@ -368,20 +357,15 @@ module For_mlt = struct
         (Test inner)
     with
     | Fail contents, tag ->
-      let module Payload_type = (val inner.expectation.payload_type) in
       let correction =
-        Payload_type.to_source_code_string
-          ~expect_node_formatting
-          ~node_shape:None
-          ~indent:None
-          { contents; tag }
+        Output.to_formatted_payload ~tag contents |> Output.Payload.to_source_code_string
       in
       Some (String.count ~f:(Char.equal '\n') correction + 1)
     | Pass, _ -> None
   ;;
 
   let to_diffs ~cr_for_multiple_outputs ~expect_node_formatting ~original_file_contents t =
-    match to_correction t ~cr_for_multiple_outputs with
+    match to_correction ~expect_node_formatting ~cr_for_multiple_outputs t with
     | None -> []
     | Some correction ->
       Correction.to_diffs correction ~expect_node_formatting ~original_file_contents

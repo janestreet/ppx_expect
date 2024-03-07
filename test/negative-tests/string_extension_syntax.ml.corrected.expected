@@ -7,7 +7,8 @@ let%expect_test "correction for expect node" =
     Testing
     1
     2
-    3 |xxx}
+    3
+    |xxx}
 ;;
 
 let%expect_test "correction for expect exact node" =

@@ -21,5 +21,6 @@ let%expect_test _ =
   [%expect
     {|
     Foo
-    "bar baz" |}]
+    "bar baz"
+    |}]
 ;;

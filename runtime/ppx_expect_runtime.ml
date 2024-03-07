@@ -109,16 +109,7 @@ module Expect_node_formatting = Types.Expect_node_formatting
 module Compact_loc = Types.Compact_loc
 module Expectation_id = Types.Expectation_id
 module Delimiter = Types.String_node_format.Delimiter
-
-module Payload : sig
-  type 'a t = 'a Payload.t =
-    { contents : 'a
-    ; tag : Delimiter.t
-    }
-
-  val default : 'a -> 'a t
-end =
-  Payload
+module Payload = Output.Payload
 
 module Current_file : sig
   val set : filename_rel_to_project_root:string -> unit

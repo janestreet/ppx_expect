@@ -49,42 +49,38 @@ module Definitions = struct
   end
 
   module Behavior = struct
-    (** A [('output, 'behavior_type) behavior] describes how to handle a test node when
-        running tests and writing corrections.
-
-        ['output] determines the type of payload used when running tests and writing
-        corrections at that node; it is [Payload.String.t] for [expect_exact] nodes and
-        [Payload.Pretty.t] for all other nodes.
+    (** A ['behavior_type t] describes how to handle a test node when running tests
+        and writing corrections.
 
         ['behavior_type] determines the types of rewrites that are possible at this node.
         It is either [`Expect] (indicating that both corrections for unexpected output and
         rewrites for unreachability are possible) or [`Unreachable] (indicating that only
         corrections for unexpected output are possible).
     *)
-    type (_, _) t =
+    type _ t =
       | Expect :
-          { payload : 'output Payload.t
+          { payload : Output.Payload.t
           ; on_unreachable : On_unreachable.t
           ; reachability : Expect_reachability.t
           }
-          -> ('output, [ `Expect ]) t
+          -> [ `Expect ] t
       | Unreachable :
           { reachability_of_corrected : Expect_reachability.t
               (** The reachability of the node inserted if this unreachable node is
               unexpectedly reached *)
           }
-          -> (Payload.Pretty.Contents.t, [ `Unreachable ]) t
+          -> [ `Unreachable ] t
   end
 
-  (** A [('output, 'behavior_type) t] carries information about how to run tests for a
+  (** A [('behavior_type) t] carries information about how to run tests for a
       specific expect node and rewrite it in the source file if there are corrections. The
-      ['output] and ['behavior_type] type variables have the same meanings as in
-      [('output, 'behavior_type) behavior].
+      ['behavior_type] type variable has the same meanings as in
+      ['behavior_type Behavior.t].
   *)
-  type ('output, 'behavior_type) t =
+  type 'behavior_type t =
     { position : Insert_loc.t
-    ; behavior : ('output, 'behavior_type) Behavior.t
-    ; payload_type : (module Payload.Type with type Contents.t = 'output)
+    ; behavior : 'behavior_type Behavior.t
+    ; payload_type : Output.Type.t
     ; on_incorrect_output : String_node_format.Shape.t
         (** The name and syntax style of the extension point or attribute used to write
         corrections when receiving "incorrect" output for this test node. For each [t],
@@ -111,66 +107,57 @@ module type Expectation = sig
       include Insert_loc
     end
 
-    val loc : t -> Compact_loc.t
+    val loc : Insert_loc.t -> Compact_loc.t
   end
 
-  val with_behavior
-    :  ('output, 'old_behavior) t
-    -> ('output, 'new_behavior) Behavior.t
-    -> ('output, 'new_behavior) t
+  val with_behavior : 'old_behavior t -> 'new_behavior Behavior.t -> 'new_behavior t
 
   (** [formatter ~expect_node_formatting t] returns the [Output.Formatter.t] that formats
       test output according to the type ([exact] or [pretty]) of [t], using information
       about the location and payload of [t] for formatting. *)
   val formatter
     :  expect_node_formatting:Expect_node_formatting.t
-    -> (_, _) t
+    -> _ t
     -> Output.Formatter.t
-
-  val loc : _ t -> Compact_loc.t
 
   (** [[%expect _]] *)
   val expect
-    :  payload_loc:Compact_loc.t option
-    -> string Payload.t
-    -> Compact_loc.t
-    -> (Payload.Pretty.Contents.t, [ `Expect ]) t
+    :  formatting_flexibility:Expect_node_formatting.Flexibility.t
+    -> node_loc:Compact_loc.t
+    -> located_payload:(Output.Payload.t * Compact_loc.t) option
+    -> [ `Expect ] t
 
   (** [[%expect_exact _]] *)
   val expect_exact
-    :  payload_loc:Compact_loc.t option
-    -> string Payload.t
-    -> Compact_loc.t
-    -> (Payload.Exact.Contents.t, [ `Expect ]) t
+    :  formatting_flexibility:Expect_node_formatting.Flexibility.t
+    -> node_loc:Compact_loc.t
+    -> located_payload:(Output.Payload.t * Compact_loc.t) option
+    -> [ `Expect ] t
 
   (** [[%expect.unreachable]] *)
-  val expect_unreachable
-    :  Compact_loc.t
-    -> (Payload.Pretty.Contents.t, [ `Unreachable ]) t
+  val expect_unreachable : node_loc:Compact_loc.t -> [ `Unreachable ] t
 
   (** [[@@expect.uncaught_exn _]] *)
   val expect_uncaught_exn
-    :  payload_loc:Compact_loc.t option
-    -> string Payload.t
-    -> Compact_loc.t
-    -> (Payload.Pretty.Contents.t, [ `Expect ]) t
+    :  formatting_flexibility:Expect_node_formatting.Flexibility.t
+    -> node_loc:Compact_loc.t
+    -> located_payload:(Output.Payload.t * Compact_loc.t) option
+    -> [ `Expect ] t
 
   (** Runtime representation of the implicit [[%expect {||}]] at the end of every expect
       test. *)
-  val expect_trailing : Virtual_loc.t -> (Payload.Pretty.Contents.t, [ `Expect ]) t
+  val expect_trailing : insert_loc:Virtual_loc.t -> [ `Expect ] t
 
   (** Runtime representation of the assertion that a test does not produce uncaught
       exceptions, which a user implicitly makes by omitting an [[@@expect.uncaught_exn _]]
       attribute. *)
-  val expect_no_uncaught_exn
-    :  Virtual_loc.t
-    -> (Payload.Pretty.Contents.t, [ `Unreachable ]) t
+  val expect_no_uncaught_exn : insert_loc:Virtual_loc.t -> [ `Unreachable ] t
 
   module For_apply_style : sig
     type format_payload :=
       expect_node_formatting:Expect_node_formatting.t
       -> payload_loc:Compact_loc.t
-      -> loc:Compact_loc.t
+      -> node_loc:Compact_loc.t
       -> String_node_format.Delimiter.t
       -> string
       -> string option

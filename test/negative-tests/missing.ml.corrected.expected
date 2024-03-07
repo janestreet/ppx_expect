@@ -8,7 +8,8 @@ let%expect_test _ =
   [%expect
     {|
     hello
-    goodbye |}]
+    goodbye
+    |}]
 ;;
 
 (* Example with an [%expect] node that has no payload *)
@@ -19,7 +20,8 @@ let%expect_test _ =
   [%expect
     {|
     hello
-    goodbye |}];
+    goodbye
+    |}];
   ignore ("don't print" : string);
   [%expect]
 ;;

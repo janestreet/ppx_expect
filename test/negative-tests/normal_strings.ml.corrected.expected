@@ -1,6 +1,6 @@
 let%expect_test "short quoted string" =
   print_string "foo\nbar\n";
-  [%expect "\n    foo\n    bar"]
+  [%expect " \n foo\n bar\n "]
 ;;
 
 let%expect_test "long quoted string" =
@@ -13,13 +13,14 @@ let%expect_test "long quoted string" =
     XXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXX
     |};
   [%expect
-    "\n\
-    \    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\
-    \    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\
-    \    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\
-    \    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX \
-     XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\
-    \    XXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXX"]
+    " \n\
+    \ XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\
+    \ XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\
+    \ XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\
+    \ XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX \
+     XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\n\
+    \ XXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXX\n\
+    \ "]
 ;;
 
 let%expect_test "quoted strings with leading spaces" =
@@ -30,7 +31,7 @@ let%expect_test "quoted strings with leading spaces" =
         and
     prosper
     |};
-  [%expect "\n    live\n      long\n        and\n    prosper"];
+  [%expect " \n live\n   long\n     and\n prosper\n "];
   print_string
     {|
     live
@@ -39,9 +40,10 @@ let%expect_test "quoted strings with leading spaces" =
     prosper
     |};
   [%expect
-    "\n\
-    \    live\n\
-    \      loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong\n\
-    \        and\n\
-    \    prosper"]
+    " \n\
+    \ live\n\
+    \   loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong\n\
+    \     and\n\
+    \ prosper\n\
+    \ "]
 ;;

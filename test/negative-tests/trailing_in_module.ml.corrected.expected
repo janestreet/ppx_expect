@@ -12,7 +12,8 @@ module M (X : Sexpable) = struct
         {|
          "a\
         \nb\
-        \nc" |}]
+        \nc"
+        |}]
     ;;
 
     let%expect_test "error" =
@@ -22,7 +23,8 @@ module M (X : Sexpable) = struct
       {|
       ("sexp is too long" ("input: "  "a\
                                      \nb\
-                                     \nc")) |}]
+                                     \nc"))
+      |}]
     ;;
   end
 end

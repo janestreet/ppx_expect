@@ -22,31 +22,22 @@ let%expect_test _ =
 
 let%expect_test _ =
   print_string "hello";
-  [%expect
-    {|  hello
-           |}]
+  [%expect {| hello |}]
 ;;
 
 let%expect_test _ =
   print_string "hello";
-  [%expect
-    {|  hello
-           |}]
+  [%expect {| hello |}]
 ;;
 
 let%expect_test _ =
   print_string "hello";
-  [%expect
-    {|
-  hello |}]
+  [%expect {| hello |}]
 ;;
 
 let%expect_test _ =
   print_string "hello";
-  [%expect
-    {|
-       hello
-  |}]
+  [%expect {| hello |}]
 ;;
 
 (* Multi line actual... *)
@@ -56,7 +47,8 @@ let%expect_test _ =
   [%expect
     {|
     one1
-    two |}]
+    two
+    |}]
 ;;
 
 let%expect_test _ =
@@ -65,7 +57,7 @@ let%expect_test _ =
     {|
     one2
     two
-  |}]
+    |}]
 ;;
 
 let%expect_test _ =
@@ -74,7 +66,7 @@ let%expect_test _ =
     {|
     one3
     two
-           |}]
+    |}]
 ;;
 
 let%expect_test _ =
@@ -83,57 +75,59 @@ let%expect_test _ =
     {|
     one4
     two
-           |}]
+    |}]
 ;;
 
 let%expect_test _ =
   print_string "one5\ntwo";
   [%expect
     {|
-  one5
-  two |}]
+    one5
+    two
+    |}]
 ;;
 
 let%expect_test _ =
   print_string "one6\ntwo";
   [%expect
     {|
-       one6
-       two
-  |}]
+    one6
+    two
+    |}]
 ;;
 
 let%expect_test _ =
   print_string "one8\ntwo";
   [%expect
     {|
-  one8
-  two |}]
+    one8
+    two
+    |}]
 ;;
 
 let%expect_test _ =
   print_string "one9\ntwo";
   [%expect
     {|
-       one9
-       two
-  |}]
+    one9
+    two
+    |}]
 ;;
 
 let%expect_test _ =
   print_string "one10\ntwo";
   [%expect
     {|
-       one10
-       two
-  |}]
+    one10
+    two
+    |}]
 ;;
 
 let%expect_test _ =
   print_string "one11\ntwo";
   [%expect
     {|
-       one11
-       two
-  |}]
+    one11
+    two
+    |}]
 ;;

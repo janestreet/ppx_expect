@@ -34,6 +34,12 @@ module Expect_node_formatting = struct
     ; attribute_sigil = "@@"
     }
   ;;
+
+  module Flexibility = struct
+    type nonrec t =
+      | Flexible_modulo of t
+      | Exactly_formatted
+  end
 end
 
 module Virtual_loc = struct

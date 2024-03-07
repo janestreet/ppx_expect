@@ -261,6 +261,7 @@ module Make (C : Expect_test_config_types.S) = struct
     ~(location : Compact_loc.t)
     ~(trailing_loc : Compact_loc.t)
     ~(body_loc : Compact_loc.t)
+    ~formatting_flexibility
     ~expected_exn
     ~trailing_test_id
     ~exn_test_id
@@ -292,17 +293,22 @@ module Make (C : Expect_test_config_types.S) = struct
         (* Create the tests for trailing output and uncaught exceptions *)
         let expectations =
           let trailing_test =
-            { loc = { trailing_loc with end_pos = trailing_loc.start_pos }; body_loc }
-            |> Expectation.expect_trailing
+            Expectation.expect_trailing
+              ~insert_loc:
+                { loc = { trailing_loc with end_pos = trailing_loc.start_pos }; body_loc }
             |> Test_node.of_expectation
           in
           let exn_test =
             match expected_exn with
-            | Some (payload_loc, payload) ->
-              Expectation.expect_uncaught_exn ~payload_loc payload trailing_loc
+            | Some _ ->
+              Expectation.expect_uncaught_exn
+                ~formatting_flexibility
+                ~located_payload:expected_exn
+                ~node_loc:trailing_loc
               |> Test_node.of_expectation
             | None ->
-              Expectation.expect_no_uncaught_exn { loc = trailing_loc; body_loc }
+              Expectation.expect_no_uncaught_exn
+                ~insert_loc:{ loc = trailing_loc; body_loc }
               |> Test_node.of_expectation
           in
           (exn_test_id, exn_test) :: (trailing_test_id, trailing_test) :: expectations

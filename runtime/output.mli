@@ -55,6 +55,9 @@ module Payload : sig
 
   (** Add the default tags to a payload. *)
   val default : string -> t
+
+  (** The source-code representation of a payload. *)
+  val to_source_code_string : t -> string
 end
 
 (** Returns [Pass] if [test_output] is considered to match [expected_output]; otherwise
@@ -66,15 +69,23 @@ val reconcile : expected_output:string -> test_output:Formatted.t -> Test_result
     "reconciled" output. *)
 val fail : Formatted.t -> Test_result.t
 
-(** The source-code representation of a payload.
+(** The new payload represented by a reconciled expectation.
 
-    If [node_shape] is [Some shape], then the produced string is an extension point or
-    attribute containing a payload with the reconciled contents, using the name and syntax
-    specified in [shape]. If [node_shape] is [None], the produced string is a string
-    literal. *)
+    If [tag] is not compatible with the new payload contents (for example, the tag
+    represents a [{x| delimited string |x}] and the new contents contain ["|x}"]), the tag
+    is adjusted so the resulting payload can be parsed.
+*)
+val to_formatted_payload : tag:String_node_format.Delimiter.t -> Reconciled.t -> Payload.t
+
+(** The source-code representation of a reconciled expect node.
+
+    If [tag] is not compatible with the new payload contents (for example, the tag
+    represents a [{x| delimited string |x}] and the new contents contain ["|x}"]), the tag
+    is adjusted so the resulting payload can be parsed.
+*)
 val to_source_code_string
   :  expect_node_formatting:Expect_node_formatting.t
-  -> node_shape:String_node_format.Shape.t option
+  -> node_shape:String_node_format.Shape.t
   -> tag:String_node_format.Delimiter.t
   -> Reconciled.t
   -> string

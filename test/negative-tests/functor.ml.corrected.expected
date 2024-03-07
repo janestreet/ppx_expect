@@ -18,7 +18,8 @@ struct
       ============================ Output 2 / 3 ============================
       bar
       ============================ Output 3 / 3 ============================
-      cat |}];
+      cat
+      |}];
     print_string S.output;
     [%expect
       {|
@@ -28,7 +29,8 @@ struct
       ============================== Output 2 / 3 ==============================
       bar
       ============================== Output 3 / 3 ==============================
-      cat |}]
+      cat
+      |}]
   ;;
 
   let%expect_test _ =
@@ -49,7 +51,8 @@ struct
     (Failure "wrong output")
     Trailing output
     ---------------
-    cat |}]
+    cat
+    |}]
   ;;
 
   let%expect_test _ =
@@ -63,7 +66,8 @@ struct
     =============================== Output 2 / 3 ================================
     <expect test ran without uncaught exception>
     =============================== Output 3 / 3 ================================
-    (Failure "wrong output") |}]
+    (Failure "wrong output")
+    |}]
   ;;
 end
 

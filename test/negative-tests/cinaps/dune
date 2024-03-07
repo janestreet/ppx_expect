@@ -1,5 +1,5 @@
 (library
  (name expect_test_negative_tests_cinaps)
- (libraries base sexp_pretty stdio)
+ (libraries core sexp_pretty stdio filesystem_core)
  (preprocess
-  (pps ppx_jane)))
+  (pps ppx_jane ppx_string_dedent)))

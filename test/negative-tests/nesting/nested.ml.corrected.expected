@@ -7,10 +7,13 @@ let run_test () =
 ;;
 
 let%expect_test ("" [@tags "fast-flambda"]) = run_test ()
-[@@expect.uncaught_exn {|
+[@@expect.uncaught_exn
+  {|
   ( "Expect_test_runtime: reached one [let%expect_test] from another. Nesting expect\
    \ntests is prohibited." (outer_test ((file nested.ml) (line 9)))
-    (inner_test ((file nested.ml) (line 3)))) |}]
+    (inner_test ((file nested.ml) (line 3))))
+  |}]
+;;
 
 (* This test is still silently ignored when running with [-require-tag fast-flambda], but
    I don't think there's much we can do about that. It will still complain about nesting

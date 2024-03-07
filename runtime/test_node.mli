@@ -6,24 +6,41 @@ type t
 
 module Create : sig
   (** Functions for creating [t]s corresponding to each of the test nodes that can be
-      parsed out of extension points in a [let%expect_test]. *)
+      parsed out of extension points in a [let%expect_test].
 
-  (** Each of these creators accepts the location of the entire AST node associated with
-      the e.g. [[%expect]] test *)
+      Each of these creators accepts the location of the entire AST node associated with
+      the e.g. [[%expect]] test.
+  *)
 
   (** [[%expect _]] *)
-  val expect : Compact_loc.t -> Compact_loc.t option -> string Payload.t -> t
+  val expect
+    :  formatting_flexibility:Expect_node_formatting.Flexibility.t
+         (** If tests should be flexible about formatting rules, the formatting rules that
+        define this flexibility *)
+    -> node_loc:Compact_loc.t (** Location of the [[%expect _]] node *)
+    -> located_payload:(Output.Payload.t * Compact_loc.t) option
+         (** The string payload and its location, if there is one *)
+    -> t
 
   (** [[%expect_exact _]] *)
-  val expect_exact : Compact_loc.t -> Compact_loc.t option -> string Payload.t -> t
+  val expect_exact
+    :  formatting_flexibility:Expect_node_formatting.Flexibility.t
+         (** If tests should be flexible about formatting rules, the formatting rules that
+        define this flexibility *)
+    -> node_loc:Compact_loc.t (** Location of the [[%expect_exact _]] node *)
+    -> located_payload:(Output.Payload.t * Compact_loc.t) option
+         (** The string payload and its location, if there is one *)
+    -> t
 
   (** [[%expect.unreachable]] *)
-  val expect_unreachable : Compact_loc.t -> t
+  val expect_unreachable
+    :  node_loc:Compact_loc.t (** Location of the [[%expect.unreachable]] node *)
+    -> t
 end
 
 (** Functions exported for use in other modules of the expect test runtime. *)
 
-val of_expectation : (_, [< Expectation.Behavior_type.t ]) Expectation.t -> t
+val of_expectation : [< Expectation.Behavior_type.t ] Expectation.t -> t
 
 (** Updates reachedness information for [t]. *)
 val record_end_of_run : t -> unit
@@ -79,10 +96,7 @@ module For_mlt : sig
 
   (** The string that this test node "expects" if it is an [[%expect]] or
       [[%expect_exact]] node. [None] if it is an [[%expect.unreachable]]. *)
-  val expectation_of_t
-    :  expect_node_formatting:Expect_node_formatting.t
-    -> t
-    -> string option
+  val expectation_of_t : t -> string option
 
   (** Records the test result of receiving the raw test output [test_output_raw]. If the
       test "fails" (the output is not considered to match the expectation), sets

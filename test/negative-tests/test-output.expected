@@ -44,16 +44,18 @@ File "escaped_strings.ml", line 3, characters 0-1:
 -|  [%expect ""];
 -|  print_string "a\n\rb";
 -|  [%expect_exact ""]
-+|  [%expect "
-+|    a
-+|    b"];
++|  [%expect " 
++| a
++| b
++| "];
 +|  print_string "a\r\nb";
 +|  [%expect_exact "a\r
 +|b"];
 +|  print_string "a\n\rb";
-+|  [%expect "
-+|    a
-+|    b"];
++|  [%expect " 
++| a
++| b
++| "];
 +|  print_string "a\n\rb";
 +|  [%expect_exact "a
 +|\rb"]
@@ -74,16 +76,18 @@ File "escaped_strings.ml", line 3, characters 0-1:
 -|  [%expect ""];
 -|  print_string "a\n\tb";
 -|  [%expect_exact ""]
-+|  [%expect "
-+|    a
-+|    b"];
++|  [%expect " 
++| a
++| b
++| "];
 +|  print_string "a\t\nb";
 +|  [%expect_exact "a\t
 +|b"];
 +|  print_string "a\n\tb";
-+|  [%expect "
-+|    a
-+|    b"];
++|  [%expect " 
++| a
++| b
++| "];
 +|  print_string "a\n\tb";
 +|  [%expect_exact "a
 +|\tb"]
@@ -107,9 +111,10 @@ File "escaped_strings.ml", line 3, characters 0-1:
 -|  [%expect];
 -|  print_string "a\r\nb\r\n";
 -|  [%expect_exact]
-+|  [%expect "
-+|    a
-+|    b"];
++|  [%expect " 
++| a
++| b
++| "];
 +|  print_string "a\r\nb\r\n";
 +|  [%expect_exact "a\r
 +|b\r
@@ -117,7 +122,8 @@ File "escaped_strings.ml", line 3, characters 0-1:
 +|  print_string "a\r\nb\r\n";
 +|  [%expect {|
 +|    a
-+|    b |}];
++|    b
++|    |}];
 +|  print_string "a\r\nb\r\n";
 +|  [%expect_exact {|a
 +|b
@@ -131,7 +137,8 @@ File "escaped_strings.ml", line 3, characters 0-1:
 -|  [%expect_exact]
 +|  [%expect {|
 +|    a
-+|    b |}];
++|    b
++|    |}];
 +|  print_string "a\r\nb";
 +|  [%expect_exact {|a
 +|b|}]
@@ -217,7 +224,8 @@ File "exn_and_trailing.ml", line 4, characters 0-1:
 +|  Exit
 +|  Trailing output
 +|  ---------------
-+|  hello |}]
++|  hello
++|  |}]
  |;;
 ------ exn_missing.ml
 ++++++ exn_missing.ml.corrected
@@ -284,33 +292,33 @@ File "flexible.ml", line 10, characters 0-1:
  |  print_string "hello";
  |  [%expect
 -|    {|  WRONG
-+|    {|  hello
- |           |}]
+-|           |}]
++|    {| hello |}]
  |;;
  |
  |let%expect_test _ =
  |  print_string "hello";
  |  [%expect
 -|    {|  WRONG
-+|    {|  hello
- |           |}]
+-|           |}]
++|    {| hello |}]
  |;;
  |
  |let%expect_test _ =
  |  print_string "hello";
  |  [%expect
- |    {|
+-|    {|
 -|  WRONG |}]
-+|  hello |}]
++|    {| hello |}]
  |;;
  |
  |let%expect_test _ =
  |  print_string "hello";
  |  [%expect
- |    {|
+-|    {|
 -|       WRONG
-+|       hello
- |  |}]
+-|  |}]
++|    {| hello |}]
  |;;
  |
  |(* Multi line actual... *)
@@ -320,35 +328,39 @@ File "flexible.ml", line 10, characters 0-1:
 -|  [%expect {||}]
 +|  [%expect {|
 +|    one1
-+|    two |}]
++|    two
++|    |}]
  |;;
  |
  |let%expect_test _ =
  |  print_string "one2\ntwo";
  |  [%expect
  |    {|
+-|  |}]
 +|    one2
 +|    two
- |  |}]
++|    |}]
  |;;
  |
  |let%expect_test _ =
  |  print_string "one3\ntwo";
  |  [%expect
  |    {|
+-|           |}]
 +|    one3
 +|    two
- |           |}]
++|    |}]
  |;;
  |
  |let%expect_test _ =
  |  print_string "one4\ntwo";
  |  [%expect
 -|    {|  WRONG
+-|           |}]
 +|    {|
 +|    one4
 +|    two
- |           |}]
++|    |}]
  |;;
  |
  |let%expect_test _ =
@@ -356,8 +368,9 @@ File "flexible.ml", line 10, characters 0-1:
  |  [%expect
  |    {|
 -|  WRONG |}]
-+|  one5
-+|  two |}]
++|    one5
++|    two
++|    |}]
  |;;
  |
  |let%expect_test _ =
@@ -365,9 +378,10 @@ File "flexible.ml", line 10, characters 0-1:
  |  [%expect
  |    {|
 -|       WRONG
-+|       one6
-+|       two
- |  |}]
+-|  |}]
++|    one6
++|    two
++|    |}]
  |;;
  |
  |let%expect_test _ =
@@ -376,8 +390,9 @@ File "flexible.ml", line 10, characters 0-1:
  |    {|
 -|  WRONG
 -|  THING |}]
-+|  one8
-+|  two |}]
++|    one8
++|    two
++|    |}]
  |;;
  |
  |let%expect_test _ =
@@ -386,9 +401,10 @@ File "flexible.ml", line 10, characters 0-1:
  |    {|
 -|       WRONG
 -|       THING
-+|       one9
-+|       two
- |  |}]
+-|  |}]
++|    one9
++|    two
++|    |}]
  |;;
  |
  |let%expect_test _ =
@@ -397,9 +413,10 @@ File "flexible.ml", line 10, characters 0-1:
  |    {|
 -|       WRONG
 -|          THING
-+|       one10
-+|       two
- |  |}]
+-|  |}]
++|    one10
++|    two
++|    |}]
  |;;
  |
  |let%expect_test _ =
@@ -408,9 +425,10 @@ File "flexible.ml", line 10, characters 0-1:
  |    {|
 -|          WRONG
 -|       THING
-+|       one11
-+|       two
- |  |}]
+-|  |}]
++|    one11
++|    two
++|    |}]
  |;;
 ------ function_with_distinct_outputs.ml
 ++++++ function_with_distinct_outputs.ml.corrected
@@ -430,7 +448,8 @@ File "function_with_distinct_outputs.ml", line 10, characters 0-1:
 +|      ============================ Output 1 / 2 ============================
 +|      foo
 +|      ============================ Output 2 / 2 ============================
-+|      bar |}]
++|      bar
++|      |}]
  |  in
  |  f "foo";
  |  f "bar"
@@ -459,7 +478,8 @@ File "functor.ml", line 13, characters 0-1:
 +|      ============================ Output 2 / 3 ============================
 +|      bar
 +|      ============================ Output 3 / 3 ============================
-+|      cat |}];
++|      cat
++|      |}];
 +|    print_string S.output;
 +|    [%expect {|
 +|      (* expect_test: Test ran multiple times with different trailing outputs *)
@@ -468,7 +488,8 @@ File "functor.ml", line 13, characters 0-1:
 +|      ============================== Output 2 / 3 ==============================
 +|      bar
 +|      ============================== Output 3 / 3 ==============================
-+|      cat |}]
++|      cat
++|      |}]
  |  ;;
  |
  |  let%expect_test _ =
@@ -488,7 +509,8 @@ File "functor.ml", line 13, characters 0-1:
 +|    (Failure "wrong output")
 +|    Trailing output
 +|    ---------------
-+|    cat |}]
++|    cat
++|    |}]
  |  ;;
  |
  |  let%expect_test _ =
@@ -503,7 +525,8 @@ File "functor.ml", line 13, characters 0-1:
 +|    =============================== Output 2 / 3 ================================
 +|    <expect test ran without uncaught exception>
 +|    =============================== Output 3 / 3 ================================
-+|    (Failure "wrong output") |}]
++|    (Failure "wrong output")
++|    |}]
  |  ;;
  |end
  |
@@ -531,7 +554,8 @@ File "missing.ml", line 7, characters 0-1:
 +|  print_string "goodbye\n";
 +|  [%expect {|
 +|    hello
-+|    goodbye |}]
++|    goodbye
++|    |}]
  |;;
  |
  |(* Example with an [%expect] node that has no payload *)
@@ -542,7 +566,8 @@ File "missing.ml", line 7, characters 0-1:
 -|  [%expect];
 +|  [%expect {|
 +|    hello
-+|    goodbye |}];
++|    goodbye
++|    |}];
  |  ignore ("don't print" : string);
  |  [%expect]
  |;;
@@ -552,9 +577,10 @@ File "normal_strings.ml", line 3, characters 0-1:
  |let%expect_test "short quoted string" =
  |  print_string "foo\nbar\n";
 -|  [%expect ""]
-+|  [%expect "
-+|    foo
-+|    bar"]
++|  [%expect " 
++| foo
++| bar
++| "]
  |;;
  |
  |let%expect_test "long quoted string" =
@@ -567,12 +593,13 @@ File "normal_strings.ml", line 3, characters 0-1:
  |    XXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXX
  |    |};
 -|  [%expect ""]
-+|  [%expect "
-+|    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-+|    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-+|    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-+|    XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-+|    XXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXX"]
++|  [%expect " 
++| XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
++| XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
++| XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
++| XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
++| XXXXXXXXXXXXXXXXXXXX XXXXXXXXXXXXXXXXXXX
++| "]
  |;;
  |
  |let%expect_test "quoted strings with leading spaces" =
@@ -584,11 +611,12 @@ File "normal_strings.ml", line 3, characters 0-1:
  |    prosper
  |    |};
 -|  [%expect ""];
-+|  [%expect "
-+|    live
-+|      long
-+|        and
-+|    prosper"];
++|  [%expect " 
++| live
++|   long
++|     and
++| prosper
++| "];
  |  print_string
  |    {|
  |    live
@@ -597,11 +625,12 @@ File "normal_strings.ml", line 3, characters 0-1:
  |    prosper
  |    |};
 -|  [%expect ""]
-+|  [%expect "
-+|    live
-+|      loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong
-+|        and
-+|    prosper"]
++|  [%expect " 
++| live
++|   loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong
++|     and
++| prosper
++| "]
  |;;
 ------ semicolon.ml
 ++++++ semicolon.ml.corrected
@@ -639,7 +668,7 @@ File "similar_distinct_outputs.ml", line 12, characters 0-1:
  |  end)
 ------ spacing.ml
 ++++++ spacing.ml.corrected
-File "spacing.ml", line 11, characters 0-1:
+File "spacing.ml", line 8, characters 0-1:
  |open Core
  |
  |let%expect_test _ =
@@ -647,12 +676,16 @@ File "spacing.ml", line 11, characters 0-1:
  |  text_no_final_nl ();
  |  [%expect
  |    {|
- |
- |  one
- |  two(no newline)
 -|
- |  three
- |  |}];
+-|  one
+-|  two(no newline)
+-|
+-|  three
+-|  |}];
++|    one
++|    two(no newline)
++|    three
++|    |}];
  |  (* take an integer tag to [text] help the different tests be distinguished somewhat in the
  |     .expected.patdiff *)
  |  let text n = Printf.printf "one\ntwo(%d)\nthree\n" n in
@@ -665,12 +698,12 @@ File "spacing.ml", line 11, characters 0-1:
  |  text 2;
  |  [%expect
  |    {|
--|    one
-+|  one
- |  two(2)
--|    three
-+|  three
- |  |}];
+ |    one
+-|  two(2)
++|    two(2)
+ |    three
+-|  |}];
++|    |}];
  |  (* Check that it reindents expectation properly *)
  |  printf "  one\n blah\n  three";
  |  [%expect
@@ -678,10 +711,11 @@ File "spacing.ml", line 11, characters 0-1:
 -|      one
 -|    two
 -|      three
+-|  |}]
 +|     one
 +|    blah
 +|     three
- |  |}]
++|    |}]
  |;;
 ------ string_extension_syntax.ml
 ++++++ string_extension_syntax.ml.corrected
@@ -696,7 +730,8 @@ File "string_extension_syntax.ml", line 6, characters 0-1:
 +|    Testing
 +|    1
 +|    2
-+|    3 |xxx}
++|    3
++|    |xxx}
  |;;
  |
  |let%expect_test "correction for expect exact node" =
@@ -749,7 +784,8 @@ File "tag.ml", line 6, characters 0-1:
 -|  [%expect.unreachable]
 +|  [%expect {|
 +|    Foo
-+|    "bar baz" |}]
++|    "bar baz"
++|    |}]
  |;;
 ------ trailing.ml
 ++++++ trailing.ml.corrected
@@ -795,7 +831,8 @@ File "trailing_in_module.ml", line 10, characters 0-1:
 +|      [%expect {|
 +|         "a\
 +|        \nb\
-+|        \nc" |}]
++|        \nc"
++|        |}]
  |    ;;
  |
  |    let%expect_test "error" =
@@ -804,7 +841,8 @@ File "trailing_in_module.ml", line 10, characters 0-1:
 +|    [@@expect.uncaught_exn {|
 +|      ("sexp is too long" ("input: "  "a\
 +|                                     \nb\
-+|                                     \nc")) |}]
++|                                     \nc"))
++|      |}]
  |    ;;
  |  end
  |end
@@ -834,7 +872,8 @@ File "unusual_payload_location.ml", line 6, characters 0-1:
 -|    {| Do not move this payload |}
 +|    {|
 +|    Does it get moved?
-+|    Let's hope not. |}
++|    Let's hope not.
++|    |}
  |
  |    ]
  |

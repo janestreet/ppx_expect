@@ -1,31 +1,15 @@
-(*
-   Demonstate use of [%expect]
-   to match a single line of text with 0|1|2 leading & trailing NLs.
-
-   Starting with..
-
-   {[
-     let%expect_test _ =
-       let module M = struct
-         let () = print_string "hello";          [%expect{||}]
-         let () = print_string "hello\n";        [%expect{||}]
-         let () = print_string "hello\n\n";      [%expect{||}]
-         let () = print_string "\nhello";        [%expect{||}]
-         let () = print_string "\nhello\n";      [%expect{||}]
-         let () = print_string "\nhello\n\n";    [%expect{||}]
-         let () = print_string "\n\nhello";      [%expect{||}]
-         let () = print_string "\n\nhello\n";    [%expect{||}]
-         let () = print_string "\n\nhello\n\n";  [%expect{||}]
-       end in ()
-   ]}
-
-   Generate with [cp nine.ml.corrected nine.ml] the following [%expect]... *)
+(* Show that, when compiling with [-expect-test-strict-indentation=true], test blocks
+   that match the output modulo indentation, but are not themselves formatted according to
+   the indentation rules, are corrected. *)
 
 let%expect_test _ =
   let module _ = struct
     let () =
       print_string "hello";
-      [%expect {| hello |}]
+      [%expect
+        {|
+                                              hello
+                                            |}]
     ;;
 
     let () =
