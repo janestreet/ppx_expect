@@ -1,6 +1,6 @@
 let%expect_test "escaped carriage return" =
   print_string "a\r\nb";
-  [%expect "\na\r\nb"];
+  [%expect " \n a\n b\n "];
   print_string "a\r\nb";
   [%expect_exact "a\r\nb"]
 ;;
@@ -21,7 +21,7 @@ let%expect_test "escaped quote" =
 
 let%expect_test "escaped trailing carriage return" =
   print_string "a\r\nb\r\n";
-  [%expect "\na\r\nb\r"];
+  [%expect " \n a\n b\n "];
   print_string "a\r\nb\r\n";
   [%expect_exact "a\r\nb\r\n"]
 ;;

@@ -1,0 +1,35 @@
+(library
+ (name expect_test_example_for_mdx)
+ (libraries core)
+ (preprocess
+  (pps ppx_jane)))
+
+(rule
+ (deps
+  (:first_dep ./inline_tests_runner)
+  ./inline_tests_runner.exe
+  %{workspace_root}/bin/apply-style
+  jbuild
+  (glob_files *.ml))
+ (targets foo.ml.corrected mdx_cases.ml.corrected test-output)
+ (action
+  (bash
+    "\nrm -f *.ml.corrected 2>/dev/null\n! %{first_dep} -no-color 2>&1 | tee >(sed '/part-end/q' > test-output) > /dev/null\nfor f in *.ml.corrected\ndo\n  %{workspace_root}/bin/apply-style \\\n    -directory-config jbuild \\\n    -original-file $(basename $f .corrected) \\\n    - < $f > $f.tmp\n  mv $f.tmp $f\ndone\n")))
+
+(rule
+ (alias runtest)
+ (deps foo.ml.corrected.expected foo.ml.corrected)
+ (action
+  (bash "diff -a %{deps}")))
+
+(rule
+ (alias runtest)
+ (deps mdx_cases.ml.corrected.expected mdx_cases.ml.corrected)
+ (action
+  (bash "diff -a %{deps}")))
+
+(rule
+ (alias runtest)
+ (deps test-output.expected test-output)
+ (action
+  (bash "diff -a %{deps}")))

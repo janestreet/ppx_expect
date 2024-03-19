@@ -15,9 +15,10 @@ let%expect_test _ =
   text 1;
   [%expect
     {|
-  one
-  two(1)
-  three|}];
+    one
+    two(1)
+    three
+    |}];
   text 2;
   [%expect
     {|

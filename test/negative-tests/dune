@@ -16,10 +16,11 @@
    exn_and_trailing.ml.corrected exn_missing.ml.corrected
    expect_output.ml.corrected flexible.ml.corrected
    function_with_distinct_outputs.ml.corrected functor.ml.corrected
-   missing.ml.corrected normal_strings.ml.corrected semicolon.ml.corrected
-   similar_distinct_outputs.ml.corrected spacing.ml.corrected
-   string_extension_syntax.ml.corrected string_padding.ml.corrected
-   tag.ml.corrected trailing.ml.corrected trailing_in_module.ml.corrected
+   missing.ml.corrected nine.ml.corrected normal_strings.ml.corrected
+   semicolon.ml.corrected similar_distinct_outputs.ml.corrected
+   spacing.ml.corrected string_extension_syntax.ml.corrected
+   string_padding.ml.corrected tag.ml.corrected three.ml.corrected
+   trailing.ml.corrected trailing_in_module.ml.corrected
    unidiomatic_syntax.ml.corrected unusual_payload_location.ml.corrected
    test-output)
  (action
@@ -101,6 +102,12 @@
 
 (rule
  (alias runtest)
+ (deps nine.ml.corrected.expected nine.ml.corrected)
+ (action
+  (bash "diff -a %{deps}")))
+
+(rule
+ (alias runtest)
  (deps normal_strings.ml.corrected.expected normal_strings.ml.corrected)
  (action
   (bash "diff -a %{deps}")))
@@ -140,6 +147,12 @@
 (rule
  (alias runtest)
  (deps tag.ml.corrected.expected tag.ml.corrected)
+ (action
+  (bash "diff -a %{deps}")))
+
+(rule
+ (alias runtest)
+ (deps three.ml.corrected.expected three.ml.corrected)
  (action
   (bash "diff -a %{deps}")))
 

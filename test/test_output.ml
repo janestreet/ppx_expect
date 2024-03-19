@@ -4,7 +4,8 @@ let%expect_test "expect.output" =
   Printf.printf "'%s'\n" (String.uppercase_ascii output);
   [%expect {|
     'HELLO
-    ' |}];
+    '
+    |}];
   Printf.printf "string without line break";
   let output = [%expect.output] in
   Printf.printf "%s\n" (String.uppercase_ascii output);

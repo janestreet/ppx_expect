@@ -1,0 +1,13 @@
+------ foo.ml
+++++++ foo.ml.corrected
+File "foo.ml", line 6, characters 0-1:
+ |(* $MDX part-begin=addition *)
+ |open! Core
+ |
+ |let%expect_test "addition" =
+ |  printf "%d" (1 + 2);
+-|  [%expect {| 4 |}]
++|  [%expect {| 3 |}]
+ |;;
+ |
+ |(* $MDX part-end *)

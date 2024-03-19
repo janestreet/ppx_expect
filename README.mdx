@@ -1,0 +1,622 @@
+expect-test - a Cram-like framework for OCaml
+=============================================
+
+
+# Introduction
+
+Expect-test is a framework for writing tests in OCaml, similar to
+[Cram](https://bitheap.org/cram/).
+
+Expect-tests mimic the (now less idiomatic)
+[inline test](https://github.com/janestreet/ppx_inline_test)
+framework in providing a
+`let%expect_test` construct.
+
+The body of an expect-test can contain output-generating code, interleaved with
+`[%expect]` extension expressions to denote the expected output.
+
+When run, expect-tests pass iff the output [_matches_](#matching-behavior) the expected
+output. If a test fails, the `inline_tests_runner` outputs a diff and creates a file with
+the suffix ".corrected" containing the actual output.
+
+Here is an example expect-test in `foo.ml`:
+
+<!-- $MDX file=./test/negative-tests/for-mdx/foo.ml,part=addition -->
+```ocaml
+open! Core
+
+let%expect_test "addition" =
+  printf "%d" (1 + 2);
+  [%expect {| 4 |}]
+;;
+```
+
+When the test runs, the `inline_tests_runner` creates `foo.ml.corrected` with contents:
+
+<!-- $MDX file=./test/negative-tests/for-mdx/foo.ml.corrected.expected,part=addition -->
+```ocaml
+open! Core
+
+let%expect_test "addition" =
+  printf "%d" (1 + 2);
+  [%expect {| 3 |}]
+;;
+```
+
+`inline_tests_runner` also outputs:
+
+<!-- $MDX file=./test/negative-tests/for-mdx/test-output.expected -->
+```
+------ foo.ml
+++++++ foo.ml.corrected
+File "foo.ml", line 6, characters 0-1:
+ |open! Core
+ |
+ |let%expect_test "addition" =
+ |  printf "%d" (1 + 2);
+-|  [%expect {| 4 |}]
++|  [%expect {| 3 |}]
+ |;;
+ |
+```
+
+Diffs are shown in color if the `-use-color` flag is passed to the inline test runner
+executable.
+
+# Common usage
+
+Each `[%expect]` block matches all the output generated since the previous `[%expect]`
+block (or the beginning of the test). In this way, when multiple `[%expect]` blocks are
+interleaved with test code, they can help show which part of the test produced which
+output.
+
+The following test:
+
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml,part=interleaved -->
+```ocaml
+let%expect_test "interleaved" =
+  let l = [ "a"; "b"; "c" ] in
+  printf "A list [l]\n";
+  printf "It has length %d\n" (List.length l);
+  [%expect {| A list [l] |}];
+  List.iter l ~f:print_string;
+  [%expect
+    {|
+    It has length 3
+    abc
+    |}]
+;;
+```
+
+is rewritten as
+
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml.corrected.expected,part=interleaved -->
+```ocaml
+let%expect_test "interleaved" =
+  let l = [ "a"; "b"; "c" ] in
+  printf "A list [l]\n";
+  printf "It has length %d\n" (List.length l);
+  [%expect
+    {|
+    A list [l]
+    It has length 3
+    |}];
+  List.iter l ~f:print_string;
+  [%expect {| abc |}]
+;;
+```
+
+When there is "trailing" output at the end of a `let%expect_test` (output that has yet to
+be matched by some `[%expect]` block), a new `[%expect]` block is appended to the test
+with the trailing output:
+
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml,part=trailing -->
+```ocaml
+let%expect_test "trailing output" =
+  print_endline "Hello";
+  [%expect {| Hello |}];
+  print_endline "world"
+;;
+```
+
+becomes:
+
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml.corrected.expected,part=trailing -->
+```ocaml
+let%expect_test "trailing output" =
+  print_endline "Hello";
+  [%expect {| Hello |}];
+  print_endline "world";
+  [%expect {| world |}]
+;;
+```
+
+# Matching behavior
+
+You might have noticed that the contents of the `[%expect]` blocks are not _exactly_ the
+program output; in some of the examples above, they contain a different number of leading
+and trailing newlines, and are indented to match the code indentation. We say the contents
+of a block `[%expect str]` (where `str` is some string literal) _match_ the output at that
+block if the output, after we format it to standardize indentation and other whitespace,
+is identical to the contents of `str`
+after it has been similarly formatted
+.
+
+The formatting applied depends on the type of delimiter used in `str` (i.e. whether it a
+`"quoted string"` or a `{xxx| delimited string |xxx}`). To summarize:
+
+* Output containing only whitespace is formatted as `[%expect {| |}]` or `[%expect ""]`.
+* Output where only one line contains non-whitespace characters is formatted onto a single
+  line, as `[%expect {| output |}]` or `[%expect "output"]`.
+* Output where multiple lines contain non-whitespace characters is formatted so that:
+  - There is no trailing whitespace on lines with content.
+  - The relative indentation of the lines is preserved.
+  - In `{| delimited strings |}`, the least-indented line with content (the "left margin"
+    of the output) is aligned to be two spaces past the indentation of the `[%expect]`
+    block.
+  - In `"quoted string"`, the least-indented line is indented by exactly one space (this
+    plays the nicest with `ocamlformat`'s existing decisions about how to format string
+    literals).
+  - There is one empty line before and one empty line after the contents.
+
+
+Here is an example containing several cases of output that are subject to distinct
+formatting rules and how they appear in `[%expect]` and `[%expect_exact]` blocks:
+
+<details>
+<summary>Expand examples</summary>
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml.corrected.expected,part=matching -->
+```ocaml
+let%expect_test "matching behavior --- no content" =
+  printf "     ";
+  [%expect {| |}];
+  printf "     ";
+  [%expect ""];
+  printf "     ";
+  [%expect_exact {|     |}];
+  printf "     ";
+  [%expect_exact "     "]
+;;
+
+let%expect_test "matching behavior --- one line of content" =
+  printf "\n   This is one line\n\n";
+  [%expect {| This is one line |}];
+  printf "\n   This is one line\n\n";
+  [%expect "This is one line"];
+  printf "\n   This is one line\n\n";
+  [%expect_exact
+    {|
+   This is one line
+
+|}];
+  printf "\n   This is one line\n\n";
+  [%expect_exact "\n   This is one line\n\n"]
+;;
+
+let%expect_test "matching behavior --- multiple lines of content" =
+  printf
+    {|
+Once upon a midnight dreary,
+  while I pondered, weak and weary,
+Over many a quaint and curious
+  volume of forgotten lore |};
+  [%expect
+    {|
+    Once upon a midnight dreary,
+      while I pondered, weak and weary,
+    Over many a quaint and curious
+      volume of forgotten lore
+    |}];
+  printf
+    {|
+Once upon a midnight dreary,
+  while I pondered, weak and weary,
+Over many a quaint and curious
+  volume of forgotten lore |};
+  [%expect
+    " \n\
+    \ Once upon a midnight dreary,\n\
+    \   while I pondered, weak and weary,\n\
+    \ Over many a quaint and curious\n\
+    \   volume of forgotten lore\n\
+    \ "];
+  printf
+    {|
+Once upon a midnight dreary,
+  while I pondered, weak and weary,
+Over many a quaint and curious
+  volume of forgotten lore |};
+  [%expect_exact
+    {|
+Once upon a midnight dreary,
+  while I pondered, weak and weary,
+Over many a quaint and curious
+  volume of forgotten lore |}];
+  printf
+    {|
+Once upon a midnight dreary,
+  while I pondered, weak and weary,
+Over many a quaint and curious
+  volume of forgotten lore |};
+  [%expect_exact
+    "\n\
+     Once upon a midnight dreary,\n\
+    \  while I pondered, weak and weary,\n\
+     Over many a quaint and curious\n\
+    \  volume of forgotten lore "]
+;;
+```
+</details>
+
+Expect-test is by default permissive about this formatting, so that a
+`[%expect]` block that is correct modulo formatting is
+accepted. However, passing `-expect-test-strict-indentation=true` to
+the ppx driver makes the test runner issue corrections for blocks that
+do not satisfy the indentation rules.
+For example, the following:
+
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml,part=bad-format -->
+```ocaml
+let%expect_test "bad formatting" =
+  printf "a\n    b";
+  [%expect
+    {|
+a
+    b |}]
+;;
+```
+is corrected to:
+
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml.corrected.expected,part=bad-format -->
+```ocaml
+let%expect_test "bad formatting" =
+  printf "a\n    b";
+  [%expect
+    {|
+    a
+        b
+    |}]
+;;
+```
+
+(to add the required indentation and trailing newline)
+
+
+# Reachability
+
+## Expects reached from multiple places
+
+A `[%expect]` extension can be encountered multiple times if it is in e.g. a functor or a
+function:
+
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml,part=function -->
+```ocaml
+let%expect_test "function" =
+  let f output =
+    print_string output;
+    [%expect {| hello world |}]
+  in
+  f "hello world";
+  f "hello world"
+;;
+```
+
+The test passes if the `[%expect]` block matches the output each time it is encountered,
+as described in the section on [matching behavior](#matching-behavior).
+
+If the outputs are not consistent, then the corrected file contains a report of all of the
+outputs that were captured, in the order that they were captured at runtime.
+
+For example, calling `f` in the snippet above with inconsistent arguments will produce:
+
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml.corrected.expected,part=broken-function -->
+```ocaml
+let%expect_test "function" =
+  let f output =
+    print_string output;
+    [%expect
+      {|
+      (* expect_test: Test ran multiple times with different test outputs *)
+      ============================ Output 1 / 4 ============================
+      hello world
+      ============================ Output 2 / 4 ============================
+      goodbye world
+      ============================ Output 3 / 4 ============================
+      once upon
+      a midnight dreary
+      ============================ Output 4 / 4 ============================
+      hello world
+      |}]
+  in
+  f "hello world";
+  f "goodbye world";
+  f "once upon\na midnight dreary";
+  f "hello world"
+;;
+```
+
+
+## Unreached expects
+
+Every `[%expect]` and `[%expect_exact]` block in a `let%expect_test` must be reached at
+least once if that test is ever run. Failure for control flow to reach a block is _not_
+treated like recording empty output at a block. The extension expression
+`[%expect.unreachable]` is used to indicate that some part of an expect test shouldn't be
+reached; if control flow reaches that point anyway, the corrected file replaces the
+`[%expect.unreachable]` with a plain old expect containing the output collected until that
+point. Conversely, if control flow never reaches some `[%expect]` block, that block is
+turned into a `[%expect.unreachable]`. For example:
+
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml,part=unreachable -->
+```ocaml
+let%expect_test "unreachable" =
+  let interesting_bool = 3 > 5 in
+  printf "%b\n" interesting_bool;
+  if interesting_bool
+  then [%expect {| true |}]
+  else (
+    printf "don't reach\n";
+    [%expect.unreachable])
+;;
+```
+becomes:
+
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml.corrected.expected,part=unreachable -->
+```ocaml
+let%expect_test "unreachable" =
+  let interesting_bool = 3 > 5 in
+  printf "%b\n" interesting_bool;
+  if interesting_bool
+  then [%expect.unreachable]
+  else (
+    printf "don't reach\n";
+    [%expect
+      {|
+      false
+      don't reach
+      |}])
+;;
+```
+
+Note that, for an expect block that is sometimes reachable and sometimes not, that block
+passes if the output captured at that block matches every time the block is encountered.
+For example, the following test passes:
+
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml.corrected.expected,part=sometimes-reachable -->
+```ocaml
+module Test (B : sig
+    val interesting_opt : int option
+  end) =
+struct
+  let%expect_test "sometimes reachable" =
+    match B.interesting_opt with
+    | Some x ->
+      printf "%d\n" x;
+      [%expect {| 5 |}]
+    | None -> [%expect {| |}]
+  ;;
+end
+
+module _ = Test (struct
+    let interesting_opt = Some 5
+  end)
+
+module _ = Test (struct
+    let interesting_opt = None
+  end)
+
+module _ = Test (struct
+    let interesting_opt = Some 5
+  end)
+```
+
+# Exceptions
+
+When an exception is raised by the body of an expect-test, the `inline_test_runner` shows
+it (and, if relevant, any output generated by the test that had not yet been captured) in
+a `[@@expect.uncaught_exn]` attribute attached to the corresponding `let%expect_test`.
+`[%expect]` blocks in the test are treated according to the usual rules: those reached
+before the exception is raised capture output as usual, and those that "would have" been
+reached after are marked as unreachable:
+
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml,part=exn -->
+```ocaml
+let%expect_test "exception" =
+  Printexc.record_backtrace false;
+  printf "start!";
+  [%expect {| |}];
+  let sum = 2 + 2 in
+  if sum <> 3
+  then (
+    printf "%d" sum;
+    failwith "nope");
+  printf "done!";
+  [%expect {| done! |}]
+;;
+```
+
+becomes:
+
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml.corrected.expected,part=exn -->
+```ocaml
+let%expect_test "exception" =
+  Printexc.record_backtrace false;
+  printf "start!";
+  [%expect {| start! |}];
+  let sum = 2 + 2 in
+  if sum <> 3
+  then (
+    printf "%d" sum;
+    failwith "nope");
+  printf "done!";
+  [%expect.unreachable]
+[@@expect.uncaught_exn
+  {|
+  (Failure nope)
+  Trailing output
+  ---------------
+  4
+  |}]
+;;
+```
+
+Unlike `[%expect]` blocks, which might be reached on some runs of a test and not others, a
+test with an `[@@expect.uncaught_exn]` attribute _must_ raise every time it is run.
+Changing the `None` branch of the functorized test from [before](#unreached-expects) to
+raise gives:
+
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml.corrected.expected,part=sometimes-raises -->
+```ocaml
+module Test' (B : sig
+    val interesting_opt : int option
+  end) =
+struct
+  let%expect_test "sometimes raises" =
+    match B.interesting_opt with
+    | Some x ->
+      printf "%d\n" x;
+      [%expect {| 5 |}]
+    | None -> failwith "got none!"
+  [@@expect.uncaught_exn
+    {|
+    (* expect_test: Test ran multiple times with different uncaught exceptions *)
+    =============================== Output 1 / 3 ================================
+    <expect test ran without uncaught exception>
+    =============================== Output 2 / 3 ================================
+    (Failure "got none!")
+    =============================== Output 3 / 3 ================================
+    <expect test ran without uncaught exception>
+    |}]
+  ;;
+end
+
+module _ = Test' (struct
+    let interesting_opt = Some 5
+  end)
+
+module _ = Test' (struct
+    let interesting_opt = None
+  end)
+
+module _ = Test' (struct
+    let interesting_opt = Some 5
+  end)
+```
+
+
+# Output capture
+
+The extension point `[%expect.output]` evaluates to a `string` with the output that would
+have been captured had an `[%expect]` node been there instead.
+
+One idiom for testing non-deterministic output is to capture the output using
+`[%expect.output]` and post-process it:
+
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml.corrected.expected,part=output-capture -->
+```ocaml
+(* Suppose we want to test code that attaches a timestamp to everything it prints *)
+let print_message s = printf "%s: %s\n" (Time_float.to_string_utc (Time_float.now ())) s
+
+let%expect_test "output capture" =
+  (* A simple way to clean up the non-determinism is to 'X' all digits *)
+  let censor_digits s = String.map s ~f:(fun c -> if Char.is_digit c then 'X' else c) in
+  print_message "Hello";
+  [%expect.output] |> censor_digits |> print_endline;
+  [%expect {| XXXX-XX-XX XX:XX:XX.XXXXXXZ: Hello |}];
+  print_message "world";
+  [%expect.output] |> censor_digits |> print_endline;
+  [%expect {| XXXX-XX-XX XX:XX:XX.XXXXXXZ: world |}]
+;;
+```
+
+Other uses of `[%expect.output]` include:
+
+* Sorting lines of output printed in nondeterministic order.
+* Passing output that is known to be a sexp to `t_of_sexp` and performing tests on the
+  resulting structure.
+* Performing some sort of additional validation on the output before printing it to a
+  normal `[%expect]` block.
+
+# Configuration
+
+Expect-test exposes hooks for configuring how the bodies of expect tests are run, which
+can be used to set up and tear down test environments, sanitize output, or embed
+`[%expect]` expressions in a monadic computation, like a `Deferred.t`.
+
+Each `let%expect_test` reads these configurations from the module named
+`Expect_test_config` in the scope of that let binding. The default module in scope defines
+no-op hooks that the user can override. To do so, first include the existing
+`Expect_test_config`, then override a subset of the following interface:
+
+```ocaml
+module type Expect_test_config = sig
+  (** The type of the expression on the RHS of a [let%expect_test]
+      binding is [unit IO.t] *)
+  module IO : sig
+      type 'a t
+
+      val return : 'a -> 'a t
+  end
+
+  (** Run an IO operation until completion *)
+  val run : (unit -> unit IO.t) -> unit
+
+  (** [sanitize] can be used to map all output strings, e.g. for cleansing. *)
+  val sanitize : string -> string
+
+  (** This module type actually contains other definitions, but they
+      are for internal testing of [ppx_expect] only. *)
+end
+```
+
+For example, `Async` exports an `Expect_test_config` equivalent to:
+
+```ocaml skip
+module Expect_test_config = struct
+  include Expect_test_config
+
+  module IO = Async_kernel.Deferred
+
+  let run f = Async_unix.Thread_safe.block_on_async_exn f
+end
+```
+
+If we want to consistently apply the same sanitization to all of the output in our expect
+test, like we did in the timestamp example above, we can override
+`Expect_test_config.sanitize`. This cleans up the testing code and removes the need to use
+`[%expect.output]`.
+
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml.corrected.expected,part=sanitization -->
+```ocaml
+(* Suppose we want to test code that attaches a timestamp to everything it prints *)
+let print_message s = printf "%s: %s\n" (Time_float.to_string_utc (Time_float.now ())) s
+
+module Expect_test_config = struct
+  include Expect_test_config
+
+  (* A simple way to clean up the non-determinism is to 'X' all digits *)
+  let sanitize s = String.map s ~f:(fun c -> if Char.is_digit c then 'X' else c)
+end
+
+let%expect_test "sanitization" =
+  print_message "Hello";
+  [%expect {| XXXX-XX-XX XX:XX:XX.XXXXXXZ: Hello |}];
+  print_message "world";
+  [%expect {| XXXX-XX-XX XX:XX:XX.XXXXXXZ: world |}]
+;;
+```
+
+
+# Build system integration
+
+Follow the same rules as for
+[ppx_inline_test](https://github.com/janestreet/ppx_inline_test). Just make sure to
+include `ppx_expect.evaluator` as a dependency of the test runner. The [Jane Street
+tests](https://github.com/janestreet/jane-street-tests) contains a few working examples
+using oasis.
+
+[^1]: By ensuring that, for multiline output, the string delimiters lie on their own lines
+    (and are not mixed with the test contents), we make it so conflict markers from
+    conflicts in test output lie entirely inside the string literal. Then the file still
+    builds after the rebase, and the conflict can be resolved just by building the test
+    and accepting the corrections.

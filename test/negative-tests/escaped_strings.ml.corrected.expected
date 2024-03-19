@@ -71,7 +71,8 @@ let%expect_test "unescaped carriage return --- populated expect" =
   [%expect
     {|
     a
-    b |}];
+    b
+    |}];
   print_string "a\r\nb";
   [%expect_exact
     {|a

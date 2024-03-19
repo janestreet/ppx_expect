@@ -4,10 +4,11 @@ let%expect_test "correction for expect node" =
   print_endline "2";
   print_endline "3";
   {%expect|
-   Testing
-   1
-   2
-   3 |}
+    Testing
+    1
+    2
+    3
+    |}
 ;;
 
 let%expect_test "correction for expect exact node" =

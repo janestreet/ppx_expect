@@ -1,9 +1,15 @@
 open! Core
 
-(* The generated expectation should follow user formatting when present, otherwise it
-   should follow a sensible default *)
+(*
+   In old versions of [ppx_expect], the below tests would respect the formatting of the
+   incorrect output present when possible.
 
-(* Single line actual.. *)
+   Currently, [ppx_expect] instead enforces standardized formatting in [[%expect]] nodes,
+   so we instead use this test to demonstrate that all of the below expectations are
+   reformatted to the same thing.
+*)
+
+(* Single line actual... *)
 
 let%expect_test _ =
   print_string "hello";

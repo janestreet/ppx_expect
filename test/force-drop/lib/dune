@@ -1,0 +1,5 @@
+(library
+ (name expect_test_force_drop_integration_lib)
+ (libraries)
+ (preprocess
+  (pps ppx_expect)))

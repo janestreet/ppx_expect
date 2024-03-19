@@ -5,7 +5,7 @@ File "export_test.ml", line 2, characters 2-24 threw
   \n- trying to run it from ppx/ppx_expect/test/negative-tests/import_test.ml\
   \n").
 
-FAILED 1 / 69 tests
+FAILED 1 / 71 tests
 ------ chdir.ml
 ++++++ chdir.ml.corrected
 File "chdir.ml", line 6, characters 0-1:
@@ -149,7 +149,9 @@ File "escaped_strings.ml", line 3, characters 0-1:
  |  [%expect
  |    {|
  |    a
- |    b |}];
+-|    b |}];
++|    b
++|    |}];
  |  print_string "a\r\nb";
  |  [%expect_exact
  |    {|a
@@ -206,10 +208,11 @@ File "exn.ml", line 4, characters 0-1:
  |  Printexc.record_backtrace false;
  |  ignore (failwith "hi ho" : unit);
  |  [%expect.unreachable]
- |[@@expect.uncaught_exn
- |  {|
- |  (Failure "hi ho")
- ||}]
+-|[@@expect.uncaught_exn
+-|  {|
+-|  (Failure "hi ho")
+-||}]
++|[@@expect.uncaught_exn {| (Failure "hi ho") |}]
  |;;
 ------ exn_and_trailing.ml
 ++++++ exn_and_trailing.ml.corrected
@@ -258,13 +261,19 @@ File "expect_output.ml", line 8, characters 0-1:
  |;;
 ------ flexible.ml
 ++++++ flexible.ml.corrected
-File "flexible.ml", line 10, characters 0-1:
+File "flexible.ml", line 16, characters 0-1:
  |open! Core
  |
- |(* The generated expectation should follow user formatting when present, otherwise it
- |   should follow a sensible default *)
+ |(*
+ |   In old versions of [ppx_expect], the below tests would respect the formatting of the
+ |   incorrect output present when possible.
  |
- |(* Single line actual.. *)
+ |   Currently, [ppx_expect] instead enforces standardized formatting in [[%expect]] nodes,
+ |   so we instead use this test to demonstrate that all of the below expectations are
+ |   reformatted to the same thing.
+ |*)
+ |
+ |(* Single line actual... *)
  |
  |let%expect_test _ =
  |  print_string "hello";
@@ -569,7 +578,108 @@ File "missing.ml", line 7, characters 0-1:
 +|    goodbye
 +|    |}];
  |  ignore ("don't print" : string);
- |  [%expect]
+-|  [%expect]
++|  [%expect {| |}]
+ |;;
+------ nine.ml
+++++++ nine.ml.corrected
+File "nine.ml", line 21, characters 0-1:
+ |   so we instead use this test to demonstrate that all of the below expectations are
+ |   reformatted to the same thing.
+ |*)
+ |
+ |let%expect_test _ =
+ |
+ |  let module _ = struct
+ |    let () =
+ |      print_string "hello";
+ |      [%expect {| hello |}]
+ |    ;;
+ |
+ |    let () =
+ |      print_string "hello\n";
+ |      [%expect
+-|        {|
+-|                                              hello
+-|                                            |}]
++|        {| hello |}]
+ |    ;;
+ |
+ |    let () =
+ |      print_string "hello\n\n";
+ |      [%expect
+-|        {|
+-|                                              hello
+-|
+-|                                            |}]
++|        {| hello |}]
+ |    ;;
+ |
+ |    let () =
+ |      print_string "\nhello";
+ |      [%expect
+-|        {|
+-|
+-|                                              hello|}]
++|        {| hello |}]
+ |    ;;
+ |
+ |    let () =
+ |      print_string "\nhello\n";
+ |      [%expect
+-|        {|
+-|
+-|                                              hello
+-|                                            |}]
++|        {| hello |}]
+ |    ;;
+ |
+ |    let () =
+ |      print_string "\nhello\n\n";
+ |      [%expect
+-|        {|
+-|
+-|                                              hello
+-|
+-|                                            |}]
++|        {| hello |}]
+ |    ;;
+ |
+ |    let () =
+ |      print_string "\n\nhello";
+ |      [%expect
+-|        {|
+-|
+-|
+-|                                              hello|}]
++|        {| hello |}]
+ |    ;;
+ |
+ |    let () =
+ |      print_string "\n\nhello\n";
+ |      [%expect
+-|        {|
+-|
+-|
+-|                                              hello
+-|                                            |}]
++|        {| hello |}]
+ |    ;;
+ |
+ |    let () =
+ |      print_string "\n\nhello\n\n";
+ |      [%expect
+-|        {|
+-|
+-|
+-|                                              hello
+-|
+-|                                            |}]
++|        {| hello |}]
+ |    ;;
+ |  end
+ |  in
+ |  ()
  |;;
 ------ normal_strings.ml
 ++++++ normal_strings.ml.corrected
@@ -692,9 +802,13 @@ File "spacing.ml", line 8, characters 0-1:
  |  text 1;
  |  [%expect
  |    {|
- |  one
- |  two(1)
- |  three|}];
+-|  one
+-|  two(1)
+-|  three|}];
++|    one
++|    two(1)
++|    three
++|    |}];
  |  text 2;
  |  [%expect
  |    {|
@@ -785,6 +899,67 @@ File "tag.ml", line 6, characters 0-1:
 +|  [%expect {|
 +|    Foo
 +|    "bar baz"
++|    |}]
+ |;;
+------ three.ml
+++++++ three.ml.corrected
+File "three.ml", line 14, characters 0-1:
+ |(*
+ |   In old versions of [ppx_expect], all of the tests below would pass.
+ |
+ |   Currently, [ppx_expect] instead enforces standardized formatting in [[%expect]] nodes,
+ |   so we instead use this test to demonstrate that all of the below expectations are
+ |   reformatted to the same thing.
+ |*)
+ |
+ |let%expect_test _ =
+ |  let text_no_final_nl () = print_string "one\ntwo\nthree" in
+ |  text_no_final_nl ();
+ |  [%expect
+ |    {|
+-|  one
+-|  two
+-|  three|}];
++|    one
++|    two
++|    three
++|    |}];
+ |  let text () = print_string "one\ntwo\nthree\n" in
+ |  (* Base example *)
+ |  text ();
+ |  [%expect
+ |    {|
+-|  one
+-|  two
+-|  three
+-||}];
++|    one
++|    two
++|    three
++|    |}];
+ |  (* ok to omit space between "expect" and "{" *)
+ |  text ();
+ |  [%expect
+ |    {|
+-|  one
+-|  two
+-|  three
+-||}];
++|    one
++|    two
++|    three
++|    |}];
+ |  (* indentation allowed *)
+ |  text ();
+ |  [%expect
+ |    {|
+-|  one
+-|  two
+-|  three
+-||}]
++|    one
++|    two
++|    three
 +|    |}]
  |;;
 ------ trailing.ml

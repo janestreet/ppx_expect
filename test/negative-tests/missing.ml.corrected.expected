@@ -23,5 +23,5 @@ let%expect_test _ =
     goodbye
     |}];
   ignore ("don't print" : string);
-  [%expect]
+  [%expect {| |}]
 ;;

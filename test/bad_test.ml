@@ -34,10 +34,10 @@ let%expect_test (_ [@tags "no-js"]) =
   print_slot trace 5;
   [%expect
     {|
-      (* expect_test_collector: This test expectation appears to contain a backtrace.
-         This is strongly discouraged as backtraces are fragile.
-         Please change this test to not include a backtrace. *)
+    (* expect_test_collector: This test expectation appears to contain a backtrace.
+       This is strongly discouraged as backtraces are fragile.
+       Please change this test to not include a backtrace. *)
 
-      Raised by primitive operation at Ppx_expect_test__Bad_test.get_a_trace.loop in file "bad_test.ml", line 12, characters 17-29
+    Raised by primitive operation at Ppx_expect_test__Bad_test.get_a_trace.loop in file "bad_test.ml", line 12, characters 17-29
     |}]
 ;;

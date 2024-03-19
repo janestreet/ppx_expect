@@ -10,7 +10,8 @@ let%expect_test "foo" =
   pr (Sexp.to_string (sexp_of_t [ 1; 2; 3 ]));
   [%expect {|
     line1
-    (1 2 3) |}]
+    (1 2 3)
+    |}]
 ;;
 
 let%expect_test _ =

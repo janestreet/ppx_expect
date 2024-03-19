@@ -3,7 +3,5 @@
 let%expect_test _ =
   print_string "hello world\n";
   Unix.chdir "..";
-  [%expect {|
-  hello world
-|}]
+  [%expect {| hello world |}]
 ;;

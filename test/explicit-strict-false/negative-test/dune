@@ -1,6 +1,6 @@
 (library
  (name expect_test_explicit_no_strict_indent_negative)
- (libraries core)
+ (libraries ppx_expect_runtime)
  (preprocess
   (pps ppx_expect -expect-test-strict-indentation=false)))
 

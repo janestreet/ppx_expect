@@ -1,0 +1,6 @@
+(executables
+ (modes byte exe)
+ (names expect_test_force_drop_integration)
+ (libraries expect_test_force_drop_integration_lib)
+ (preprocess
+  (pps ppx_jane)))

@@ -15,7 +15,11 @@ let f
   ~path
   ()
   =
-  let prev_contents = Stdio.In_channel.with_file path ~f:Stdio.In_channel.input_all in
+  let prev_contents =
+    if Stdlib.Sys.file_exists path
+    then Stdio.In_channel.with_file path ~f:Stdio.In_channel.input_all
+    else ""
+  in
   match String.( = ) prev_contents next_contents with
   | true ->
     (* It's possible for stale .corrected files to linger and ideally we would delete them
