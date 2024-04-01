@@ -91,10 +91,10 @@ let () =
       ~f:(fun ~filename ~test_nodes ~postprocess ->
       Write_corrected_file.f
         test_nodes
-        ~use_color:Ppx_inline_test_lib.use_color
-        ~in_place:Ppx_inline_test_lib.in_place
-        ~diff_command:Ppx_inline_test_lib.diff_command
-        ~diff_path_prefix:Ppx_inline_test_lib.diff_path_prefix
+        ~use_color:(Ppx_inline_test_lib.use_color ())
+        ~in_place:(Ppx_inline_test_lib.in_place ())
+        ~diff_command:(Ppx_inline_test_lib.diff_command ())
+        ~diff_path_prefix:(Ppx_inline_test_lib.diff_path_prefix ())
         ~with_:postprocess
         ~filename)
     |> Ppx_inline_test_lib.Test_result.combine_all)
