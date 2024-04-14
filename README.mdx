@@ -163,8 +163,6 @@ The formatting applied depends on the type of delimiter used in `str` (i.e. whet
 Here is an example containing several cases of output that are subject to distinct
 formatting rules and how they appear in `[%expect]` and `[%expect_exact]` blocks:
 
-<details>
-<summary>Expand examples</summary>
 <!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml.corrected.expected,part=matching -->
 ```ocaml
 let%expect_test "matching behavior --- no content" =
@@ -246,7 +244,6 @@ Over many a quaint and curious
     \  volume of forgotten lore "]
 ;;
 ```
-</details>
 
 Expect-test is by default permissive about this formatting, so that a
 `[%expect]` block that is correct modulo formatting is
