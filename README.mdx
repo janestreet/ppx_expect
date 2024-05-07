@@ -165,6 +165,7 @@ formatting rules and how they appear in `[%expect]` and `[%expect_exact]` blocks
 
 <details>
 <summary>Expand examples</summary>
+
 <!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml.corrected.expected,part=matching -->
 ```ocaml
 let%expect_test "matching behavior --- no content" =
@@ -606,17 +607,8 @@ let%expect_test "sanitization" =
 ;;
 ```
 
-
 # Build system integration
 
 Follow the same rules as for
-[ppx_inline_test](https://github.com/janestreet/ppx_inline_test). Just make sure to
-include `ppx_expect.evaluator` as a dependency of the test runner. The [Jane Street
-tests](https://github.com/janestreet/jane-street-tests) contains a few working examples
-using oasis.
+[ppx_inline_test](https://github.com/janestreet/ppx_inline_test?tab=readme-ov-file#building-and-running-the-tests-outside-of-jane-street-with-dune).
 
-[^1]: By ensuring that, for multiline output, the string delimiters lie on their own lines
-    (and are not mixed with the test contents), we make it so conflict markers from
-    conflicts in test output lie entirely inside the string literal. Then the file still
-    builds after the rebase, and the conflict can be resolved just by building the test
-    and accepting the corrections.

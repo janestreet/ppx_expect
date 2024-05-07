@@ -1,3 +1,23 @@
+## Release v0.17.0
+
+* Enforce rules for the formatting of the strings in `[%expect]` blocks (their indentation
+  level and the number of leading/trailing spaces) when
+  `-expect-test-strict-indentation=true` is passed to the ppx driver.
+
+* Omit a redundant call to `Expect_test_config.run` (which was used just wrap a call to
+  `flush` in the monadic environment).
+
+* Warn when one expect test is reached from another, even if the inner expect test would
+  not be run (because of e.g. the `-tags` argument passed to the `inline_tests_runner`).
+
+* Flush output generated in C stubs so that it is captured together with output that
+  originates in OCaml.
+
+* Support the shorthand syntax for extension points with string payloads (`{%expect||}`).
+
+* Print `Output i / n` in the separators printed between inconsistent outputs in an expect
+  block reached multiple times.
+
 ## Release v0.16.0
 
 * Made `[%expect]` blocks always have type `unit`. Removed the need for monadic flush
@@ -44,7 +64,7 @@
 ## v0.10
 
 - In `[%expect]` expressions, disallowed backtraces, which can vary across
-  compilation configurations (X_LIBRARY_INLINING, flambda, etc.)
+  compilation configurations (`X_LIBRARY_INLINING`, `flambda`, etc.)
 
 - Improved `ppx_expect` to support simultaneous runs of `inline_tests_runner` on
   the same file.
@@ -67,7 +87,7 @@
 
 ## 113.43.00
 
-- Always flush Pervasives.stdout in the ppx_expect runtime.
+- Always flush Pervasives.stdout in the `ppx_expect` runtime.
 
   We already do this, but it was missing in one place.
 
