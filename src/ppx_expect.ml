@@ -207,6 +207,7 @@ let transform_let_expect ~trailing_location ~tags ~expected_exn ~description ~lo
     match Ppx_inline_test_lib.testing with
     | `Not_testing -> ()
     | `Testing _ ->
+      if Ppx_expect_runtime.tests_should_run then
       let module Ppx_expect_test_block =
         Ppx_expect_runtime.Make_test_block (Expect_test_config)
       in
