@@ -159,6 +159,14 @@ module Configured (C : Expect_test_config_types.S) = struct
   ;;
 end
 
+let tests_should_run =
+  try
+    ignore (Stdlib.Sys.getenv "FORCE_DROP_INLINE_TEST" : string);
+    false
+  with
+  | Not_found -> true
+;;
+
 (* The expect test currently being executed and some info we print if the program
    crashes in the middle of a test. *)
 module Current_test : sig
