@@ -51,9 +51,9 @@ end = struct
       Current_file.absolute_path (Stdlib.Filename.temp_file "expect-test" "output")
     in
     let test_output_writer =
-      Stdlib.open_out_gen [ Open_wronly; Open_creat ] 0o644 output_file
+      Stdlib.open_out_gen [ Open_wronly; Open_creat; Open_binary ] 0o644 output_file
     in
-    let test_output_reader = Stdlib.open_in output_file in
+    let test_output_reader = Stdlib.open_in_bin output_file in
     redirect_stdout ~output:test_output_writer ~stdout:Stdlib.stdout ~stderr:Stdlib.stderr;
     { src_filename
     ; output_file
@@ -384,7 +384,7 @@ let at_exit () =
         }
         ->
     Shared.flush ();
-    let fin = Stdlib.open_in (Shared.output_file test_block) in
+    let fin = Stdlib.open_in_bin (Shared.output_file test_block) in
     let all_out = Stdlib.really_input_string fin (Stdlib.in_channel_length fin) in
     Shared.clean_up_block test_block;
     Stdlib.Printf.eprintf
