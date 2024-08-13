@@ -1,5 +1,5 @@
 open! Base
-open Types
+open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
 
 module Definitions = struct
   module Insert_loc = struct
@@ -11,13 +11,13 @@ module Definitions = struct
           { whole_node : Compact_loc.t
           ; payload : Compact_loc.t option
           }
-          (** An expectation parsed from the test file and which should be overwritten by
+      (** An expectation parsed from the test file and which should be overwritten by
           corrections. Corrections to just the payload should overwrite just the [payload]
           location, if present. If no [payload] location is present, or for corrections
           that change the entire node (e.g. a change from [[%expect _]] to
           [[%expect.unreachable]]), overwrite the [whole_node] loc. *)
       | Insert of Virtual_loc.t
-          (** An expectation not parsed from the file that should be inserted into
+      (** An expectation not parsed from the file that should be inserted into
           [Virtual_loc.loc] and is associated with a test whose body is at
           [Virtual_loc.body_loc] *)
   end
@@ -35,7 +35,7 @@ module Definitions = struct
         every time a test is run *)
     type t =
       | Can_reach
-          (** Test passes even if node is only reached on *some* executions of a test *)
+      (** Test passes even if node is only reached on *some* executions of a test *)
       | Must_reach (** Test fails unless node is reached by *all* executions of a test *)
   end
 
@@ -45,7 +45,7 @@ module Definitions = struct
       | Silent (** Do nothing *)
       | Delete (** Delete this expectation from the source file *)
       | Replace_with_unreachable
-          (** Replace this expectation with a [[%expect.unreachable]] node *)
+      (** Replace this expectation with a [[%expect.unreachable]] node *)
   end
 
   module Behavior = struct
@@ -59,14 +59,14 @@ module Definitions = struct
     *)
     type _ t =
       | Expect :
-          { payload : Output.Payload.t
+          { payload : Payload.t
           ; on_unreachable : On_unreachable.t
           ; reachability : Expect_reachability.t
           }
           -> [ `Expect ] t
       | Unreachable :
           { reachability_of_corrected : Expect_reachability.t
-              (** The reachability of the node inserted if this unreachable node is
+          (** The reachability of the node inserted if this unreachable node is
               unexpectedly reached *)
           }
           -> [ `Unreachable ] t
@@ -82,7 +82,7 @@ module Definitions = struct
     ; behavior : 'behavior_type Behavior.t
     ; payload_type : Output.Type.t
     ; on_incorrect_output : String_node_format.Shape.t
-        (** The name and syntax style of the extension point or attribute used to write
+    (** The name and syntax style of the extension point or attribute used to write
         corrections when receiving "incorrect" output for this test node. For each [t],
         there is only one such node. For example, if an [{%expect_exact||}] node is
         reached with incorrect output, it is always corrected to a different
@@ -97,7 +97,7 @@ module Definitions = struct
     }
 end
 
-module type Expectation = sig
+module type Test_spec = sig
   include module type of struct
     include Definitions
   end
@@ -120,29 +120,26 @@ module type Expectation = sig
     -> _ t
     -> Output.Formatter.t
 
-  (** [[%expect _]] *)
-  val expect
-    :  formatting_flexibility:Expect_node_formatting.Flexibility.t
+  type expect_creator :=
+    formatting_flexibility:Expect_node_formatting.Flexibility.t
     -> node_loc:Compact_loc.t
-    -> located_payload:(Output.Payload.t * Compact_loc.t) option
+    -> located_payload:(Payload.t * Compact_loc.t) option
     -> [ `Expect ] t
 
+  (** [[%expect _]] *)
+  val expect : expect_creator
+
   (** [[%expect_exact _]] *)
-  val expect_exact
-    :  formatting_flexibility:Expect_node_formatting.Flexibility.t
-    -> node_loc:Compact_loc.t
-    -> located_payload:(Output.Payload.t * Compact_loc.t) option
-    -> [ `Expect ] t
+  val expect_exact : expect_creator
+
+  (** [[%expect.if_reached _]] *)
+  val expect_if_reached : expect_creator
 
   (** [[%expect.unreachable]] *)
   val expect_unreachable : node_loc:Compact_loc.t -> [ `Unreachable ] t
 
   (** [[@@expect.uncaught_exn _]] *)
-  val expect_uncaught_exn
-    :  formatting_flexibility:Expect_node_formatting.Flexibility.t
-    -> node_loc:Compact_loc.t
-    -> located_payload:(Output.Payload.t * Compact_loc.t) option
-    -> [ `Expect ] t
+  val expect_uncaught_exn : expect_creator
 
   (** Runtime representation of the implicit [[%expect {||}]] at the end of every expect
       test. *)

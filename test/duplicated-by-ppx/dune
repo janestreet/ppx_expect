@@ -1,0 +1,4 @@
+(library
+ (name expect_test_copied_by_ppx_tests)
+ (preprocess
+  (pps ppx_expect ppx_duplicate_for_ppx_expect_internal_testing)))

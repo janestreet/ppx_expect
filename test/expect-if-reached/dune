@@ -1,0 +1,6 @@
+(library
+ (name expect_test_if_unreachable_tests)
+ (libraries core)
+ (preprocess
+  (pps ppx_jane
+    -expect-test-allow-output-block-to-suppress-reachability-check=true)))

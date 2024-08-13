@@ -2,7 +2,8 @@ let%expect_test "expect.output" =
   Printf.printf "hello\n";
   let output = [%expect.output] in
   Printf.printf "'%s'\n" (String.uppercase_ascii output);
-  [%expect {|
+  [%expect
+    {|
     'HELLO
     '
     |}];

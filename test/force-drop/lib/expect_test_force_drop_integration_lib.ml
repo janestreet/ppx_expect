@@ -1,6 +1,6 @@
 (* Shadow the runtime so that we can see if we enter the body of the test functor *)
 module Ppx_expect_runtime = struct
-  include Ppx_expect_runtime
+  include Ppx_expect_runtime [@@alert "-ppx_expect_runtime"]
 
   module Make_test_block (C : Expect_test_config_types.S) = struct
     let () = failwith "entered test functor"

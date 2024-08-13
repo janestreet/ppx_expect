@@ -52,12 +52,50 @@ end
 module Expectation_id = struct
   include Int
 
-  let mint =
+  type location_type =
+    | Parsed
+    | Trailing
+    | Exception
+
+  let lookup_or_mint =
     let counter = ref 0 in
-    fun () ->
-      let id = !counter in
-      counter := id + 1;
-      id
+    let location_map =
+      Hashtbl.create
+        (module struct
+          type t = location_type * Compact_loc.t
+
+          let loc_type_to_int = function
+            | Parsed -> 0
+            | Trailing -> 1
+            | Exception -> 2
+          ;;
+
+          let compare =
+            Comparable.lexicographic
+              [ Comparable.lift compare_int ~f:(fun (loc_type, _) ->
+                  loc_type_to_int loc_type)
+              ; Comparable.lift Compact_loc.compare_character_range ~f:snd
+              ]
+          ;;
+
+          let sexp_of_t _ = Sexp.Atom "opaque"
+
+          let hash (loc_type, ({ start_bol; start_pos; end_pos } : Compact_loc.t)) =
+            let hash_fold_int = Fn.flip hash_fold_int in
+            Hash.create ()
+            |> hash_fold_int (loc_type_to_int loc_type)
+            |> hash_fold_int start_bol
+            |> hash_fold_int start_pos
+            |> hash_fold_int end_pos
+            |> Hash.get_hash_value
+          ;;
+        end)
+    in
+    fun loc_type loc ->
+      Hashtbl.find_or_add location_map (loc_type, loc) ~default:(fun () ->
+        let id = !counter in
+        counter := id + 1;
+        id)
   ;;
 end
 
@@ -119,4 +157,25 @@ module String_node_format = struct
     }
 
   type t = T : _ unpacked -> t [@@unboxed]
+end
+
+module Payload = struct
+  type t =
+    { contents : string
+    ; tag : String_node_format.Delimiter.t
+    }
+
+  let default contents = { contents; tag = String_node_format.Delimiter.default }
+
+  let to_source_code_string { contents; tag } =
+    let escape_lines test_output =
+      test_output
+      |> String.split ~on:'\n'
+      |> List.map ~f:String.escaped
+      |> String.concat ~sep:"\n"
+    in
+    match tag with
+    | T (Tag tag) -> Printf.sprintf "{%s|%s|%s}" tag contents tag
+    | T Quote -> Printf.sprintf {|"%s"|} (escape_lines contents)
+  ;;
 end

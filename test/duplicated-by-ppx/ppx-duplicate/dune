@@ -1,0 +1,6 @@
+(library
+ (name ppx_duplicate_for_ppx_expect_internal_testing)
+ (kind ppx_rewriter)
+ (libraries base ppxlib)
+ (preprocess
+  (pps ppx_jane ppxlib.metaquot)))

@@ -2,8 +2,8 @@ open! Core
 
 module M (X : Sexpable) = struct
   module N (Y : sig
-    val x : X.t
-  end) =
+      val x : X.t
+    end) =
   struct
     let%expect_test "trailing output" =
       let sexp = X.sexp_of_t Y.x in
@@ -20,5 +20,5 @@ end
 module String_tests = M (String)
 
 module Run_on_abc = String_tests.N (struct
-  let x = "a\nb\nc"
-end)
+    let x = "a\nb\nc"
+  end)

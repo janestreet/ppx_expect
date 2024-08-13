@@ -1,5 +1,5 @@
 open! Base
-open Types
+open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
 
 (** The callback expected by [f], which should convert the input to patches and is
     allowed to access the contents of the original file while doing so. *)

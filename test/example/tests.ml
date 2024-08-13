@@ -8,7 +8,8 @@ let pr s = Printf.printf "%s\n" s
 let%expect_test "foo" =
   pr "line1";
   pr (Sexp.to_string (sexp_of_t [ 1; 2; 3 ]));
-  [%expect {|
+  [%expect
+    {|
     line1
     (1 2 3)
     |}]

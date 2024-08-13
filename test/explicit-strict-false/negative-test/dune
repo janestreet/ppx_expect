@@ -14,7 +14,7 @@
  (targets nine.ml.corrected test-output)
  (action
   (bash
-    "\nrm -f *.ml.corrected 2>/dev/null\n! %{first_dep} -no-color > test-output 2>&1\nfor f in *.ml.corrected\ndo\n  %{workspace_root}/bin/apply-style \\\n    -directory-config jbuild \\\n    -original-file $(basename $f .corrected) \\\n    - < $f > $f.tmp\n  mv $f.tmp $f\ndone\n")))
+    "\nrm -f *.ml.corrected 2>/dev/null\n! %{first_dep} -no-color > test-output 2>&1\nfor f in %{targets}\ndo\n  if [[ $f == *.corrected ]]\n  then\n    if [[ -e $f ]]\n    then\n      %{workspace_root}/bin/apply-style \\\n        -directory-config jbuild \\\n        -original-file $(basename $f .corrected) \\\n        - < $f > $f.tmp\n      mv $f.tmp $f\n    else\n      echo \"=== Failed to generate corrected file ===\" > $f\n    fi\n  fi\ndone\n")))
 
 (rule
  (alias runtest)

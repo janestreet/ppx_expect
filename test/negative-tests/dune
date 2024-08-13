@@ -1,6 +1,6 @@
 (library
  (name expect_test_negative_tests)
- (libraries core)
+ (libraries core ppx_expect_runtime)
  (preprocess
   (pps ppx_jane)))
 
@@ -12,6 +12,7 @@
   jbuild
   (glob_files *.ml))
  (targets chdir.ml.corrected comment.ml.corrected
+   current_test_has_output_that_does_not_match_exn.ml.corrected
    escaped_strings.ml.corrected exact.ml.corrected exn.ml.corrected
    exn_and_trailing.ml.corrected exn_missing.ml.corrected
    expect_output.ml.corrected flexible.ml.corrected
@@ -25,7 +26,7 @@
    test-output)
  (action
   (bash
-    "\nrm -f *.ml.corrected 2>/dev/null\n! %{first_dep} -no-color > test-output 2>&1\nfor f in *.ml.corrected\ndo\n  %{workspace_root}/bin/apply-style \\\n    -directory-config jbuild \\\n    -original-file $(basename $f .corrected) \\\n    - < $f > $f.tmp\n  mv $f.tmp $f\ndone\n")))
+    "\nrm -f *.ml.corrected 2>/dev/null\n! %{first_dep} -no-color > test-output 2>&1\nfor f in %{targets}\ndo\n  if [[ $f == *.corrected ]]\n  then\n    if [[ -e $f ]]\n    then\n      %{workspace_root}/bin/apply-style \\\n        -directory-config jbuild \\\n        -original-file $(basename $f .corrected) \\\n        - < $f > $f.tmp\n      mv $f.tmp $f\n    else\n      echo \"=== Failed to generate corrected file ===\" > $f\n    fi\n  fi\ndone\n")))
 
 (rule
  (alias runtest)
@@ -36,6 +37,13 @@
 (rule
  (alias runtest)
  (deps comment.ml.corrected.expected comment.ml.corrected)
+ (action
+  (bash "diff -a %{deps}")))
+
+(rule
+ (alias runtest)
+ (deps current_test_has_output_that_does_not_match_exn.ml.corrected.expected
+   current_test_has_output_that_does_not_match_exn.ml.corrected)
  (action
   (bash "diff -a %{deps}")))
 

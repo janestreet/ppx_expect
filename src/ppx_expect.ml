@@ -1,9 +1,14 @@
 open! Base
 open Ppxlib
 open Ast_builder.Default
-open Ppx_expect_runtime
+open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
 
 let strict_indent = ref false
+let allow_skipping_reachability_check = ref false
+
+let allow_skipping_reachability_flag =
+  "-expect-test-allow-output-block-to-suppress-reachability-check"
+;;
 
 module Expr = struct
   let option ~loc expression_of_a = function
@@ -15,18 +20,18 @@ module Expr = struct
     [%expr [%e expression_of_a ~loc a], [%e expression_of_b ~loc b]]
   ;;
 
-  let delimiter ~loc (delimiter : Delimiter.t) =
+  let delimiter ~loc (delimiter : String_node_format.Delimiter.t) =
     [%expr
       ([%e
          match delimiter with
          | T Quote -> [%expr T Quote]
          | T (Tag tag) -> [%expr T (Tag [%e estring ~loc tag])]]
-        : Ppx_expect_runtime.Delimiter.t)]
+       : (Ppx_expect_runtime.Delimiter.t[@alert "-ppx_expect_runtime"]))]
   ;;
 
   let id ~loc id =
     [%expr
-      Ppx_expect_runtime.Expectation_id.of_int_exn
+      (Ppx_expect_runtime.Expectation_id.of_int_exn [@alert "-ppx_expect_runtime"])
         [%e eint ~loc (Expectation_id.to_int_exn id)]]
   ;;
 
@@ -49,11 +54,14 @@ module Expr = struct
 
   let flexibility_of_strictness ~loc =
     if !strict_indent
-    then [%expr Ppx_expect_runtime.Expect_node_formatting.Flexibility.Exactly_formatted]
+    then
+      [%expr
+        Ppx_expect_runtime.Expect_node_formatting.Flexibility.Exactly_formatted [@alert
+                                                                                  "-ppx_expect_runtime"]]
     else
       [%expr
         Ppx_expect_runtime.Expect_node_formatting.Flexibility.Flexible_modulo
-          Ppx_expect_runtime.Expect_node_formatting.default]
+          Ppx_expect_runtime.Expect_node_formatting.default [@alert "-ppx_expect_runtime"]]
   ;;
 end
 
@@ -73,29 +81,51 @@ module Expectation_node = struct
   type t =
     | Expect of expect_node_info
     | Expect_exact of expect_node_info
+    | Expect_if_reached of expect_node_info
     | Expect_unreachable of Compact_loc.t
 
-  let to_expr ~loc t =
-    let qualify_name node_name =
-      pexp_ident
-        ~loc
-        (Located.lident ~loc ("Ppx_expect_runtime.Test_node.Create." ^ node_name))
-    in
-    let make_expect_node node_name { located_payload; node_loc } =
+  let id t ~loc =
+    match t with
+    | Expect _ ->
+      [%expr Ppx_expect_runtime.Test_node.Create.expect [@alert "-ppx_expect_runtime"]]
+    | Expect_exact _ ->
       [%expr
-        [%e qualify_name node_name]
+        Ppx_expect_runtime.Test_node.Create.expect_exact [@alert "-ppx_expect_runtime"]]
+    | Expect_if_reached _ ->
+      [%expr
+        Ppx_expect_runtime.Test_node.Create.expect_if_reached [@alert
+                                                                "-ppx_expect_runtime"]]
+    | Expect_unreachable _ ->
+      [%expr
+        Ppx_expect_runtime.Test_node.Create.expect_unreachable [@alert
+                                                                 "-ppx_expect_runtime"]]
+  ;;
+
+  let to_expr ~loc t =
+    let make_expect_node node_expr { located_payload; node_loc } =
+      [%expr
+        [%e node_expr]
           ~formatting_flexibility:[%e Expr.flexibility_of_strictness ~loc]
           ~located_payload:
             [%e Expr.(option ~loc (pair payload compact_loc)) located_payload]
           ~node_loc:[%e Expr.compact_loc ~loc node_loc]]
     in
     match t with
-    | Expect expect_node_info -> make_expect_node "expect" expect_node_info
-    | Expect_exact expect_node_info -> make_expect_node "expect_exact" expect_node_info
+    | Expect expect_node_info -> make_expect_node (id t ~loc) expect_node_info
+    | Expect_exact expect_node_info -> make_expect_node (id t ~loc) expect_node_info
+    | Expect_if_reached expect_node_info ->
+      if !allow_skipping_reachability_check
+      then make_expect_node (id t ~loc) expect_node_info
+      else (
+        let error_text =
+          Printf.sprintf
+            "ppx driver is not configured to accept [[%%expect.if_reached]] (can be \
+             enabled by adding [%s] to ppx driver flags)"
+            allow_skipping_reachability_flag
+        in
+        [%expr [%ocaml.error [%e estring ~loc error_text]]])
     | Expect_unreachable node_loc ->
-      [%expr
-        [%e qualify_name "expect_unreachable"]
-          ~node_loc:[%e Expr.compact_loc ~loc node_loc]]
+      [%expr [%e id t ~loc] ~node_loc:[%e Expr.compact_loc ~loc node_loc]]
   ;;
 end
 
@@ -106,7 +136,7 @@ module Pattern = struct
     map
       (single_expr_payload (as__ (pexp_constant (pconst_string __ __ __))))
       ~f:(fun f payload_expr contents _loc tag ->
-        let (tag : Delimiter.t) =
+        let (tag : String_node_format.Delimiter.t) =
           match tag with
           | None -> T Quote
           | Some tag -> T (Tag tag)
@@ -127,22 +157,32 @@ module Parsed_node = struct
     | Expectation_node of Expectation_id.t * Expectation_node.t
     | Output
 
+  open struct
+    let declare_expect name constructor =
+      Extension.Expert.declare
+        name
+        Expression
+        (Pattern.maybe_string ())
+        (fun ~located_payload node_loc ->
+           Expectation_node
+             ( Expectation_id.lookup_or_mint Parsed node_loc
+             , constructor located_payload node_loc ))
+    ;;
+  end
+
   let expect =
-    Extension.Expert.declare
-      "expect"
-      Expression
-      (Pattern.maybe_string ())
-      (fun ~located_payload node_loc ->
-      Expectation_node (Expectation_id.mint (), Expect { located_payload; node_loc }))
+    declare_expect "expect" (fun located_payload node_loc ->
+      Expect { located_payload; node_loc })
   ;;
 
   let expect_exact =
-    Extension.Expert.declare
-      "expect_exact"
-      Expression
-      (Pattern.maybe_string ())
-      (fun ~located_payload node_loc ->
-      Expectation_node (Expectation_id.mint (), Expect_exact { located_payload; node_loc }))
+    declare_expect "expect_exact" (fun located_payload node_loc ->
+      Expect_exact { located_payload; node_loc })
+  ;;
+
+  let expect_if_reached =
+    declare_expect "expect.if_reached" (fun located_payload node_loc ->
+      Expect_if_reached { located_payload; node_loc })
   ;;
 
   let expect_output =
@@ -156,15 +196,18 @@ module Parsed_node = struct
       Expression
       (Pattern.empty ())
       (fun compact_loc ->
-      Expectation_node (Expectation_id.mint (), Expect_unreachable compact_loc))
+         Expectation_node
+           ( Expectation_id.lookup_or_mint Parsed compact_loc
+           , Expect_unreachable compact_loc ))
   ;;
 
-  let expectations = [ expect; expect_exact; expect_output; expect_unreachable ]
-
-  let match_expectation e =
-    match e.pexp_desc with
-    | Pexp_extension extension ->
-      Extension.Expert.convert expectations ~loc:e.pexp_loc extension
+  let match_expectation =
+    let expectations =
+      [ expect; expect_exact; expect_if_reached; expect_output; expect_unreachable ]
+    in
+    function
+    | { pexp_desc = Pexp_extension extension; pexp_loc; _ } ->
+      Extension.Expert.convert expectations ~loc:pexp_loc extension
     | _ -> None
   ;;
 end
@@ -201,14 +244,15 @@ let transform_let_expect ~trailing_location ~tags ~expected_exn ~description ~lo
     compact_loc_of_ppxlib_location
       { loc_start = loc.loc_start; loc_end = body.pexp_loc.loc_end; loc_ghost = true }
   in
-  let trailing_test_id = Expectation_id.mint () in
-  let exn_test_id = Expectation_id.mint () in
+  let trailing_test_id = Expectation_id.lookup_or_mint Trailing body_loc in
+  let exn_test_id = Expectation_id.lookup_or_mint Exception body_loc in
   [%expr
     match Ppx_inline_test_lib.testing with
     | `Not_testing -> ()
     | `Testing _ ->
       let module Ppx_expect_test_block =
-        Ppx_expect_runtime.Make_test_block (Expect_test_config)
+        Ppx_expect_runtime.Make_test_block [@alert "-ppx_expect_runtime"]
+          (Expect_test_config)
       in
       Ppx_expect_test_block.run_suite
         ~filename_rel_to_project_root:[%e estring ~loc filename_rel_to_project_root]
@@ -262,25 +306,25 @@ let expect_test =
     Structure_item
     let_expect_pat
     (fun ~ctxt trailing ~tags ~name code ->
-    let loc = Ppxlib.Expansion_context.Extension.extension_point_loc ctxt in
-    let loc = { loc with loc_ghost = true } in
-    let trailing_location, expected_exn =
-      match trailing with
-      | Some (attr_loc, expected_exn) -> attr_loc, expected_exn
-      | None -> { loc with loc_start = loc.loc_end }, None
-    in
-    Ppx_inline_test.validate_extension_point_exn
-      ~name_of_ppx_rewriter:"ppx_expect"
-      ~loc
-      ~tags;
-    transform_let_expect
-      ~trailing_location
-      ~tags
-      ~expected_exn
-      ~description:name
-      ~loc
-      code
-    |> Ppx_inline_test.maybe_drop loc)
+       let loc = Ppxlib.Expansion_context.Extension.extension_point_loc ctxt in
+       let loc = { loc with loc_ghost = true } in
+       let trailing_location, expected_exn =
+         match trailing with
+         | Some (attr_loc, expected_exn) -> attr_loc, expected_exn
+         | None -> { loc with loc_start = loc.loc_end }, None
+       in
+       Ppx_inline_test.validate_extension_point_exn
+         ~name_of_ppx_rewriter:"ppx_expect"
+         ~loc
+         ~tags;
+       transform_let_expect
+         ~trailing_location
+         ~tags
+         ~expected_exn
+         ~description:name
+         ~loc
+         code
+       |> Ppx_inline_test.maybe_drop loc)
 ;;
 
 let () =
@@ -290,7 +334,14 @@ let () =
     ~doc:
       (Printf.sprintf
          "BOOL Require standardized indentation in [[%%expect]] (default: %b)"
-         !strict_indent)
+         !strict_indent);
+  Driver.add_arg
+    allow_skipping_reachability_flag
+    (Bool (( := ) allow_skipping_reachability_check))
+    ~doc:
+      (Printf.sprintf
+         "BOOL permit the [[%%expect.if_reached]] extension (default: %b)"
+         !allow_skipping_reachability_check)
 ;;
 
 let () =
@@ -318,12 +369,15 @@ let () =
           Ppx_inline_test.maybe_drop
             loc
             [%expr
-              Ppx_expect_runtime.Current_file.set
+              (Ppx_expect_runtime.Current_file.set [@alert "-ppx_expect_runtime"])
                 ~filename_rel_to_project_root:
                   [%e estring ~loc filename_rel_to_project_root]]
         and footer =
           let loc = { loc with loc_start = loc.loc_end } in
-          Ppx_inline_test.maybe_drop loc [%expr Ppx_expect_runtime.Current_file.unset ()]
+          Ppx_inline_test.maybe_drop
+            loc
+            [%expr
+              (Ppx_expect_runtime.Current_file.unset [@alert "-ppx_expect_runtime"]) ()]
         in
         header, footer
       | _ -> [], [])

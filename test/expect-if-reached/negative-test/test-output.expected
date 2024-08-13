@@ -1,0 +1,24 @@
+------ expect_if_reacheds_are_corrected.ml
+++++++ expect_if_reacheds_are_corrected.ml.corrected
+File "expect_if_reacheds_are_corrected.ml", line 6, characters 0-1:
+ |open! Core
+ |
+ |let%expect_test "reached and incorrect" =
+ |  print_endline "Hello world!";
+ |  if String.( <> ) "apples" "oranges"
+-|  then [%expect.if_reached {| XXXXXXXXXXXX |}]
++|  then [%expect.if_reached {| Hello world! |}]
+ |  else [%expect.unreachable]
+ |;;
+------ expects_still_must_be_reached.ml
+++++++ expects_still_must_be_reached.ml.corrected
+File "expects_still_must_be_reached.ml", line 7, characters 0-1:
+ |open! Core
+ |
+ |let%expect_test "a normal expect is unreached" =
+ |  print_endline "Hello world!";
+ |  if String.( <> ) "apples" "oranges"
+ |  then [%expect.if_reached {| Hello world! |}]
+-|  else [%expect {| XXXXXXXXXXXX |}]
++|  else [%expect.unreachable]
+ |;;

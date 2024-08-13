@@ -55,10 +55,12 @@ let%expect_test "unescaped carriage return --- empty expect" =
 
 let%expect_test "unescaped carriage return --- populated expect" =
   print_string "a\r\nb";
-  [%expect {|
+  [%expect
+    {|
     a
     b |}];
   print_string "a\r\nb";
-  [%expect_exact {|a
+  [%expect_exact
+    {|a
 b|}]
 ;;

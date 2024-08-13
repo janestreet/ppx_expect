@@ -1,5 +1,5 @@
 open! Base
-open Types
+open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
 
 (** Accumulator of test results for one expect node *)
 type t
@@ -12,25 +12,23 @@ module Create : sig
       the e.g. [[%expect]] test.
   *)
 
-  (** [[%expect _]] *)
-  val expect
-    :  formatting_flexibility:Expect_node_formatting.Flexibility.t
-         (** If tests should be flexible about formatting rules, the formatting rules that
+  type expect_creator :=
+    formatting_flexibility:Expect_node_formatting.Flexibility.t
+      (** If tests should be flexible about formatting rules, the formatting rules that
         define this flexibility *)
-    -> node_loc:Compact_loc.t (** Location of the [[%expect _]] node *)
-    -> located_payload:(Output.Payload.t * Compact_loc.t) option
+    -> node_loc:Compact_loc.t (** Location of the [[%expect... _]] node *)
+    -> located_payload:(Payload.t * Compact_loc.t) option
          (** The string payload and its location, if there is one *)
     -> t
 
+  (** [[%expect _]] *)
+  val expect : expect_creator
+
   (** [[%expect_exact _]] *)
-  val expect_exact
-    :  formatting_flexibility:Expect_node_formatting.Flexibility.t
-         (** If tests should be flexible about formatting rules, the formatting rules that
-        define this flexibility *)
-    -> node_loc:Compact_loc.t (** Location of the [[%expect_exact _]] node *)
-    -> located_payload:(Output.Payload.t * Compact_loc.t) option
-         (** The string payload and its location, if there is one *)
-    -> t
+  val expect_exact : expect_creator
+
+  (** [[%expect.if_reached _]] *)
+  val expect_if_reached : expect_creator
 
   (** [[%expect.unreachable]] *)
   val expect_unreachable
@@ -40,7 +38,7 @@ end
 
 (** Functions exported for use in other modules of the expect test runtime. *)
 
-val of_expectation : [< Expectation.Behavior_type.t ] Expectation.t -> t
+val of_expectation : [< Test_spec.Behavior_type.t ] Test_spec.t -> t
 
 (** Updates reachedness information for [t]. *)
 val record_end_of_run : t -> unit

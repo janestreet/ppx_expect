@@ -5,8 +5,8 @@ module Expect_test_config = struct
 end
 
 module M (S : sig
-  val output : string
-end) =
+    val output : string
+  end) =
 struct
   let%expect_test _ =
     print_string S.output;
@@ -23,18 +23,18 @@ struct
   let%expect_test _ =
     if String.equal S.output "bar" then print_string S.output else failwith "wrong output";
     [%expect.unreachable]
-    [@@expect.uncaught_exn {| (Failure "wrong output") |}]
+  [@@expect.uncaught_exn {| (Failure "wrong output") |}]
   ;;
 end
 
 module A = M (struct
-  let output = "foo"
-end)
+    let output = "foo"
+  end)
 
 module B = M (struct
-  let output = "bar"
-end)
+    let output = "bar"
+  end)
 
 module C = M (struct
-  let output = "cat"
-end)
+    let output = "cat"
+  end)

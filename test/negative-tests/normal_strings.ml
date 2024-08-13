@@ -16,7 +16,8 @@ let%expect_test "long quoted string" =
 ;;
 
 let%expect_test "quoted strings with leading spaces" =
-  print_string {|
+  print_string
+    {|
     live
       long
         and

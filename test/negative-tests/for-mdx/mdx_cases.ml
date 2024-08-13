@@ -15,7 +15,8 @@ let%expect_test "interleaved" =
   printf "It has length %d\n" (List.length l);
   [%expect {| A list [l] |}];
   List.iter l ~f:print_string;
-  [%expect {|
+  [%expect
+    {|
     It has length 3
     abc
     |}]
@@ -91,7 +92,8 @@ Over many a quaint and curious
 (* $MDX part-begin=bad-format *)
 let%expect_test "bad formatting" =
   printf "a\n    b";
-  [%expect {|
+  [%expect
+    {|
 a
     b |}]
 ;;
@@ -155,8 +157,8 @@ let%expect_test "unreachable" =
 
 (* $MDX part-begin=sometimes-reachable *)
 module Test (B : sig
-  val interesting_opt : int option
-end) =
+    val interesting_opt : int option
+  end) =
 struct
   let%expect_test "sometimes reachable" =
     match B.interesting_opt with
@@ -168,23 +170,23 @@ struct
 end
 
 module _ = Test (struct
-  let interesting_opt = Some 5
-end)
+    let interesting_opt = Some 5
+  end)
 
 module _ = Test (struct
-  let interesting_opt = None
-end)
+    let interesting_opt = None
+  end)
 
 module _ = Test (struct
-  let interesting_opt = Some 5
-end)
+    let interesting_opt = Some 5
+  end)
 
 (* $MDX part-end *)
 
 (* $MDX part-begin=sometimes-raises *)
 module Test' (B : sig
-  val interesting_opt : int option
-end) =
+    val interesting_opt : int option
+  end) =
 struct
   let%expect_test "sometimes raises" =
     match B.interesting_opt with
@@ -196,16 +198,16 @@ struct
 end
 
 module _ = Test' (struct
-  let interesting_opt = Some 5
-end)
+    let interesting_opt = Some 5
+  end)
 
 module _ = Test' (struct
-  let interesting_opt = None
-end)
+    let interesting_opt = None
+  end)
 
 module _ = Test' (struct
-  let interesting_opt = Some 5
-end)
+    let interesting_opt = Some 5
+  end)
 
 (* $MDX part-end *)
 

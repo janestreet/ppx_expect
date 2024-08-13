@@ -1,6 +1,6 @@
 open! Base
-open Types
-include Expectation_intf.Definitions
+open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
+include Test_spec_intf.Definitions
 
 module Insert_loc = struct
   include Insert_loc
@@ -67,8 +67,8 @@ let formatter
         match
           indent_and_contents
           |> List.filter_map ~f:(function
-               | _indent, "" -> None
-               | indent, _ -> Some indent)
+            | _indent, "" -> None
+            | indent, _ -> Some indent)
           |> List.min_elt ~compare:Int.compare
         with
         | None -> []
@@ -109,9 +109,9 @@ let formatter
              start_pos
              - start_bol
              +
-             (match on_incorrect_output.kind with
-              | Extension -> expect_node_formatting.indent
-              | Attribute -> 0)
+               (match on_incorrect_output.kind with
+               | Extension -> expect_node_formatting.indent
+               | Attribute -> 0)
          in
          let spaces n = String.make n ' ' in
          let first_line, indentation, last_line =
@@ -141,7 +141,7 @@ let extension_syntax extension_name ~payload_loc ~node_loc =
     (* An extension point whose payload location contains the location of the entire
        extension point is using the "shorthand" syntax. *)
     (T { name = extension_name; kind = Extension; hand = Shorthand }
-      : String_node_format.Shape.t)
+     : String_node_format.Shape.t)
   | _ -> T { name = extension_name; kind = Extension; hand = Longhand }
 ;;
 
@@ -169,7 +169,7 @@ let possibly_relax_strictness
 
 let expected_string_and_payload_loc = function
   | Some (a, b) -> a, Some b
-  | None -> Output.Payload.default "", None
+  | None -> Payload.default "", None
 ;;
 
 let expect ~formatting_flexibility ~node_loc ~located_payload =
@@ -180,6 +180,17 @@ let expect ~formatting_flexibility ~node_loc ~located_payload =
         { payload; on_unreachable = Replace_with_unreachable; reachability = Can_reach }
   ; payload_type = Pretty
   ; on_incorrect_output = extension_syntax "expect" ~payload_loc ~node_loc
+  ; inconsistent_outputs_message = "test output"
+  }
+  |> possibly_relax_strictness ~formatting_flexibility
+;;
+
+let expect_if_reached ~formatting_flexibility ~node_loc ~located_payload =
+  let payload, payload_loc = expected_string_and_payload_loc located_payload in
+  { position = Overwrite { whole_node = node_loc; payload = payload_loc }
+  ; behavior = Expect { payload; on_unreachable = Silent; reachability = Can_reach }
+  ; payload_type = Pretty
+  ; on_incorrect_output = extension_syntax "expect.if_reached" ~payload_loc ~node_loc
   ; inconsistent_outputs_message = "test output"
   }
   |> possibly_relax_strictness ~formatting_flexibility
@@ -223,7 +234,7 @@ let expect_trailing ~insert_loc =
   { position = Insert insert_loc
   ; behavior =
       Expect
-        { payload = Output.Payload.default " "
+        { payload = Payload.default " "
         ; on_unreachable = Silent
         ; reachability = Can_reach
         }
@@ -251,7 +262,7 @@ module For_apply_style = struct
       mk_node
         ~formatting_flexibility:(Exactly_formatted : Expect_node_formatting.Flexibility.t)
         ~node_loc
-        ~located_payload:(Some (({ tag; contents } : Output.Payload.t), payload_loc))
+        ~located_payload:(Some (({ tag; contents } : Payload.t), payload_loc))
     in
     let formatted_contents =
       Output.Formatter.apply (formatter ~expect_node_formatting node) contents
@@ -262,8 +273,7 @@ module For_apply_style = struct
       let source_code_string =
         match node.on_incorrect_output with
         | T { hand = Longhand; _ } ->
-          Output.to_formatted_payload ~tag contents
-          |> Output.Payload.to_source_code_string
+          Output.to_formatted_payload ~tag contents |> Payload.to_source_code_string
         | T { hand = Shorthand; _ } as node_shape ->
           Output.to_source_code_string ~expect_node_formatting ~node_shape ~tag contents
       in
