@@ -4,6 +4,6 @@ executable, that executable will also explode if the tests are not elided
 correctly.
 
   $ cd $TEST_DIR
-  $ OCAMLRUNPARAM=b=0 ./inline_tests_runner -list-partitions
+  $ OCAMLRUNPARAM=b=0 ./sub/inline_tests_runner -list-partitions
   Fatal error: exception Failure("entered test functor")
   [2]
