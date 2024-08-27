@@ -1,5 +1,5 @@
 open! Base
-open Types
+open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
 
 module Patch_with_file_contents = struct
   type 'a t = original_file_contents:string -> 'a -> (Compact_loc.t * string) list
@@ -17,14 +17,21 @@ let rewrite_corrections ~original_file_contents ~corrections =
       corrections
       ~init:0
       ~f:(fun l_pos ({ start_pos; end_pos; start_bol = _ }, correction) ->
-      let code_chunk =
-        String.sub original_file_contents ~pos:l_pos ~len:(start_pos - l_pos)
-      in
-      end_pos, [ code_chunk; correction ])
+        let code_chunk =
+          String.sub original_file_contents ~pos:l_pos ~len:(start_pos - l_pos)
+        in
+        end_pos, [ code_chunk; correction ])
   in
   let result = List.concat strs |> String.concat in
   let rest = String.subo original_file_contents ~pos:l_pos in
   result ^ rest
+;;
+
+let write_all__removing_if_can't_overwrite filename ~data =
+  try Stdio.Out_channel.write_all filename ~data with
+  | Sys_error _ when Stdlib.Sys.file_exists filename ->
+    Stdlib.Sys.remove filename;
+    Stdio.Out_channel.write_all filename ~data
 ;;
 
 let f ~use_color ~in_place ~diff_command ~diff_path_prefix ~filename ~with_ corrections
@@ -45,7 +52,7 @@ let f ~use_color ~in_place ~diff_command ~diff_path_prefix ~filename ~with_ corr
   match in_place with
   | true ->
     if not (String.equal original_file_contents next_contents)
-    then Stdio.Out_channel.write_all filename ~data:next_contents;
+    then write_all__removing_if_can't_overwrite filename ~data:next_contents;
     remove dot_corrected;
     Success
   | false ->

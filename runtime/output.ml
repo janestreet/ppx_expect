@@ -1,5 +1,5 @@
 open! Base
-open Types
+open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
 
 module Type = struct
   type t =
@@ -35,27 +35,6 @@ module Test_result = struct
     | Pass, _ -> -1
     | _, Pass -> 1
     | Fail a, Fail b -> Reconciled.compare a b
-  ;;
-end
-
-module Payload = struct
-  type t =
-    { contents : string
-    ; tag : String_node_format.Delimiter.t
-    }
-
-  let default contents = { contents; tag = String_node_format.Delimiter.default }
-
-  let to_source_code_string { contents; tag } =
-    let escape_lines test_output =
-      test_output
-      |> String.split ~on:'\n'
-      |> List.map ~f:String.escaped
-      |> String.concat ~sep:"\n"
-    in
-    match tag with
-    | T (Tag tag) -> Printf.sprintf "{%s|%s|%s}" tag contents tag
-    | T Quote -> Printf.sprintf {|"%s"|} (escape_lines contents)
   ;;
 end
 

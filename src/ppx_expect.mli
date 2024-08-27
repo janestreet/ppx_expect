@@ -1,6 +1,6 @@
 open! Base
 open Ppxlib
-open Ppx_expect_runtime
+open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
 
 val compact_loc_of_ppxlib_location : location -> Compact_loc.t
 

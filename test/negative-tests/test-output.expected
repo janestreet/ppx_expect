@@ -5,7 +5,7 @@ File "export_test.ml", line 2, characters 2-24 threw
   \n- trying to run it from ppx/ppx_expect/test/negative-tests/import_test.ml\
   \n").
 
-FAILED 1 / 71 tests
+FAILED 1 / 74 tests
 ------ chdir.ml
 ++++++ chdir.ml.corrected
 File "chdir.ml", line 6, characters 0-1:
@@ -25,6 +25,49 @@ File "comment.ml", line 4, characters 0-1:
  |let%expect_test _ = raise (Failure "RIP")
 -|(* this fails, but the comment stays *) [@@expect.uncaught_exn {||}]
 +|(* this fails, but the comment stays *) [@@expect.uncaught_exn {| (Failure RIP) |}]
+ |;;
+------ current_test_has_output_that_does_not_match_exn.ml
+++++++ current_test_has_output_that_does_not_match_exn.ml.corrected
+File "current_test_has_output_that_does_not_match_exn.ml", line 17, characters 0-1:
+ |[@@@alert "-ppx_expect_runtime"]
+ |
+ |let%expect_test "not failing" =
+ |  print_string "hello";
+ |  [%expect {| hello |}];
+ |  Ppx_expect_runtime.For_external.current_test_has_output_that_does_not_match_exn
+ |    ~here:[%here]
+ |  |> string_of_bool
+ |  |> print_endline;
+ |  [%expect {| false |}];
+ |  print_string "world";
+ |  [%expect {| world |}]
+ |;;
+ |
+ |let%expect_test "failing" =
+ |  print_string "hello";
+-|  [%expect {| goodbye |}];
++|  [%expect {| hello |}];
+ |  Ppx_expect_runtime.For_external.current_test_has_output_that_does_not_match_exn
+ |    ~here:[%here]
+ |  |> string_of_bool
+ |  |> print_endline;
+-|  [%expect {| |}];
++|  [%expect {| true |}];
+ |  print_string "world";
+ |  [%expect {| world |}]
+ |;;
+ |
+ |let%expect_test "not failing 2 --- 'failure state' is not preserved across tests" =
+ |  print_string "hello";
+ |  [%expect {| hello |}];
+ |  Ppx_expect_runtime.For_external.current_test_has_output_that_does_not_match_exn
+ |    ~here:[%here]
+ |  |> string_of_bool
+ |  |> print_endline;
+ |  [%expect {| false |}];
+ |  print_string "world";
+-|  [%expect {| |}]
++|  [%expect {| world |}]
  |;;
 ------ escaped_strings.ml
 ++++++ escaped_strings.ml.corrected

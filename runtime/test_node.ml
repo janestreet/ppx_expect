@@ -1,12 +1,10 @@
 open! Base
-open Types
+open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
 
 module Correction = struct
   type t =
-    | New_payload :
-        [< Expectation.Behavior_type.t ] Expectation.t * Output.Reconciled.t
-        -> t
-    | Unreachable : [ `Expect ] Expectation.t -> t
+    | New_payload : [< Test_spec.Behavior_type.t ] Test_spec.t * Output.Reconciled.t -> t
+    | Unreachable : [ `Expect ] Test_spec.t -> t
 
   (** [Some (loc, patch)] if [correction] warrants inserting [patch] into the rewritten
       file at [loc], [None] if no change is needed from [correction]. *)
@@ -49,8 +47,7 @@ module Correction = struct
         | ( Overwrite { payload = Some payload_loc; whole_node = _ }
           , { kind = Extension; hand = Longhand; name = _ } ) ->
           let correction =
-            Output.to_formatted_payload ~tag test_output
-            |> Output.Payload.to_source_code_string
+            Output.to_formatted_payload ~tag test_output |> Payload.to_source_code_string
           in
           payload_loc, correction
         | (Overwrite { payload = _; whole_node = loc } | Insert { loc; body_loc = _ }), _
@@ -70,7 +67,7 @@ module Correction = struct
         ; inconsistent_outputs_message = _
         ; payload_type = _
         } ->
-      let loc = Expectation.Insert_loc.loc position in
+      let loc = Test_spec.Insert_loc.loc position in
       (match on_unreachable with
        | Silent -> None
        | Delete -> Some (loc, "")
@@ -146,7 +143,7 @@ type one_run =
 
 type 'behavior inner =
   | Test :
-      { expectation : ([< Expectation.Behavior_type.t ] as 'behavior) Expectation.t
+      { expectation : ([< Test_spec.Behavior_type.t ] as 'behavior) Test_spec.t
       ; results : one_run Queue.t
       ; mutable reached_this_run : bool
       }
@@ -192,7 +189,7 @@ let to_correction
      | Unreachable _ -> None
      | Expect _ as behavior ->
        (* Error if an expect test was not reached *)
-       Some (Unreachable (Expectation.with_behavior expectation behavior)))
+       Some (Unreachable (Test_spec.with_behavior expectation behavior)))
   | [ { result; _ } ], (true, _ | _, Can_reach) ->
     (* The test only produced one unique result and:
        - The test never failed to be reached OR
@@ -209,14 +206,14 @@ let to_correction
     let outputs =
       results_list
       |> List.map ~f:(function
-           | Reached_with_output { raw; _ } -> raw
-           | Did_not_reach ->
-             Printf.sprintf
-               "<expect test ran without %s>"
-               expectation.inconsistent_outputs_message)
+        | Reached_with_output { raw; _ } -> raw
+        | Did_not_reach ->
+          Printf.sprintf
+            "<expect test ran without %s>"
+            expectation.inconsistent_outputs_message)
     in
     cr_for_multiple_outputs ~output_name:expectation.inconsistent_outputs_message ~outputs
-    |> Output.Formatter.apply (Expectation.formatter ~expect_node_formatting expectation)
+    |> Output.Formatter.apply (Test_spec.formatter ~expect_node_formatting expectation)
     |> Output.fail
     |> correction_for_single_result
 ;;
@@ -230,7 +227,7 @@ let record_and_return_result
   =
   let test_output =
     Output.Formatter.apply
-      (Expectation.formatter ~expect_node_formatting expectation)
+      (Test_spec.formatter ~expect_node_formatting expectation)
       test_output_raw
   in
   let (result : Output.Test_result.t), (tag : String_node_format.Delimiter.t) =
@@ -259,7 +256,7 @@ let record_end_of_run t =
 let record_result ~expect_node_formatting ~failure_ref ~test_output_raw (T inner) =
   ignore
     (record_and_return_result ~expect_node_formatting ~failure_ref ~test_output_raw inner
-      : Output.Test_result.t * String_node_format.Delimiter.t)
+     : Output.Test_result.t * String_node_format.Delimiter.t)
 ;;
 
 module Global_results_table = struct
@@ -298,10 +295,10 @@ module Global_results_table = struct
         ~src:tests
         ~dst:file.expectations
         ~f:(fun ~key:test_id new_test existing_test ->
-        let (T (Test t) as test) = Option.value existing_test ~default:new_test in
-        t.reached_this_run <- false;
-        Queue.enqueue tests_as_in_table (test_id, test);
-        Set_to test);
+          let (T (Test t) as test) = Option.value existing_test ~default:new_test in
+          t.reached_this_run <- false;
+          Queue.enqueue tests_as_in_table (test_id, test);
+          Set_to test);
       file);
     Queue.to_list tests_as_in_table
   ;;
@@ -311,29 +308,34 @@ module Global_results_table = struct
     |> Hashtbl.to_alist
     |> List.sort ~compare:(Comparable.lift ~f:fst String.compare)
     |> List.map ~f:(fun (filename, { expectations; postprocess }) ->
-         let test_nodes = Hashtbl.data expectations in
-         f ~filename ~test_nodes ~postprocess)
+      let test_nodes = Hashtbl.data expectations in
+      f ~filename ~test_nodes ~postprocess)
   ;;
 end
 
 module Create = struct
   let expect ~formatting_flexibility ~node_loc ~located_payload =
-    of_expectation (Expectation.expect ~formatting_flexibility ~node_loc ~located_payload)
+    of_expectation (Test_spec.expect ~formatting_flexibility ~node_loc ~located_payload)
   ;;
 
   let expect_exact ~formatting_flexibility ~node_loc ~located_payload =
     of_expectation
-      (Expectation.expect_exact ~formatting_flexibility ~node_loc ~located_payload)
+      (Test_spec.expect_exact ~formatting_flexibility ~node_loc ~located_payload)
+  ;;
+
+  let expect_if_reached ~formatting_flexibility ~node_loc ~located_payload =
+    of_expectation
+      (Test_spec.expect_if_reached ~formatting_flexibility ~node_loc ~located_payload)
   ;;
 
   let expect_unreachable ~node_loc =
-    of_expectation (Expectation.expect_unreachable ~node_loc)
+    of_expectation (Test_spec.expect_unreachable ~node_loc)
   ;;
 end
 
 module For_mlt = struct
   let loc (T (Test { expectation = { position; _ }; results = _; reached_this_run = _ })) =
-    Expectation.Insert_loc.loc position
+    Test_spec.Insert_loc.loc position
   ;;
 
   let expectation_of_t (T (Test { expectation; results = _; reached_this_run = _ })) =
@@ -358,7 +360,7 @@ module For_mlt = struct
     with
     | Fail contents, tag ->
       let correction =
-        Output.to_formatted_payload ~tag contents |> Output.Payload.to_source_code_string
+        Output.to_formatted_payload ~tag contents |> Payload.to_source_code_string
       in
       Some (String.count ~f:(Char.equal '\n') correction + 1)
     | Pass, _ -> None

@@ -1,12 +1,12 @@
 open! Base
-open Types
+open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
 
 module Type : sig
   (** How the output expected at a node interacts with whitespace. *)
   type t =
     | Exact (** Matches the captured output exactly, including whitespace. *)
     | Pretty
-        (** Matches a version of the captured output that has been formatted according to
+    (** Matches a version of the captured output that has been formatted according to
         standard rules about indentation and other whitespace. *)
 end
 
@@ -42,22 +42,6 @@ module Test_result : sig
     | Fail of Reconciled.t
 
   val compare : t -> t -> int
-end
-
-module Payload : sig
-  (** Payloads given as arguments to expectation AST nodes. *)
-  type t =
-    { contents : string
-        (** The contents of the payload; the output expected at some node, as a raw [string]
-        exactly as they were parsed from the source file. *)
-    ; tag : String_node_format.Delimiter.t (** The delimiters used in the payload. *)
-    }
-
-  (** Add the default tags to a payload. *)
-  val default : string -> t
-
-  (** The source-code representation of a payload. *)
-  val to_source_code_string : t -> string
 end
 
 (** Returns [Pass] if [test_output] is considered to match [expected_output]; otherwise

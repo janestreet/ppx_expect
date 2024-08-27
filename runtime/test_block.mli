@@ -1,5 +1,5 @@
 open! Base
-open Types
+open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
 
 (** Functor for building the runtime representation of a [let%expect_test] block *)
 
@@ -49,7 +49,7 @@ module Make (C : Expect_test_config_types.S) : sig
          (** Range of characters of the RHS of the [let%expect_test] binding. *)
     -> formatting_flexibility:Expect_node_formatting.Flexibility.t
          (** The formatting flexibility to use for the uncaught exn test. *)
-    -> expected_exn:(Output.Payload.t * Compact_loc.t) option
+    -> expected_exn:(Payload.t * Compact_loc.t) option
          (** Contents of the [[@@expect.uncaught_exn]] node, if any. *)
     -> trailing_test_id:Expectation_id.t
          (** ID to use for the test checking that there is no trailing output. *)
@@ -88,6 +88,17 @@ module For_external : sig
     :  output_name:string
     -> outputs:string list
     -> string
+
+  (** If the current test has reached a [[%expect]], [[%expect_exact]], or
+      [[%expect.if_reached]] node whose output does not match the expected output, or if
+      it has reached a [[%expect.unreachable]] node at all, returns [true].
+
+      If the current test does not meet those criteria, returns [false].
+
+      If there is no current test running, raises an error including [here]. *)
+  val current_test_has_output_that_does_not_match_exn
+    :  here:Source_code_position.t
+    -> bool
 end
 
 val tests_should_run : bool

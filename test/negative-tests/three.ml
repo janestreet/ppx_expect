@@ -9,28 +9,32 @@
 let%expect_test _ =
   let text_no_final_nl () = print_string "one\ntwo\nthree" in
   text_no_final_nl ();
-  [%expect {|
+  [%expect
+    {|
   one
   two
   three|}];
   let text () = print_string "one\ntwo\nthree\n" in
   (* Base example *)
   text ();
-  [%expect {|
+  [%expect
+    {|
   one
   two
   three
 |}];
   (* ok to omit space between "expect" and "{" *)
   text ();
-  [%expect {|
+  [%expect
+    {|
   one
   two
   three
 |}];
   (* indentation allowed *)
   text ();
-  [%expect {|
+  [%expect
+    {|
   one
   two
   three

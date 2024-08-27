@@ -1,6 +1,6 @@
 (library
  (name expect_test_examples)
- (libraries core async)
+ (libraries core async unix)
  (preprocess
   (pps ppx_jane)))
 

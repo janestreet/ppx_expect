@@ -5,4 +5,4 @@
  (name ppx_expect_test)
  (flags :standard -principal)
  (preprocess
-  (pps ppx_assert ppx_expect)))
+  (pps ppx_assert ppx_expect ppx_here)))

@@ -1,6 +1,6 @@
 module M (S : sig
-  val foo : string
-end) =
+    val foo : string
+  end) =
 struct
   let%expect_test "similar passing" =
     print_string S.foo;
@@ -14,9 +14,9 @@ struct
 end
 
 module M1 = M (struct
-  let foo = "foo"
-end)
+    let foo = "foo"
+  end)
 
 module M2 = M (struct
-  let foo = "\n\nfoo\n\n"
-end)
+    let foo = "\n\nfoo\n\n"
+  end)

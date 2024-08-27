@@ -1,5 +1,5 @@
 open! Base
-open Types
+open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
 
 (* [Shared] and [Configured] primarily contain boilerplate involving the FFI and printing
    [CR]s. The interesting logic is in [Make]. *)
@@ -213,22 +213,22 @@ end = struct
           ; location = _
           ; test_block = _
           }
-          ->
-      let sexp_here ~basename ~line_number : Sexp.t =
-        List
-          [ List [ Atom "file"; sexp_of_string basename ]
-          ; List [ Atom "line"; sexp_of_int line_number ]
-          ]
-      in
-      raise_s
-        (Sexp.message
-           "Expect_test_runtime: reached one [let%expect_test] from another. Nesting \
-            expect\n\
-            tests is prohibited."
-           [ ( "outer_test"
-             , sexp_here ~basename:outer_basename ~line_number:outer_line_number )
-           ; "inner_test", sexp_here ~basename ~line_number
-           ]))
+        ->
+        let sexp_here ~basename ~line_number : Sexp.t =
+          List
+            [ List [ Atom "file"; sexp_of_string basename ]
+            ; List [ Atom "line"; sexp_of_int line_number ]
+            ]
+        in
+        raise_s
+          (Sexp.message
+             "Expect_test_runtime: reached one [let%expect_test] from another. Nesting \
+              expect\n\
+              tests is prohibited."
+             [ ( "outer_test"
+               , sexp_here ~basename:outer_basename ~line_number:outer_line_number )
+             ; "inner_test", sexp_here ~basename ~line_number
+             ]))
   ;;
 end
 
@@ -301,7 +301,7 @@ module Make (C : Expect_test_config_types.S) = struct
         (* Create the tests for trailing output and uncaught exceptions *)
         let expectations =
           let trailing_test =
-            Expectation.expect_trailing
+            Test_spec.expect_trailing
               ~insert_loc:
                 { loc = { trailing_loc with end_pos = trailing_loc.start_pos }; body_loc }
             |> Test_node.of_expectation
@@ -309,13 +309,13 @@ module Make (C : Expect_test_config_types.S) = struct
           let exn_test =
             match expected_exn with
             | Some _ ->
-              Expectation.expect_uncaught_exn
+              Test_spec.expect_uncaught_exn
                 ~formatting_flexibility
                 ~located_payload:expected_exn
                 ~node_loc:trailing_loc
               |> Test_node.of_expectation
             | None ->
-              Expectation.expect_no_uncaught_exn
+              Test_spec.expect_no_uncaught_exn
                 ~insert_loc:{ loc = trailing_loc; body_loc }
               |> Test_node.of_expectation
           in
@@ -327,13 +327,13 @@ module Make (C : Expect_test_config_types.S) = struct
             ~absolute_filename
             expectations
             (fun ~original_file_contents ts ->
-            List.concat_map
-              ts
-              ~f:
-                (Test_node.For_mlt.to_diffs
-                   ~cr_for_multiple_outputs:Configured.cr_for_multiple_outputs
-                   ~expect_node_formatting:Expect_node_formatting.default
-                   ~original_file_contents))
+               List.concat_map
+                 ts
+                 ~f:
+                   (Test_node.For_mlt.to_diffs
+                      ~cr_for_multiple_outputs:Configured.cr_for_multiple_outputs
+                      ~expect_node_formatting:Expect_node_formatting.default
+                      ~original_file_contents))
         in
         (* To avoid capturing not-yet flushed data of the stdout/stderr buffers. *)
         Shared.flush ();
@@ -390,22 +390,22 @@ let at_exit () =
         ; location = { start_bol; start_pos; end_pos }
         ; test_block
         }
-        ->
-    Shared.flush ();
-    let fin = Stdlib.open_in (Shared.output_file test_block) in
-    let all_out = Stdlib.really_input_string fin (Stdlib.in_channel_length fin) in
-    Shared.clean_up_block test_block;
-    Stdlib.Printf.eprintf
-      "File %S, line %d, characters %d-%d:\n\
-       Error: program exited while expect test was running!\n\
-       Output captured so far:\n\
-       %s\n\
-       %!"
-      basename
-      line_number
-      (start_pos - start_bol)
-      (end_pos - start_bol)
-      all_out)
+      ->
+      Shared.flush ();
+      let fin = Stdlib.open_in (Shared.output_file test_block) in
+      let all_out = Stdlib.really_input_string fin (Stdlib.in_channel_length fin) in
+      Shared.clean_up_block test_block;
+      Stdlib.Printf.eprintf
+        "File %S, line %d, characters %d-%d:\n\
+         Error: program exited while expect test was running!\n\
+         Output captured so far:\n\
+         %s\n\
+         %!"
+        basename
+        line_number
+        (start_pos - start_bol)
+        (end_pos - start_bol)
+        all_out)
 ;;
 
 module For_external = struct
@@ -426,5 +426,16 @@ module For_external = struct
   let default_cr_for_multiple_outputs =
     let module Configured = Configured (Expect_test_config) in
     Configured.cr_for_multiple_outputs
+  ;;
+
+  let current_test_has_output_that_does_not_match_exn ~here =
+    match Current_test.current_test () with
+    | Some test_block -> !(Shared.failure_ref test_block)
+    | None ->
+      raise_s
+        (Sexp.message
+           "Ppx_expect_runtime.For_external.current_test_has_output_that_does_not_match_exn \
+            called while there are no tests running"
+           [ "", Source_code_position.sexp_of_t here ])
   ;;
 end

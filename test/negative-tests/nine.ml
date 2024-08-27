@@ -32,7 +32,8 @@ let%expect_test _ =
 
     let () =
       print_string "\nhello";
-      [%expect {|
+      [%expect
+        {|
 
                                               hello|}]
     ;;
@@ -58,7 +59,8 @@ let%expect_test _ =
 
     let () =
       print_string "\n\nhello";
-      [%expect {|
+      [%expect
+        {|
 
 
                                               hello|}]

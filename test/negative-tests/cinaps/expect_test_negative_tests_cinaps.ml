@@ -9,8 +9,8 @@ let generate ~postprocess_test_output ~set_up_for_tests ~inline_test_args ~exclu
     Filesystem_core.ls_dir File_path.dot
     |> List.map ~f:File_path.Part.to_string
     |> List.filter ~f:(fun filename ->
-         String.is_suffix filename ~suffix:".ml"
-         && not (List.mem exclude_targets filename ~equal:String.equal))
+      String.is_suffix filename ~suffix:".ml"
+      && not (List.mem exclude_targets filename ~equal:String.equal))
   in
   let filenames = List.sort filenames ~compare:String.compare in
   let targets =
@@ -52,13 +52,21 @@ let generate ~postprocess_test_output ~set_up_for_tests ~inline_test_args ~exclu
               >
               > rm -f *.ml.corrected 2>/dev/null
               > ! %{set_up_string}%{"%"}{first_dep}%{args_string}%{postprocess_string}
-              > for f in *.ml.corrected
+              > for f in %{"%"}{targets}
               > do
-              >   %{"%"}{root}/bin/apply-style \
-              >     -directory-config jbuild \
-              >     -original-file $(basename $f .corrected) \
-              >     - < $f > $f.tmp
-              >   mv $f.tmp $f
+              >   if [[ $f == *.corrected ]]
+              >   then
+              >     if [[ -e $f ]]
+              >     then
+              >       %{"%"}{root}/bin/apply-style \
+              >         -directory-config jbuild \
+              >         -original-file $(basename $f .corrected) \
+              >         - < $f > $f.tmp
+              >       mv $f.tmp $f
+              >     else
+              >       echo "=== Failed to generate corrected file ===" > $f
+              >     fi
+              >   fi
               > done
               >
               |}]
