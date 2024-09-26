@@ -1,3 +1,10 @@
+(alias
+ (name test-runner-runtime-deps)
+ (deps
+  ./broken-test/inline_tests_runner
+  ./broken-test/inline_tests_runner.exe
+  (glob_files ./broken-test/*.ml)))
+
 (library
  (name expect_test_test_exit_in_test)
  (preprocess

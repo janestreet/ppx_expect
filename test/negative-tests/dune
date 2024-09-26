@@ -4,13 +4,18 @@
  (preprocess
   (pps ppx_jane)))
 
+(alias
+ (name test-runner-runtime-deps)
+ (deps
+  ./inline_tests_runner
+  ./inline_tests_runner.exe
+  (glob_files *.ml)))
+
 (rule
  (deps
-  (:first_dep ./inline_tests_runner)
-  ./inline_tests_runner.exe
+  (alias test-runner-runtime-deps)
   %{workspace_root}/bin/apply-style
-  jbuild
-  (glob_files *.ml))
+  jbuild)
  (targets chdir.ml.corrected comment.ml.corrected
    current_test_has_output_that_does_not_match_exn.ml.corrected
    escaped_strings.ml.corrected exact.ml.corrected exn.ml.corrected
@@ -26,7 +31,7 @@
    test-output)
  (action
   (bash
-    "\nrm -f *.ml.corrected 2>/dev/null\n! %{first_dep} -no-color > test-output 2>&1\nfor f in %{targets}\ndo\n  if [[ $f == *.corrected ]]\n  then\n    if [[ -e $f ]]\n    then\n      %{workspace_root}/bin/apply-style \\\n        -directory-config jbuild \\\n        -original-file $(basename $f .corrected) \\\n        - < $f > $f.tmp\n      mv $f.tmp $f\n    else\n      echo \"=== Failed to generate corrected file ===\" > $f\n    fi\n  fi\ndone\n")))
+    "\nrm -f *.ml.corrected 2>/dev/null\n! ./inline_tests_runner -no-color > test-output 2>&1\nfor f in %{targets}\ndo\n  if [[ $f == *.corrected ]]\n  then\n    if [[ -e $f ]]\n    then\n      %{workspace_root}/bin/apply-style \\\n        -directory-config jbuild \\\n        -original-file $(basename $f .corrected) \\\n        - < $f > $f.tmp\n      mv $f.tmp $f\n    else\n      echo \"=== Failed to generate corrected file ===\" > $f\n    fi\n  fi\ndone\n")))
 
 (rule
  (alias runtest)

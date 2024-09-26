@@ -1,5 +1,6 @@
-(library
- (name expect_test_force_drop_integration_lib)
- (libraries expect_test_config_types)
- (preprocess
-  (pps ppx_expect)))
+(alias
+ (name test-runner-runtime-deps)
+ (deps
+  ./sub/inline_tests_runner
+  ./sub/inline_tests_runner.exe
+  (glob_files ./sub/*.ml)))

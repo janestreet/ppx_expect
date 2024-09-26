@@ -16,7 +16,7 @@ depends: [
   "ppx_inline_test"
   "stdio"
   "dune"            {>= "3.11.0"}
-  "ppxlib"          {>= "0.28.0"}
+  "ppxlib"          {>= "0.33.0"}
 ]
 available: arch != "arm32" & arch != "x86_32"
 synopsis: "Cram like framework for OCaml"
