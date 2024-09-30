@@ -39,7 +39,7 @@ let f ~use_color ~in_place ~diff_command ~diff_path_prefix ~filename ~with_ corr
   =
   let dot_corrected = filename ^ ".corrected" in
   let original_file_contents =
-    let in_channel = Stdlib.open_in filename in
+    let in_channel = Stdlib.open_in_bin filename in
     let contents =
       Stdlib.really_input_string in_channel (Stdlib.in_channel_length in_channel)
     in
