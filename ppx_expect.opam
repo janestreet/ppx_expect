@@ -20,6 +20,10 @@ depends: [
   "ppxlib"          {>= "0.28.0"}
 ]
 available: arch != "arm32" & arch != "x86_32"
+conflicts: [
+  "js_of_ocaml-compiler" {< "5.8"}
+]
+
 synopsis: "Cram like framework for OCaml"
 description: "
 Part of the Jane Street's PPX rewriters collection.
