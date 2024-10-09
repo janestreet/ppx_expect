@@ -101,6 +101,8 @@ module For_external : sig
     -> bool
 end
 
+val tests_should_run : bool
+
 (** Action to perform when exiting from a program that runs expect tests. Alerts of
     runtime failure if the program exited while executing an expect test. *)
 val at_exit : unit -> unit
