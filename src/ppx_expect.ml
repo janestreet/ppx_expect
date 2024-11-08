@@ -250,26 +250,29 @@ let transform_let_expect ~trailing_location ~tags ~expected_exn ~description ~lo
     match Ppx_inline_test_lib.testing with
     | `Not_testing -> ()
     | `Testing _ ->
-      let module Ppx_expect_test_block =
-        Ppx_expect_runtime.Make_test_block [@alert "-ppx_expect_runtime"]
-          (Expect_test_config)
-      in
-      Ppx_expect_test_block.run_suite
-        ~filename_rel_to_project_root:[%e estring ~loc filename_rel_to_project_root]
-        ~line_number:[%e eint ~loc loc.loc_start.pos_lnum]
-        ~location:[%e Expr.compact_loc ~loc (compact_loc_of_ppxlib_location loc)]
-        ~trailing_loc:[%e Expr.compact_loc ~loc trailing_location]
-        ~body_loc:[%e Expr.compact_loc ~loc body_loc]
-        ~formatting_flexibility:[%e Expr.flexibility_of_strictness ~loc]
-        ~expected_exn:[%e Expr.(option ~loc (pair payload compact_loc)) expected_exn]
-        ~trailing_test_id:[%e Expr.id ~loc trailing_test_id]
-        ~exn_test_id:[%e Expr.id ~loc exn_test_id]
-        ~description:[%e Expr.option estring ~loc description]
-        ~tags:[%e tags |> List.map ~f:(estring ~loc) |> elist ~loc]
-        ~inline_test_config:(module Inline_test_config)
-        ~expectations:
-          [%e Merlin_helpers.hide_expression (Expr.id_expr_alist ~loc expectations)]
-        (fun () -> [%e body])]
+      if Ppx_inline_test_lib.force_drop
+      then ()
+      else
+        let module Ppx_expect_test_block =
+          Ppx_expect_runtime.Make_test_block [@alert "-ppx_expect_runtime"]
+            (Expect_test_config)
+        in
+        Ppx_expect_test_block.run_suite
+          ~filename_rel_to_project_root:[%e estring ~loc filename_rel_to_project_root]
+          ~line_number:[%e eint ~loc loc.loc_start.pos_lnum]
+          ~location:[%e Expr.compact_loc ~loc (compact_loc_of_ppxlib_location loc)]
+          ~trailing_loc:[%e Expr.compact_loc ~loc trailing_location]
+          ~body_loc:[%e Expr.compact_loc ~loc body_loc]
+          ~formatting_flexibility:[%e Expr.flexibility_of_strictness ~loc]
+          ~expected_exn:[%e Expr.(option ~loc (pair payload compact_loc)) expected_exn]
+          ~trailing_test_id:[%e Expr.id ~loc trailing_test_id]
+          ~exn_test_id:[%e Expr.id ~loc exn_test_id]
+          ~description:[%e Expr.option estring ~loc description]
+          ~tags:[%e tags |> List.map ~f:(estring ~loc) |> elist ~loc]
+          ~inline_test_config:(module Inline_test_config)
+          ~expectations:
+            [%e Merlin_helpers.hide_expression (Expr.id_expr_alist ~loc expectations)]
+          (fun () -> [%e body])]
 ;;
 
 let let_expect_pat =

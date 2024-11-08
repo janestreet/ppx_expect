@@ -7,7 +7,11 @@ open! Base
     build that an error occurred. If it doesn't, the build system may not recognize that a
     corrected file has been generated and needs to be moved out of a sandbox.
 
-    The optional arguments support "expert" use cases. Most clients do not need them. *)
+    The optional arguments support "expert" use cases. Most clients do not need them.
+
+    If [path] does not exist, its contents are assumed to be "". This is a convenience for
+    creating new files on the first run of a correction.
+*)
 val f
   :  ?use_dot_patdiff:bool (** default: [false] *)
   -> ?corrected_path:string (** default: [path ^ ".corrected"] *)

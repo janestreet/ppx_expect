@@ -3,20 +3,18 @@ let%expect_test "no sanitization" =
   [%expect {| hi! |}]
 ;;
 
-let%test_module _ =
-  (module struct
-    module Expect_test_config = struct
-      include Expect_test_config
+module%test _ = struct
+  module Expect_test_config = struct
+    include Expect_test_config
 
-      let sanitize s = if s = "" then "" else "local module sanitize: " ^ s
-    end
+    let sanitize s = if s = "" then "" else "local module sanitize: " ^ s
+  end
 
-    let%expect_test "local sanitize" =
-      print_endline "hi!";
-      [%expect {| local module sanitize: hi! |}]
-    ;;
-  end)
-;;
+  let%expect_test "local sanitize" =
+    print_endline "hi!";
+    [%expect {| local module sanitize: hi! |}]
+  ;;
+end
 
 module Expect_test_config = struct
   include Expect_test_config
