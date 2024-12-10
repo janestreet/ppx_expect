@@ -20,6 +20,9 @@ depends: [
   "ppxlib"          {>= "0.28.0"}
   "re"              {>= "1.8.0"}
 ]
+conflicts: [
+  "js_of_ocaml-compiler" {< "5.8"}
+]
 available: arch != "arm32" & arch != "x86_32"
 synopsis: "Cram like framework for OCaml"
 description: "
