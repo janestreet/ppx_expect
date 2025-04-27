@@ -29,8 +29,7 @@ module Expect_node_formatting : sig
 
         {v
         [%expect {| foo |}]
-        v}
-    *)
+        v} *)
     ; extension_sigil : string
     (** The sigil that should be printed to signal the start of an extension point. By
         default, this is ["%"], though in toplevel tests it changes to ["%%"]. *)
@@ -71,8 +70,7 @@ module Compact_loc : sig
       Then [start_bol] is the position of [0], [start_pos] of [a], and [end_pos] of [b].
 
       This record corresponds to a [Ppxlib.Location.t] restricted to just the
-      [loc_start.pos_cbol], [loc_start.pos_cnum], and [loc_end.pos_cnum] fields.
-  *)
+      [loc_start.pos_cbol], [loc_start.pos_cnum], and [loc_end.pos_cnum] fields. *)
   type t =
     { start_bol : int (** Index of the first character of the first line in the range. *)
     ; start_pos : int (** Index of the first character in the range. *)
@@ -105,8 +103,8 @@ end
 
 module Expectation_id : sig
   (** An identifier for a test node. Each test node that was parsed from an extension
-      point or attribute ([[%expect]], [[%expect_exact]], [[%expect.unreachable]],
-      or [[%expect.uncaught_exn]]) or that might be added into the corrected file (e.g. a
+      point or attribute ([[%expect]], [[%expect_exact]], [[%expect.unreachable]], or
+      [[%expect.uncaught_exn]]) or that might be added into the corrected file (e.g. a
       [[%expect]] for trailing output) is associated with a unique [t]. *)
   type t
 
@@ -121,9 +119,8 @@ module Expectation_id : sig
   (** Create a new [t] at the given [location_type] and [Compact_loc.t].
       - [lookup_or_mint loc_type loc] produces the same id when called with the same
         [loc_type] and [loc].
-      - It produces different ids otherwise.
-      These uniqueness properties are not guaranteed if [of_int_exn] is used to create
-      ids. *)
+      - It produces different ids otherwise. These uniqueness properties are not
+        guaranteed if [of_int_exn] is used to create ids. *)
   val lookup_or_mint : location_type -> Compact_loc.t -> t
 end
 

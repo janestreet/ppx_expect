@@ -82,8 +82,7 @@
       (* This statement is added to the end of each file so that the expect test runtime
          knows the file is finished executing and a new one can be set as current. *)
       let () = Ppx_expect_runtime.Current_file.unset ()
-    ]}
-*)
+    ]} *)
 
 [@@@alert "-ppx_expect_runtime_types"]
 

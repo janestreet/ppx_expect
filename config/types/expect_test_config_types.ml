@@ -21,6 +21,6 @@ module type S = sig
   val sanitize : string -> string
 
   (** [upon_unreleasable_issue] specifies how to deal with output that should not be
-      released even if it is accepted (e.g. backtraces). The default is [`CR].  *)
+      released even if it is accepted (e.g. backtraces). The default is [`CR]. *)
   val upon_unreleasable_issue : Upon_unreleasable_issue.t
 end

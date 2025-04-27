@@ -9,8 +9,8 @@
  (name test-runner-runtime-deps)
  (deps
   ./inline_tests_runner
-  ./inline_tests_runner.exe
-  (glob_files *.ml)))
+  (glob_files *.ml)
+  ./inline_tests_runner.exe))
 
 (rule
  (deps

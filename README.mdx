@@ -607,8 +607,53 @@ let%expect_test "sanitization" =
 ;;
 ```
 
+# Debugging deadlocks & hanging tests
+
+
+One common pitfall while using expect-test is that it hurts the inspectability of code
+that fails to terminate. Normally, adding prints to understand how code behaves interacts
+well with expect-test; when the tests finish, the test framework produces a corrected
+file, where the output has been inserted to the interleaved `[%expect]` extension points.
+However, if a test never finishes, no corrected file is produced at all, and all of the
+useful debug output produced by the program seemingly vanishes into oblivion.
+
+As of December 2024, it is possible to see the output collected by a running expect-test
+program in real-time using the `-verbose` flag[^1].
+
+For example, the output of the following OCaml program (`test_loops.ml`)
+
+```ocaml skip
+let rec loop () = loop ()
+
+let%expect_test "doesn't finish" =
+  print_endline "about to enter an infinite loop";
+  loop ()
+;;
+```
+
+can be seen by running
+
+
+```
+$ ./inline_tests_runner -verbose -only-test test_loops.ml
+File "test_loops.ml", line X, characters X-X: doesn't finish
+about to enter an infinite loop
+```
+
+despite the fact that the test never finishes or produces a corrected file.
+
+When `-verbose` is used, running the `inline_tests_runner` executable to completion
+still produces a corrected file, so the `-verbose` flag need not be incompatible with
+normal workflows.
+
+
+
 # Build system integration
 
 Follow the same rules as for
 [ppx_inline_test](https://github.com/janestreet/ppx_inline_test?tab=readme-ov-file#building-and-running-the-tests-outside-of-jane-street-with-dune).
 
+
+[^1]: This behavior is only supported on `inline_tests_runner` executables built for
+    native code on Linux systems. It is not supported on Windows or `inline_tests_runner`s
+    compiled to WASM or javascript.

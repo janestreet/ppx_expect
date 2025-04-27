@@ -49,14 +49,13 @@ module Definitions = struct
   end
 
   module Behavior = struct
-    (** A ['behavior_type t] describes how to handle a test node when running tests
-        and writing corrections.
+    (** A ['behavior_type t] describes how to handle a test node when running tests and
+        writing corrections.
 
         ['behavior_type] determines the types of rewrites that are possible at this node.
         It is either [`Expect] (indicating that both corrections for unexpected output and
         rewrites for unreachability are possible) or [`Unreachable] (indicating that only
-        corrections for unexpected output are possible).
-    *)
+        corrections for unexpected output are possible). *)
     type _ t =
       | Expect :
           { payload : Payload.t
@@ -72,11 +71,10 @@ module Definitions = struct
           -> [ `Unreachable ] t
   end
 
-  (** A [('behavior_type) t] carries information about how to run tests for a
-      specific expect node and rewrite it in the source file if there are corrections. The
+  (** A [('behavior_type) t] carries information about how to run tests for a specific
+      expect node and rewrite it in the source file if there are corrections. The
       ['behavior_type] type variable has the same meanings as in
-      ['behavior_type Behavior.t].
-  *)
+      ['behavior_type Behavior.t]. *)
   type 'behavior_type t =
     { position : Insert_loc.t
     ; behavior : 'behavior_type Behavior.t
@@ -86,13 +84,12 @@ module Definitions = struct
         corrections when receiving "incorrect" output for this test node. For each [t],
         there is only one such node. For example, if an [{%expect_exact||}] node is
         reached with incorrect output, it is always corrected to a different
-        [{%expect_exact||}] node, and an [[%expect.unreachable]] that is reached is
-        always corrected to an [[%expect]] node.
+        [{%expect_exact||}] node, and an [[%expect.unreachable]] that is reached is always
+        corrected to an [[%expect]] node.
 
         Note that for a node that should be reachable, the correction when it is found to
         be unreachable is instead governed by [on_unreachable] in the [Expect] constructor
-        of [behavior].
-    *)
+        of [behavior]. *)
     ; inconsistent_outputs_message : string
     }
 end

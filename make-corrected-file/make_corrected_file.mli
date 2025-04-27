@@ -10,8 +10,7 @@ open! Base
     The optional arguments support "expert" use cases. Most clients do not need them.
 
     If [path] does not exist, its contents are assumed to be "". This is a convenience for
-    creating new files on the first run of a correction.
-*)
+    creating new files on the first run of a correction. *)
 val f
   :  ?use_dot_patdiff:bool (** default: [false] *)
   -> ?corrected_path:string (** default: [path ^ ".corrected"] *)

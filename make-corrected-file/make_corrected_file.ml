@@ -1,8 +1,10 @@
 open! Base
 open! Import
 
+let ensure_trailing_slash path = String.rstrip ~drop:(Char.equal '/') path ^ "/"
+
 let chop_if_exists ~ancestor ~from:path =
-  String.chop_prefix_if_exists path ~prefix:(ancestor ^ "/")
+  String.chop_prefix_if_exists path ~prefix:(ensure_trailing_slash ancestor)
 ;;
 
 let f
@@ -45,7 +47,7 @@ let f
          where the rule and the test are in different directories. *)
       let prefix =
         match diff_path_prefix with
-        | Some prefix -> String.rstrip ~drop:(Char.equal '/') prefix ^ "/"
+        | Some prefix -> ensure_trailing_slash prefix
         | None -> ""
       in
       let alt_old = [ "-alt-old"; prefix ^ chop_if_exists ~ancestor:cwd ~from:path ] in

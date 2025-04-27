@@ -1,0 +1,6 @@
+(alias
+ (name test-runner-runtime-deps)
+ (deps
+  ./sub/inline_tests_runner
+  ./sub/inline_tests_runner.exe
+  (glob_files ./sub/*.ml)))

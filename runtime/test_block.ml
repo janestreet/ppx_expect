@@ -21,6 +21,7 @@ end = struct
     ; fail : bool ref
     ; test_output_reader : Stdlib.in_channel
     ; test_output_writer : Stdlib.out_channel
+    ; output_reader_for_stubs_do_not_read : Stdlib.in_channel option
     ; old_offset : int ref
     }
 
@@ -29,7 +30,8 @@ end = struct
   let failure_ref { fail; _ } = fail
 
   external redirect_stdout
-    :  output:Stdlib.out_channel
+    :  output_writer:Stdlib.out_channel
+    -> output_reader_for_stubs_do_not_read:Stdlib.in_channel option
     -> stdout:Stdlib.out_channel
     -> stderr:Stdlib.out_channel
     -> unit
@@ -54,21 +56,40 @@ end = struct
       Stdlib.open_out_gen [ Open_wronly; Open_creat; Open_binary ] 0o644 output_file
     in
     let test_output_reader = Stdlib.open_in_bin output_file in
-    redirect_stdout ~output:test_output_writer ~stdout:Stdlib.stdout ~stderr:Stdlib.stderr;
+    let output_reader_for_stubs_do_not_read =
+      Option.some_if_thunk (Ppx_inline_test_lib.verbose ()) (fun () ->
+        Stdlib.open_in_bin output_file)
+    in
+    redirect_stdout
+      ~output_writer:test_output_writer
+      ~output_reader_for_stubs_do_not_read
+      ~stdout:Stdlib.stdout
+      ~stderr:Stdlib.stderr;
     { src_filename
     ; output_file
     ; test_output_reader
     ; test_output_writer
+    ; output_reader_for_stubs_do_not_read
     ; old_offset = ref 0
     ; fail = ref false
     }
   ;;
 
   (* Close the temp file and restore stdout and stderr. *)
-  let clean_up_block { output_file; test_output_reader; test_output_writer; _ } =
+  let clean_up_block
+    { output_file
+    ; test_output_reader
+    ; test_output_writer
+    ; output_reader_for_stubs_do_not_read
+    ; src_filename = _
+    ; fail = _
+    ; old_offset = _
+    }
+    =
     Stdlib.close_in test_output_reader;
-    restore_stdout ~stdout:Stdlib.stdout ~stderr:Stdlib.stderr;
     Stdlib.close_out test_output_writer;
+    restore_stdout ~stdout:Stdlib.stdout ~stderr:Stdlib.stderr;
+    Option.iter output_reader_for_stubs_do_not_read ~f:Stdlib.close_in;
     Stdlib.Sys.remove output_file
   ;;
 
@@ -162,39 +183,83 @@ end
 (* The expect test currently being executed and some info we print if the program
    crashes in the middle of a test. *)
 module Current_test : sig
+  module Or_no_test_running : sig
+    type 'a t =
+      | Ok of 'a
+      | No_test_running
+  end
+
   type t =
     { line_number : int
     ; basename : string
     ; location : Compact_loc.t
     ; test_block : Shared.t
+    ; test_name : string option
     }
 
   val set : t -> unit
   val unset : unit -> unit
   val is_running : unit -> bool
-  val current_test : unit -> Shared.t option
+  val current_test : unit -> Shared.t Or_no_test_running.t
   val current_test_exn : unit -> Shared.t
+  val current_test_name : unit -> string option Or_no_test_running.t
   val iter : f:(t -> unit) -> unit
   val assert_no_test_running : basename:string -> line_number:int -> unit
 end = struct
+  module Or_no_test_running = struct
+    type 'a t =
+      | Ok of 'a
+      | No_test_running
+
+    let map t ~f =
+      match t with
+      | Ok a -> Ok (f a)
+      | No_test_running -> No_test_running
+    ;;
+  end
+
   type t =
     { line_number : int
     ; basename : string
     ; location : Compact_loc.t
     ; test_block : Shared.t
+    ; test_name : string option
     }
 
-  let test_is_running : t option ref = ref None
-  let set t = test_is_running := Some t
-  let unset () = test_is_running := None
-  let is_running () = Option.is_some !test_is_running
-
-  let current_test () =
-    Option.map !test_is_running ~f:(fun { test_block; _ } -> test_block)
+  let test_is_running : t Or_no_test_running.t ref =
+    ref Or_no_test_running.No_test_running
   ;;
 
-  let current_test_exn () = Option.value_exn (current_test ())
-  let iter ~f = Option.iter !test_is_running ~f
+  let set t = test_is_running := Ok t
+  let unset () = test_is_running := No_test_running
+
+  let is_running () =
+    match !test_is_running with
+    | Ok _ -> true
+    | No_test_running -> false
+  ;;
+
+  let current_test () =
+    Or_no_test_running.map !test_is_running ~f:(fun { test_block; _ } -> test_block)
+  ;;
+
+  let current_test_exn () =
+    match current_test () with
+    | Ok x -> x
+    | No_test_running ->
+      failwith
+        "Internal expect_test error: [current_test_exn] called when no test running"
+  ;;
+
+  let current_test_name () =
+    Or_no_test_running.map !test_is_running ~f:(fun { test_name; _ } -> test_name)
+  ;;
+
+  let iter ~f =
+    match !test_is_running with
+    | Ok a -> f a
+    | No_test_running -> ()
+  ;;
 
   let assert_no_test_running ~basename ~line_number =
     iter
@@ -204,6 +269,7 @@ end = struct
           ; basename = outer_basename
           ; location = _
           ; test_block = _
+          ; test_name = _
           }
         ->
         let sexp_here ~basename ~line_number : Sexp.t =
@@ -332,7 +398,8 @@ module Make (C : Expect_test_config_types.S) = struct
         (* Redirect stdout/stderr *)
         let test_block = Shared.set_up_block absolute_filename in
         (* Run the test *)
-        Current_test.set { line_number; basename; location; test_block };
+        Current_test.set
+          { line_number; basename; location; test_block; test_name = description };
         let test_exn =
           Configured.dump_backtrace (fun () ->
             (* Ignore output that was printed before the test started *)
@@ -381,6 +448,7 @@ let at_exit () =
         ; basename
         ; location = { start_bol; start_pos; end_pos }
         ; test_block
+        ; test_name = _
         }
       ->
       Shared.flush ();
@@ -401,19 +469,35 @@ let at_exit () =
 ;;
 
 module For_external = struct
+  let require_test_running
+    ~here
+    ~function_name
+    (or_no_test_running : _ Current_test.Or_no_test_running.t)
+    =
+    match or_no_test_running with
+    | Ok a -> a
+    | No_test_running ->
+      raise_s
+        (Sexp.message
+           (Printf.sprintf
+              "Ppx_expect_runtime.For_external.%s called while there are no tests running"
+              function_name)
+           [ "", Source_code_position.sexp_of_t here ])
+  ;;
+
   let read_current_test_output_exn ~here =
-    match Current_test.current_test () with
-    | Some test_block ->
-      test_block |> Shared.read_test_output_unsanitized |> Expect_test_config.sanitize
-    | None ->
-      failwith
-        (Printf.sprintf
-           "Ppx_expect_runtime.read_current_test_output_exn called while there are no \
-            tests running at %s"
-           (Source_code_position.to_string here))
+    Current_test.current_test ()
+    |> require_test_running ~here ~function_name:"read_current_test_output_exn"
+    |> Shared.read_test_output_unsanitized
+    |> Expect_test_config.sanitize
   ;;
 
   let am_running_expect_test = Current_test.is_running
+
+  let current_expect_test_name_exn ~here =
+    Current_test.current_test_name ()
+    |> require_test_running ~here ~function_name:"current_expect_test_name_exn"
+  ;;
 
   let default_cr_for_multiple_outputs =
     let module Configured = Configured (Expect_test_config) in
@@ -421,13 +505,12 @@ module For_external = struct
   ;;
 
   let current_test_has_output_that_does_not_match_exn ~here =
-    match Current_test.current_test () with
-    | Some test_block -> !(Shared.failure_ref test_block)
-    | None ->
-      raise_s
-        (Sexp.message
-           "Ppx_expect_runtime.For_external.current_test_has_output_that_does_not_match_exn \
-            called while there are no tests running"
-           [ "", Source_code_position.sexp_of_t here ])
+    let test_block =
+      Current_test.current_test ()
+      |> require_test_running
+           ~here
+           ~function_name:"current_test_has_output_that_does_not_match_exn"
+    in
+    !(Shared.failure_ref test_block)
   ;;
 end

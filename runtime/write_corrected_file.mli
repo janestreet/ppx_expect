@@ -1,8 +1,8 @@
 open! Base
 open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
 
-(** The callback expected by [f], which should convert the input to patches and is
-    allowed to access the contents of the original file while doing so. *)
+(** The callback expected by [f], which should convert the input to patches and is allowed
+    to access the contents of the original file while doing so. *)
 module Patch_with_file_contents : sig
   type 'a t = original_file_contents:string -> 'a -> (Compact_loc.t * string) list
 end
