@@ -10,8 +10,8 @@ module Type : sig
         standard rules about indentation and other whitespace. *)
 end
 
-(** Captured output that has been formatted according to the rules of the [Type.t] of
-    its corresponding node. *)
+(** Captured output that has been formatted according to the rules of the [Type.t] of its
+    corresponding node. *)
 module Formatted : T
 
 (** Captured test output, possibly from multiple tests, after it has been formatted and
@@ -57,16 +57,14 @@ val fail : Formatted.t -> Test_result.t
 
     If [tag] is not compatible with the new payload contents (for example, the tag
     represents a [{x| delimited string |x}] and the new contents contain ["|x}"]), the tag
-    is adjusted so the resulting payload can be parsed.
-*)
+    is adjusted so the resulting payload can be parsed. *)
 val to_formatted_payload : tag:String_node_format.Delimiter.t -> Reconciled.t -> Payload.t
 
 (** The source-code representation of a reconciled expect node.
 
     If [tag] is not compatible with the new payload contents (for example, the tag
     represents a [{x| delimited string |x}] and the new contents contain ["|x}"]), the tag
-    is adjusted so the resulting payload can be parsed.
-*)
+    is adjusted so the resulting payload can be parsed. *)
 val to_source_code_string
   :  expect_node_formatting:Expect_node_formatting.t
   -> node_shape:String_node_format.Shape.t

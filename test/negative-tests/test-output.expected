@@ -5,7 +5,7 @@ File "export_test.ml", line 2, characters 2-24 threw
   \n- trying to run it from ppx/ppx_expect/test/negative-tests/import_test.ml\
   \n").
 
-FAILED 1 / 74 tests
+FAILED 1 / 79 tests
 ------ chdir.ml
 ++++++ chdir.ml.corrected
 File "chdir.ml", line 6, characters 0-1:
@@ -1106,3 +1106,38 @@ File "unusual_payload_location.ml", line 6, characters 0-1:
 +||}
  |
  |    ]
+------ zero_alloc.ml
+++++++ zero_alloc.ml.corrected
+File "zero_alloc.ml", line 30, characters 0-1:
+ |  r := 2;
+ |  ()
+ |;;
+ |
+ |let%expect_test "allocates" =
+ |  let r = allocates () in
+ |  r := 2;
+ |  ()
+ |[@@zero_alloc ignore]
+ |;;
+ |
+ |let%expect_test "allocates" =
+ |  let r = allocates () in
+ |  r := 2;
+ |  Printexc.record_backtrace false;
+ |  ignore (failwith "dummy error" : unit);
+-|  [%expect {| |}]
++|  [%expect.unreachable]
+ |[@@zero_alloc ignore]
++|[@@expect.uncaught_exn {| (Failure "dummy error") |}]
+ |;;
+ |
+ |let%expect_test "allocates" =
+ |  let r = allocates () in
+ |  r := 2;
+ |  Printexc.record_backtrace false;
+ |  ignore (failwith "dummy error" : unit);
+-|  [%expect {| |}]
+-|[@@zero_alloc ignore] [@@expect.uncaught_exn {| wrong payload |}]
++|  [%expect.unreachable]
++|[@@zero_alloc ignore] [@@expect.uncaught_exn {| (Failure "dummy error") |}]
+ |;;

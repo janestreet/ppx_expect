@@ -56,12 +56,13 @@ module Expr = struct
     if !strict_indent
     then
       [%expr
-        Ppx_expect_runtime.Expect_node_formatting.Flexibility.Exactly_formatted [@alert
-                                                                                  "-ppx_expect_runtime"]]
+        Ppx_expect_runtime.Expect_node_formatting.Flexibility.Exactly_formatted
+        [@alert "-ppx_expect_runtime"]]
     else
       [%expr
         Ppx_expect_runtime.Expect_node_formatting.Flexibility.Flexible_modulo
-          Ppx_expect_runtime.Expect_node_formatting.default [@alert "-ppx_expect_runtime"]]
+          Ppx_expect_runtime.Expect_node_formatting.default
+        [@alert "-ppx_expect_runtime"]]
   ;;
 end
 
@@ -93,12 +94,12 @@ module Expectation_node = struct
         Ppx_expect_runtime.Test_node.Create.expect_exact [@alert "-ppx_expect_runtime"]]
     | Expect_if_reached _ ->
       [%expr
-        Ppx_expect_runtime.Test_node.Create.expect_if_reached [@alert
-                                                                "-ppx_expect_runtime"]]
+        Ppx_expect_runtime.Test_node.Create.expect_if_reached
+        [@alert "-ppx_expect_runtime"]]
     | Expect_unreachable _ ->
       [%expr
-        Ppx_expect_runtime.Test_node.Create.expect_unreachable [@alert
-                                                                 "-ppx_expect_runtime"]]
+        Ppx_expect_runtime.Test_node.Create.expect_unreachable
+        [@alert "-ppx_expect_runtime"]]
   ;;
 
   let to_expr ~loc t =
@@ -234,8 +235,23 @@ let replace_and_collect_expects =
   end
 ;;
 
-let transform_let_expect ~trailing_location ~tags ~expected_exn ~description ~loc body =
+let transform_let_expect
+  ~trailing_location
+  ~tags
+  ~expected_exn
+  ~description
+  ~loc
+  ~attrs
+  body
+  =
   let body, expectations = replace_and_collect_expects#expression body [] in
+  let body_thunk =
+    (* Copy extra attributes from the [let%expect_test] node to the [fun () -> body] thunk
+       passed to [run_suite]. This is the correct behavior for at least the
+       [[@@zero_alloc]] attribute, though likely any other similarly placed attribute as
+       well. *)
+    { ([%expr fun () -> [%e body]]) with pexp_attributes = attrs }
+  in
   let filename_rel_to_project_root =
     Ppx_here_expander.expand_filename loc.loc_start.pos_fname
   in
@@ -272,7 +288,7 @@ let transform_let_expect ~trailing_location ~tags ~expected_exn ~description ~lo
           ~inline_test_config:(module Inline_test_config)
           ~expectations:
             [%e Merlin_helpers.hide_expression (Expr.id_expr_alist ~loc expectations)]
-          (fun () -> [%e body])]
+          [%e body_thunk]]
 ;;
 
 let let_expect_pat =
@@ -293,12 +309,15 @@ let let_expect_pat =
        nonrecursive
        (Attribute.pattern
           uncaught_exn
-          (value_binding
-             ~pat:
-               (map
-                  (Attribute.pattern Ppx_inline_test.tags opt_name)
-                  ~f:(fun f attributes -> f ~tags:(Option.value ~default:[] attributes)))
-             ~expr:__)
+          (value_binding_attributes
+             __
+             (value_binding
+                ~pat:
+                  (map
+                     (Attribute.pattern Ppx_inline_test.tags opt_name)
+                     ~f:(fun f attributes ->
+                       f ~tags:(Option.value ~default:[] attributes)))
+                ~expr:__))
         ^:: nil)
      ^:: nil)
 ;;
@@ -308,7 +327,7 @@ let expect_test =
     "expect_test"
     Structure_item
     let_expect_pat
-    (fun ~ctxt trailing ~tags ~name code ->
+    (fun ~ctxt trailing attrs ~tags ~name code ->
        let loc = Ppxlib.Expansion_context.Extension.extension_point_loc ctxt in
        let loc = { loc with loc_ghost = true } in
        let trailing_location, expected_exn =
@@ -326,6 +345,7 @@ let expect_test =
          ~expected_exn
          ~description:name
          ~loc
+         ~attrs
          code
        |> Ppx_inline_test.maybe_drop loc)
 ;;

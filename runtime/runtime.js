@@ -6,9 +6,9 @@ var ppx_expect_runtime_saved_stderr
 //Provides: ppx_expect_runtime_before_test
 //Requires: caml_ml_channel_redirect
 //Requires: ppx_expect_runtime_saved_stderr, ppx_expect_runtime_saved_stdout
-function ppx_expect_runtime_before_test (voutput, vstdout, vstderr){
-  ppx_expect_runtime_saved_stderr = caml_ml_channel_redirect(vstderr, voutput);
-  ppx_expect_runtime_saved_stdout = caml_ml_channel_redirect(vstdout, voutput);
+function ppx_expect_runtime_before_test (voutputw, voutputr_opt, vstdout, vstderr){
+  ppx_expect_runtime_saved_stderr = caml_ml_channel_redirect(vstderr, voutputw);
+  ppx_expect_runtime_saved_stdout = caml_ml_channel_redirect(vstdout, voutputw);
   return 0;
 }
 

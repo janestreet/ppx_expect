@@ -10,14 +10,15 @@
    (global $saved_stderr (mut i32) (i32.const 0))
 
    (func (export "ppx_expect_runtime_before_test")
-      (param $output (ref eq)) (param $stdout (ref eq)) (param $stderr (ref eq))
+      (param $outputw (ref eq)) (param $outputr_opt (ref eq))
+      (param $stdout (ref eq)) (param $stderr (ref eq))
       (result (ref eq))
       (local $fd i32)
       (global.set $saved_stdout
          (call $caml_ml_get_channel_fd (local.get $stdout)))
       (global.set $saved_stderr
          (call $caml_ml_get_channel_fd (local.get $stderr)))
-      (local.set $fd (call $caml_ml_get_channel_fd (local.get $output)))
+      (local.set $fd (call $caml_ml_get_channel_fd (local.get $outputw)))
       (call $caml_ml_set_channel_fd (local.get $stdout) (local.get $fd))
       (call $caml_ml_set_channel_fd (local.get $stderr) (local.get $fd))
       (ref.i31 (i32.const 0)))
