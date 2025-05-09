@@ -1,0 +1,191 @@
+module Expectation = Ppx_expect_runtime.For_external.Expectation
+[@@alert "-ppx_expect_runtime"]
+
+let%expect_test "not committed or skipped" =
+  [%expectation.never_committed];
+  ()
+[@@expect.uncaught_exn
+  {|
+  ("reached end of test with unresolved [[%expectation]]"
+    (expectation
+      ((actual "") (expected (foo)) (is_successful false)
+        (character_range ((start_pos 145) (end_pos 165))))))
+  |}]
+;;
+
+let%expect_test "raise before committing" =
+  print_endline "foo";
+  [%expectation.never_committed];
+  assert (1 = 2);
+  Expectation.commit ()
+[@@expect.uncaught_exn
+  {|
+  "Assert_failure expectation.ml:12:2"
+  ("reached end of test with unresolved [[%expectation]]"
+    (expectation
+      ((actual "foo\n") (expected (foo)) (is_successful true)
+        (character_range ((start_pos 245) (end_pos 265))))))
+  |}]
+;;
+
+let%expect_test "commited while not active" =
+  Expectation.commit ();
+  ()
+[@@expect.uncaught_exn
+  {|
+  ("Ppx_expect_runtime.For_external.Expectation.commit called with no unresolved [[%expectation]]"
+    ppx/ppx_expect/test/negative-tests/expectation.ml:17:2)
+  |}]
+;;
+
+let%expect_test "skipped while not active" =
+  Expectation.skip ();
+  ()
+[@@expect.uncaught_exn
+  {|
+  ("Ppx_expect_runtime.For_external.Expectation.skip called with no unresolved [[%expectation]]"
+    ppx/ppx_expect/test/negative-tests/expectation.ml:22:2)
+  |}]
+;;
+
+let%expect_test "commited, then skipped" =
+  let do_expectation () = [%expectation {| ok |}] in
+  print_endline "ok";
+  do_expectation ();
+  Expectation.commit ();
+  print_endline "not_ok";
+  do_expectation ();
+  let collected = Expectation.actual () in
+  Expectation.skip ();
+  [%expect {| |}];
+  print_endline collected;
+  [%expect {| not_ok |}]
+;;
+
+let%expect_test "multiple expectation" =
+  print_endline "foo";
+  [%expectation.never_committed];
+  [%expectation.never_committed];
+  Expectation.commit ()
+[@@expect.uncaught_exn
+  {|
+  ("reached an expect node with unresolved [[%expectation]]"
+    (expectation
+      ((actual "foo\n") (expected (foo)) (is_successful true)
+        (character_range ((start_pos 878) (end_pos 898)))))
+    (character_range ((start_pos 902) (end_pos 922))))
+  ("reached end of test with unresolved [[%expectation]]"
+    (expectation
+      ((actual "foo\n") (expected (foo)) (is_successful true)
+        (character_range ((start_pos 878) (end_pos 898))))))
+  |}]
+;;
+
+let%expect_test "expect before committed" =
+  print_endline "foo";
+  [%expectation.never_committed];
+  [%expect.unreachable];
+  Expectation.commit ()
+[@@expect.uncaught_exn
+  {|
+  ("reached an expect node with unresolved [[%expectation]]"
+    (expectation
+      ((actual "foo\n") (expected (foo)) (is_successful true)
+        (character_range ((start_pos 1021) (end_pos 1041)))))
+    (character_range ((start_pos 1045) (end_pos 1060))))
+  ("reached end of test with unresolved [[%expectation]]"
+    (expectation
+      ((actual "foo\n") (expected (foo)) (is_successful true)
+        (character_range ((start_pos 1021) (end_pos 1041))))))
+  |}]
+;;
+
+let%expect_test "expectation fails and never committed" =
+  Printf.printf "foo";
+  [%expectation "foo"];
+  let is_successful, expected, actual =
+    Expectation.is_successful (), Expectation.expected (), Expectation.actual ()
+  in
+  Expectation.commit ();
+  print_endline (Bool.to_string is_successful);
+  [%expect {| false |}];
+  print_endline (Option.value ~default:"<NONE>" expected);
+  [%expect {| bar |}];
+  print_endline actual;
+  [%expect {| foo |}]
+;;
+
+let%expect_test "skipped" =
+  let () = [%expectation.never_committed] in
+  Expectation.skip ()
+;;
+
+let%expect_test "unreached" =
+  let _ = fun () -> [%expectation.never_committed] in
+  [%expect {| |}]
+;;
+
+let%expect_test "unreachable is committed" =
+  Printf.printf "foo";
+  [%expectation {| foo |}];
+  let is_successful, expected, actual =
+    Expectation.is_successful (), Expectation.expected (), Expectation.actual ()
+  in
+  Expectation.commit ();
+  print_endline (Bool.to_string is_successful);
+  [%expect {| false |}];
+  print_endline (Option.value ~default:"<NONE>" expected);
+  [%expect {| <NONE> |}];
+  print_endline actual;
+  [%expect {| foo |}]
+;;
+
+let%expect_test "expectation fails and corrected" =
+  Printf.printf "foo";
+  [%expectation "foo"];
+  Expectation.commit ()
+;;
+
+let%expect_test "expectation committed twice" =
+  Printf.printf "foo";
+  [%expectation "foo"];
+  Expectation.commit ();
+  Expectation.commit ()
+[@@expect.uncaught_exn
+  {|
+  ("Ppx_expect_runtime.For_external.Expectation.commit called with no unresolved [[%expectation]]"
+    ppx/ppx_expect/test/negative-tests/expectation.ml:104:2)
+  |}]
+;;
+
+let%expect_test "multiline and indentation mismatches" =
+  Printf.printf "line 1\n";
+  Printf.printf " line 2\n";
+  Printf.printf "  line 3\n";
+  [%expectation
+    {|
+    line 1
+     line 2
+      line 3
+    |}];
+  let is_successful, expected, actual =
+    Expectation.is_successful (), Expectation.expected (), Expectation.actual ()
+  in
+  Expectation.commit ();
+  print_endline (Bool.to_string is_successful);
+  [%expect {| false |}];
+  print_endline (Option.value ~default:"<NONE>" expected);
+  [%expect
+    {|
+    line 1
+    line 2
+    line 3
+    |}];
+  print_endline actual;
+  [%expect
+    {|
+    line 1
+     line 2
+      line 3
+    |}]
+;;

@@ -44,7 +44,7 @@ module Definitions = struct
     type t =
       | Silent (** Do nothing *)
       | Delete (** Delete this expectation from the source file *)
-      | Replace_with_unreachable
+      | Replace_with of string
       (** Replace this expectation with a [[%expect.unreachable]] node *)
   end
 
@@ -132,8 +132,14 @@ module type Test_spec = sig
   (** [[%expect.if_reached _]] *)
   val expect_if_reached : expect_creator
 
+  (** [[%expectation _]] *)
+  val expectation : expect_creator
+
   (** [[%expect.unreachable]] *)
   val expect_unreachable : node_loc:Compact_loc.t -> [ `Unreachable ] t
+
+  (** [[%expectation.never_committed]] *)
+  val expectation_never_committed : node_loc:Compact_loc.t -> [ `Unreachable ] t
 
   (** [[@@expect.uncaught_exn _]] *)
   val expect_uncaught_exn : expect_creator

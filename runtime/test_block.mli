@@ -23,6 +23,20 @@ module Make (C : Expect_test_config_types.S) : sig
         [let%expect_test] block) *)
   val run_test : test_id:Expectation_id.t -> unit
 
+  (** Given a test id:
+
+      - Look up the [Test_node.t] with that id
+      - Perform a consuming read of current test output, performing sanitization and
+        checking for backtraces
+      - Compare the consumed output with the output expected by the associated
+        [Test_node.t]
+
+      Unlike [run_test], [run_test_without_commiting] does not automatically record the
+      test outcome or set the [fail] ref. Instead, user code must call exactly one of
+      [For_external.Expectation.commit] or [For_external.Expectation.skip] below to commit
+      or ignore the test result. *)
+  val run_test_without_commiting : test_id:Expectation_id.t -> unit
+
   (** Execute a single [let%expect_test] block through [Ppx_inline_test_lib.test].
 
       - Assert that the test is defined in the currently-executing file.
@@ -80,6 +94,7 @@ module For_external : sig
       If there is no test running, raise an error that includes [here]. *)
   val read_current_test_output_exn : here:Source_code_position.t -> string
 
+  val with_empty_test_output : here:Source_code_position.t -> (unit -> 'a) @ local -> 'a
   val am_running_expect_test : unit -> bool
 
   (** The name of the currently-running expect-test.
@@ -102,6 +117,40 @@ module For_external : sig
   val current_test_has_output_that_does_not_match_exn
     :  here:Source_code_position.t
     -> bool
+
+  module Expectation : sig
+    (** The functions below are more thoroughly documented in the public interface in
+        [Expect_test_helpers_base] *)
+
+    (** There is an active expectation from the time that test execution encounters an
+        [[%expectation]] until one of [commit] or [skip] is called. *)
+    val is_active : here:[%call_pos] -> unit -> bool
+
+    (** Can be run exactly once upon encountering an [[%expectation]]. Accepts the test
+        result as though that expectation was an [[%expect]]. *)
+    val commit : here:[%call_pos] -> unit -> unit
+
+    (** Can be run exactly once upon encountering an [[%expectation]]. Ignores the result
+        for this [[%expectation]]. *)
+    val skip : here:[%call_pos] -> unit -> unit
+
+    (** Each of the following functions can be run arbitrarily many times between
+        encountering an [[%expectation]] and calling [commit] or [skip] *)
+
+    (** Produce a sexp representing the state of the most recently encountered
+        [[%expectation]] *)
+    val sexp_for_debugging : here:[%call_pos] -> unit -> Sexp.t
+
+    (** Whether calling [commit] for the current [[%expectation]] would produce a test
+        failure *)
+    val is_successful : here:[%call_pos] -> unit -> bool
+
+    (** Output collected at the current [[%expectation]] *)
+    val actual : here:[%call_pos] -> unit -> string
+
+    (** Output expected at the current [[%expectation]] *)
+    val expected : here:[%call_pos] -> unit -> string option
+  end
 end
 
 (** Action to perform when exiting from a program that runs expect tests. Alerts of

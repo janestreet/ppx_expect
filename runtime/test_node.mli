@@ -29,9 +29,17 @@ module Create : sig
   (** [[%expect.if_reached _]] *)
   val expect_if_reached : expect_creator
 
+  (** [[%expectation _]] *)
+  val expectation : expect_creator
+
   (** [[%expect.unreachable]] *)
   val expect_unreachable
     :  node_loc:Compact_loc.t (** Location of the [[%expect.unreachable]] node *)
+    -> t
+
+  (** [[%expectation.never_committed]] *)
+  val expectation_never_committed
+    :  node_loc:Compact_loc.t (** Location of the [[%expectation.never_committed]] node *)
     -> t
 end
 
@@ -39,20 +47,36 @@ end
 
 val of_expectation : [< Test_spec.Behavior_type.t ] Test_spec.t -> t
 
+(** The location of the AST extension node associated with this test. *)
+val loc : t -> Compact_loc.t
+
+(** The string that this test node "expects" if it is an [[%expect]] or [[%expect_exact]]
+    node. [None] if it is an [[%expect.unreachable]]. *)
+val expectation_of_t : t -> string option
+
 (** Updates reachedness information for [t]. *)
 val record_end_of_run : t -> unit
 
-(** Records the result of receiving output [test_output_raw] at [t], using
-    [expect_node_formatting] to format the correction if necessary. If the output results
-    in a correction, sets [failure_ref := true]. We use a [bool ref] argument instead of a
-    [bool] return value to decrease the chance that failures in tests are accidentally
-    dropped and make it more likely that they are correctly reported to e.g. the inline
-    test runner harness. *)
-val record_result
+(** [compute_but_do_not_record_test_result ~expect_node_formatting ~test_output_raw t]
+    computes the result of receiving output [test_output_raw] at [t], using
+    [expect_node_formatting] to format the correction if necessary. The returned result
+    can (and, in the case of an [[%expect]], should) be recorded with [record_result] *)
+val compute_but_do_not_record_test_result
   :  expect_node_formatting:Expect_node_formatting.t
-  -> failure_ref:bool ref
   -> test_output_raw:string
   -> t
+  -> Output.Test_result.t * String_node_format.Delimiter.t
+
+(** [record_result ~test_output_raw ~failure_ref t result] records the [result] of
+    receiving output [test_output_raw] at [t]. If the output results in a correction, sets
+    [failure_ref := true]. We use a [bool ref] argument instead of a [bool] return value
+    to decrease the chance that failures in tests are accidentally dropped and make it
+    more likely that they are correctly reported to e.g. the inline test runner harness. *)
+val record_result
+  :  test_output_raw:string
+  -> failure_ref:bool ref
+  -> t
+  -> Output.Test_result.t
   -> unit
 
 module Global_results_table : sig

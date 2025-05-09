@@ -6,7 +6,7 @@
   (pps ppx_jane)))
 
 (rule
- (alias runtest)
  (deps ./main.exe)
  (action
-  (bash %{deps})))
+  (bash %{deps}))
+ (alias runtest))
