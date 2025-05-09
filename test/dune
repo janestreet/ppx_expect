@@ -4,5 +4,6 @@
   (names non_flushing))
  (name ppx_expect_test)
  (flags :standard -principal)
+ (libraries sexplib0)
  (preprocess
   (pps ppx_assert ppx_expect ppx_here)))

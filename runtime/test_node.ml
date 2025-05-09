@@ -71,13 +71,13 @@ module Correction = struct
       (match on_unreachable with
        | Silent -> None
        | Delete -> Some (loc, "")
-       | Replace_with_unreachable ->
+       | Replace_with replacement ->
          let prefix =
            match on_incorrect_output.kind with
            | Extension -> expect_node_formatting.extension_sigil
            | Attribute -> expect_node_formatting.attribute_sigil
          in
-         Some (loc, Printf.sprintf "[%sexpect.unreachable]" prefix))
+         Some (loc, Printf.sprintf "[%s%s]" prefix replacement))
   ;;
 
   let to_diffs ~expect_node_formatting ~original_file_contents correction =
@@ -218,45 +218,54 @@ let to_correction
     |> correction_for_single_result
 ;;
 
-let record_and_return_result
-  (type behavior)
+let compute_but_do_not_record_test_result
   ~expect_node_formatting
-  ~failure_ref
   ~test_output_raw
-  (Test ({ expectation; results; reached_this_run = _ } as t) : behavior inner)
+  (T (Test { expectation; _ }))
+  : Output.Test_result.t * String_node_format.Delimiter.t
   =
   let test_output =
     Output.Formatter.apply
       (Test_spec.formatter ~expect_node_formatting expectation)
       test_output_raw
   in
-  let (result : Output.Test_result.t), (tag : String_node_format.Delimiter.t) =
-    match expectation.behavior with
-    | Unreachable _ -> Output.fail test_output, T (Tag "")
-    | Expect { payload = { contents; tag }; on_unreachable = _; reachability = _ } ->
-      Output.reconcile ~expected_output:contents ~test_output, tag
-  in
+  match expectation.behavior with
+  | Unreachable _ -> Output.fail test_output, T (Tag "")
+  | Expect { payload = { contents; tag }; on_unreachable = _; reachability = _ } ->
+    Output.reconcile ~expected_output:contents ~test_output, tag
+;;
+
+let record_result
+  ~test_output_raw
+  ~failure_ref
+  (T (Test t))
+  (result : Output.Test_result.t)
+  =
   (match result with
    | Fail _ -> failure_ref := true
    | Pass -> ());
-  Queue.enqueue results (Reached_with_output { result; raw = test_output_raw });
-  t.reached_this_run <- true;
-  result, tag
+  Queue.enqueue t.results (Reached_with_output { result; raw = test_output_raw });
+  t.reached_this_run <- true
 ;;
 
 let of_expectation expectation =
   T (Test { expectation; results = Queue.create (); reached_this_run = false })
 ;;
 
+let loc (T (Test { expectation = { position; _ }; results = _; reached_this_run = _ })) =
+  Test_spec.Insert_loc.loc position
+;;
+
+let expectation_of_t (T (Test { expectation; results = _; reached_this_run = _ })) =
+  match expectation.behavior with
+  | Expect { payload = { contents; tag = _ }; on_unreachable = _; reachability = _ } ->
+    Some contents
+  | Unreachable _ -> None
+;;
+
 let record_end_of_run t =
   let (T (Test { expectation = _; results; reached_this_run })) = t in
   if not reached_this_run then Queue.enqueue results Did_not_reach
-;;
-
-let record_result ~expect_node_formatting ~failure_ref ~test_output_raw (T inner) =
-  ignore
-    (record_and_return_result ~expect_node_formatting ~failure_ref ~test_output_raw inner
-     : Output.Test_result.t * String_node_format.Delimiter.t)
 ;;
 
 module Global_results_table = struct
@@ -328,42 +337,38 @@ module Create = struct
       (Test_spec.expect_if_reached ~formatting_flexibility ~node_loc ~located_payload)
   ;;
 
+  let expectation ~formatting_flexibility ~node_loc ~located_payload =
+    of_expectation
+      (Test_spec.expectation ~formatting_flexibility ~node_loc ~located_payload)
+  ;;
+
   let expect_unreachable ~node_loc =
     of_expectation (Test_spec.expect_unreachable ~node_loc)
+  ;;
+
+  let expectation_never_committed ~node_loc =
+    of_expectation (Test_spec.expectation_never_committed ~node_loc)
   ;;
 end
 
 module For_mlt = struct
-  let loc (T (Test { expectation = { position; _ }; results = _; reached_this_run = _ })) =
-    Test_spec.Insert_loc.loc position
-  ;;
-
-  let expectation_of_t (T (Test { expectation; results = _; reached_this_run = _ })) =
-    match expectation.behavior with
-    | Expect { payload = { contents; tag = _ }; on_unreachable = _; reachability = _ } ->
-      Some contents
-    | Unreachable _ -> None
-  ;;
-
   let record_and_return_number_of_lines_in_correction
     ~expect_node_formatting
     ~failure_ref
     ~test_output_raw
-    (T (Test inner))
+    t
     =
-    match
-      record_and_return_result
-        ~expect_node_formatting
-        ~failure_ref
-        ~test_output_raw
-        (Test inner)
-    with
-    | Fail contents, tag ->
+    let result, tag =
+      compute_but_do_not_record_test_result ~expect_node_formatting ~test_output_raw t
+    in
+    record_result ~test_output_raw ~failure_ref t result;
+    match result with
+    | Fail contents ->
       let correction =
         Output.to_formatted_payload ~tag contents |> Payload.to_source_code_string
       in
       Some (String.count ~f:(Char.equal '\n') correction + 1)
-    | Pass, _ -> None
+    | Pass -> None
   ;;
 
   let to_diffs ~cr_for_multiple_outputs ~expect_node_formatting ~original_file_contents t =
@@ -372,4 +377,7 @@ module For_mlt = struct
     | Some correction ->
       Correction.to_diffs correction ~expect_node_formatting ~original_file_contents
   ;;
+
+  let loc = loc
+  let expectation_of_t = expectation_of_t
 end

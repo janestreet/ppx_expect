@@ -177,7 +177,10 @@ let expect ~formatting_flexibility ~node_loc ~located_payload =
   { position = Overwrite { whole_node = node_loc; payload = payload_loc }
   ; behavior =
       Expect
-        { payload; on_unreachable = Replace_with_unreachable; reachability = Can_reach }
+        { payload
+        ; on_unreachable = Replace_with "expect.unreachable"
+        ; reachability = Can_reach
+        }
   ; payload_type = Pretty
   ; on_incorrect_output = extension_syntax "expect" ~payload_loc ~node_loc
   ; inconsistent_outputs_message = "test output"
@@ -201,9 +204,28 @@ let expect_exact ~formatting_flexibility ~node_loc ~located_payload =
   { position = Overwrite { whole_node = node_loc; payload = payload_loc }
   ; behavior =
       Expect
-        { payload; on_unreachable = Replace_with_unreachable; reachability = Can_reach }
+        { payload
+        ; on_unreachable = Replace_with "expect.unreachable"
+        ; reachability = Can_reach
+        }
   ; payload_type = Exact
   ; on_incorrect_output = extension_syntax "expect_exact" ~payload_loc ~node_loc
+  ; inconsistent_outputs_message = "test output"
+  }
+  |> possibly_relax_strictness ~formatting_flexibility
+;;
+
+let expectation ~formatting_flexibility ~node_loc ~located_payload =
+  let payload, payload_loc = expected_string_and_payload_loc located_payload in
+  { position = Overwrite { whole_node = node_loc; payload = payload_loc }
+  ; behavior =
+      Expect
+        { payload
+        ; on_unreachable = Replace_with "expectation.never_committed"
+        ; reachability = Can_reach
+        }
+  ; payload_type = Pretty
+  ; on_incorrect_output = extension_syntax "expectation" ~payload_loc ~node_loc
   ; inconsistent_outputs_message = "test output"
   }
   |> possibly_relax_strictness ~formatting_flexibility
@@ -214,6 +236,15 @@ let expect_unreachable ~node_loc =
   ; behavior = Unreachable { reachability_of_corrected = Can_reach }
   ; payload_type = Pretty
   ; on_incorrect_output = T { name = "expect"; kind = Extension; hand = Longhand }
+  ; inconsistent_outputs_message = "test output"
+  }
+;;
+
+let expectation_never_committed ~node_loc =
+  { position = Overwrite { whole_node = node_loc; payload = None }
+  ; behavior = Unreachable { reachability_of_corrected = Can_reach }
+  ; payload_type = Pretty
+  ; on_incorrect_output = T { name = "expectation"; kind = Extension; hand = Longhand }
   ; inconsistent_outputs_message = "test output"
   }
 ;;

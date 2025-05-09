@@ -1,8 +1,37 @@
 open! Base
 open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
 
-(* [Shared] and [Configured] primarily contain boilerplate involving the FFI and printing
-   [CR]s. The interesting logic is in [Make]. *)
+let sexp_of_character_range ({ start_pos; end_pos; _ } : Compact_loc.t) : Sexp.t =
+  List
+    [ List [ Atom "start_pos"; sexp_of_int start_pos ]
+    ; List [ Atom "end_pos"; sexp_of_int end_pos ]
+    ]
+;;
+
+(* [Expectation] stores information about a particular encounter with an [[%expectation]]
+   node. *)
+
+module Expectation = struct
+  type t =
+    { actual : string
+    ; expected : string option
+    ; is_successful : bool
+    ; character_range : Compact_loc.t
+    ; commit : unit -> unit
+    }
+
+  let sexp_of_t { actual; expected; is_successful; character_range; commit = _ } : Sexp.t =
+    List
+      [ List [ Atom "actual"; sexp_of_string actual ]
+      ; List [ Atom "expected"; sexp_of_option sexp_of_string expected ]
+      ; List [ Atom "is_successful"; sexp_of_bool is_successful ]
+      ; List [ Atom "character_range"; sexp_of_character_range character_range ]
+      ]
+  ;;
+end
+
+(** [Shared] and [Configured] primarily contain boilerplate involving the FFI and printing
+    [CR]s. The interesting logic is in [Make]. *)
 
 module Shared : sig
   type t
@@ -10,24 +39,65 @@ module Shared : sig
   val src_filename : t -> string
   val output_file : t -> string
   val failure_ref : t -> bool ref
+  val expectation_ref : t -> Expectation.t option ref
   val set_up_block : string -> t
   val read_test_output_unsanitized : t -> string
   val flush : unit -> unit
   val clean_up_block : t -> unit
+  val assert_no_expectation : message:(Sexp.t -> Sexp.t) -> t -> unit
+  val push_output_onto_stack : t -> unit
+  val pop_output_from_stack_exn : t -> unit
 end = struct
+  (** Simple data structure for strings with fast append *)
+  module Rope : sig
+    type t
+
+    val empty : t
+    val append : t -> t -> t
+    val of_string : string -> t
+    val to_string : t -> string
+  end = struct
+    type t =
+      | One of string
+      | Two of t * t
+
+    let empty = One ""
+    let of_string string = One string
+
+    let append a b =
+      match a, b with
+      | One "", t | t, One "" -> t
+      | a, b -> Two (a, b)
+    ;;
+
+    let rec to_list_loop ~rev_ropes ~strings =
+      match rev_ropes with
+      | [] -> strings
+      | One string :: rev_ropes -> to_list_loop ~rev_ropes ~strings:(string :: strings)
+      | Two (a, b) :: rev_ropes -> to_list_loop ~rev_ropes:(b :: a :: rev_ropes) ~strings
+    ;;
+
+    let to_list t = to_list_loop ~rev_ropes:[ t ] ~strings:[]
+    let to_string t = String.concat (to_list t) [@nontail]
+  end
+
   type t =
     { src_filename : string
     ; output_file : string
     ; fail : bool ref
+    ; expectation : Expectation.t option ref
     ; test_output_reader : Stdlib.in_channel
     ; test_output_writer : Stdlib.out_channel
     ; output_reader_for_stubs_do_not_read : Stdlib.in_channel option
     ; old_offset : int ref
+    ; pushed_output : Rope.t Stack.t
+    ; popped_output : Rope.t ref
     }
 
   let src_filename { src_filename; _ } = src_filename
   let output_file { output_file; _ } = output_file
   let failure_ref { fail; _ } = fail
+  let expectation_ref { expectation; _ } = expectation
 
   external redirect_stdout
     :  output_writer:Stdlib.out_channel
@@ -46,8 +116,8 @@ end = struct
   external pos_out : Stdlib.out_channel -> int = "ppx_expect_runtime_out_channel_position"
   external flush_stubs : unit -> unit = "ppx_expect_runtime_flush_stubs_streams"
 
-  (* Save std file descriptors, open a temp file for test output, and reroute stdout and
-     stderr there. *)
+  (** Save std file descriptors, open a temp file for test output, and reroute stdout and
+      stderr there. *)
   let set_up_block src_filename =
     let output_file =
       Current_file.absolute_path (Stdlib.Filename.temp_file "expect-test" "output")
@@ -72,10 +142,13 @@ end = struct
     ; output_reader_for_stubs_do_not_read
     ; old_offset = ref 0
     ; fail = ref false
+    ; expectation = ref None
+    ; pushed_output = Stack.create ()
+    ; popped_output = ref Rope.empty
     }
   ;;
 
-  (* Close the temp file and restore stdout and stderr. *)
+  (** Close the temp file and restore stdout and stderr. *)
   let clean_up_block
     { output_file
     ; test_output_reader
@@ -83,7 +156,10 @@ end = struct
     ; output_reader_for_stubs_do_not_read
     ; src_filename = _
     ; fail = _
+    ; expectation = _
     ; old_offset = _
+    ; pushed_output = _
+    ; popped_output = _
     }
     =
     Stdlib.close_in test_output_reader;
@@ -101,14 +177,39 @@ end = struct
     flush_stubs ()
   ;;
 
-  let read_test_output_unsanitized { test_output_reader; old_offset; _ } =
+  let read_test_output_unsanitized_rope
+    { test_output_reader; old_offset; popped_output; _ }
+    =
     let new_offset =
       flush ();
       pos_out Stdlib.stdout
     in
     let len = new_offset - !old_offset in
     old_offset := new_offset;
-    Stdlib.really_input_string test_output_reader len
+    let old_output = !popped_output in
+    let new_output = Rope.of_string (Stdlib.really_input_string test_output_reader len) in
+    popped_output := Rope.empty;
+    Rope.append old_output new_output
+  ;;
+
+  let read_test_output_unsanitized t =
+    Rope.to_string (read_test_output_unsanitized_rope t)
+  ;;
+
+  let push_output_onto_stack t =
+    let output = read_test_output_unsanitized_rope t in
+    Stack.push t.pushed_output output
+  ;;
+
+  let pop_output_from_stack_exn { pushed_output; popped_output; _ } =
+    let pushed = Stack.pop_exn pushed_output in
+    Ref.replace popped_output (fun popped -> Rope.append pushed popped)
+  ;;
+
+  let assert_no_expectation ~message { expectation; _ } =
+    match !expectation with
+    | Some e -> e |> Expectation.sexp_of_t |> message |> raise_s
+    | None -> ()
   ;;
 end
 
@@ -160,7 +261,7 @@ module Configured (C : Expect_test_config_types.S) = struct
   ;;
 
   let dump_backtrace possible_exn =
-    match C.run possible_exn with
+    match possible_exn () with
     | exception exn ->
       let bt = Stdlib.Printexc.get_raw_backtrace () in
       let exn_string =
@@ -178,10 +279,12 @@ module Configured (C : Expect_test_config_types.S) = struct
          | bt -> String.concat ~sep:"\n" [ cr_for_backtrace; exn_string; bt ])
     | _ -> None
   ;;
+
+  let run_and_dump_backtrace possible_exn = dump_backtrace (fun () -> C.run possible_exn)
 end
 
-(* The expect test currently being executed and some info we print if the program
-   crashes in the middle of a test. *)
+(** The expect test currently being executed and some info we print if the program crashes
+    in the middle of a test. *)
 module Current_test : sig
   module Or_no_test_running : sig
     type 'a t =
@@ -290,7 +393,7 @@ end = struct
   ;;
 end
 
-(* The main testing functions of a test block, which depend on configurations. *)
+(** The main testing functions of a test block, which depend on configurations. *)
 module Make (C : Expect_test_config_types.S) = struct
   module Configured = Configured (C)
 
@@ -304,21 +407,73 @@ module Make (C : Expect_test_config_types.S) = struct
     read_test_output_no_backtrace_check () |> Configured.check_for_backtraces
   ;;
 
-  let run_test_inner ~test_id ~test_output_raw t =
-    Test_node.record_result
-      ~expect_node_formatting:Expect_node_formatting.default
-      ~failure_ref:(Shared.failure_ref t)
-      ~test_output_raw
-      (Test_node.Global_results_table.find_test
-         ~absolute_filename:(Shared.src_filename t)
-         ~test_id)
+  let run_test_general ~skip_expectation_check ~test_id ~test_output_raw t =
+    let node =
+      Test_node.Global_results_table.find_test
+        ~absolute_filename:(Shared.src_filename t)
+        ~test_id
+    in
+    if not skip_expectation_check
+    then
+      Shared.assert_no_expectation
+        ~message:(fun e ->
+          Sexp.message
+            "reached an expect node with unresolved [[%expectation]]"
+            [ "expectation", e
+            ; "character_range", sexp_of_character_range (Test_node.loc node)
+            ])
+        t;
+    let result, _ =
+      Test_node.compute_but_do_not_record_test_result
+        ~expect_node_formatting:Expect_node_formatting.default
+        ~test_output_raw
+        node
+    in
+    ( node
+    , result
+    , fun () ->
+        Test_node.record_result
+          ~test_output_raw
+          ~failure_ref:(Shared.failure_ref t)
+          node
+          result;
+        Shared.expectation_ref t := None )
+  ;;
+
+  let run_test_inner ~skip_expectation_check ~test_id ~test_output_raw t =
+    let _node, _result, commit =
+      run_test_general ~skip_expectation_check ~test_id ~test_output_raw t
+    in
+    commit ()
   ;;
 
   let run_test ~test_id =
     Current_test.current_test_exn ()
     |> run_test_inner
+         ~skip_expectation_check:false
          ~test_id
          ~test_output_raw:(read_test_output_sanitized_and_checked ())
+  ;;
+
+  let run_test_without_commiting ~test_id =
+    let t = Current_test.current_test_exn () in
+    let test_output_raw = read_test_output_sanitized_and_checked () in
+    let node, result, commit =
+      run_test_general ~skip_expectation_check:false ~test_id ~test_output_raw t
+    in
+    let is_successful =
+      match result with
+      | Pass -> true
+      | Fail _ -> false
+    in
+    Shared.expectation_ref t
+    := Some
+         { actual = test_output_raw
+         ; expected = Test_node.expectation_of_t node
+         ; is_successful
+         ; character_range = Test_node.loc node
+         ; commit
+         }
   ;;
 
   let run_suite
@@ -401,10 +556,26 @@ module Make (C : Expect_test_config_types.S) = struct
         Current_test.set
           { line_number; basename; location; test_block; test_name = description };
         let test_exn =
-          Configured.dump_backtrace (fun () ->
-            (* Ignore output that was printed before the test started *)
-            let (_ : string) = Shared.read_test_output_unsanitized test_block in
-            f ())
+          let body_exn =
+            Configured.run_and_dump_backtrace (fun () ->
+              (* Ignore output that was printed before the test started *)
+              let (_ : string) = Shared.read_test_output_unsanitized test_block in
+              (* Run the test body *)
+              f ())
+          in
+          let open_expectation_exn =
+            Configured.dump_backtrace (fun () ->
+              (* Assert all [expectation]s are closed by the end of the test *)
+              Shared.assert_no_expectation test_block ~message:(fun e ->
+                Sexp.message
+                  "reached end of test with unresolved [[%expectation]]"
+                  [ "expectation", e ]))
+          in
+          [ body_exn; open_expectation_exn ]
+          |> List.filter_opt
+          |> function
+          | [] -> None
+          | exns -> Some (String.concat ~sep:"\n" exns)
         in
         (* Run the trailing output and uncaught exn test *)
         let test_output, test_to_run =
@@ -427,7 +598,14 @@ module Make (C : Expect_test_config_types.S) = struct
             in
             test_output, exn_test_id
         in
-        run_test_inner test_block ~test_output_raw:test_output ~test_id:test_to_run;
+        run_test_inner
+          test_block
+          ~skip_expectation_check:true
+            (* We have left the part of the test that catches exceptions, and so do not
+               wish to re-raise if the test raised without finishing an [[%expectation]]
+            *)
+          ~test_output_raw:test_output
+          ~test_id:test_to_run;
         (* Perform the per-test reachability check *)
         List.iter expectations ~f:(fun (_, test_node) ->
           Test_node.record_end_of_run test_node);
@@ -492,6 +670,15 @@ module For_external = struct
     |> Expect_test_config.sanitize
   ;;
 
+  let with_empty_test_output ~here f =
+    let shared =
+      Current_test.current_test ()
+      |> require_test_running ~here ~function_name:"read_current_test_output_exn"
+    in
+    Shared.push_output_onto_stack shared;
+    Exn.protect ~f ~finally:(fun () -> Shared.pop_output_from_stack_exn shared)
+  ;;
+
   let am_running_expect_test = Current_test.is_running
 
   let current_expect_test_name_exn ~here =
@@ -513,4 +700,69 @@ module For_external = struct
     in
     !(Shared.failure_ref test_block)
   ;;
+
+  module Expectation = struct
+    let get_expectation ~here ~function_name =
+      Current_test.current_test ()
+      |> require_test_running ~here ~function_name:("Expectation." ^ function_name)
+      |> Shared.expectation_ref
+    ;;
+
+    let is_active ?(here = Stdlib.Lexing.dummy_pos) () =
+      Option.is_some !(get_expectation ~here ~function_name:"is_active")
+    ;;
+
+    let run_over_expectation ~here ~function_name ~resolve ~f =
+      let expectation = get_expectation ~here ~function_name in
+      let res =
+        match !expectation with
+        | None ->
+          raise_s
+            (Sexp.message
+               (Printf.sprintf
+                  "Ppx_expect_runtime.For_external.Expectation.%s called with no \
+                   unresolved [[%%expectation]]"
+                  function_name)
+               [ "", Source_code_position.sexp_of_t here ])
+        | Some expectation -> f expectation
+      in
+      if resolve then expectation := None;
+      res
+    ;;
+
+    let commit ?(here = Stdlib.Lexing.dummy_pos) () =
+      run_over_expectation ~here ~function_name:"commit" ~resolve:true ~f:(fun e ->
+        e.commit ())
+    ;;
+
+    let skip ?(here = Stdlib.Lexing.dummy_pos) () =
+      run_over_expectation ~here ~function_name:"skip" ~resolve:true ~f:ignore
+    ;;
+
+    let sexp_for_debugging ?(here = Stdlib.Lexing.dummy_pos) () =
+      run_over_expectation
+        ~here
+        ~function_name:"sexp_for_debugging"
+        ~resolve:false
+        ~f:Expectation.sexp_of_t
+    ;;
+
+    let is_successful ?(here = Stdlib.Lexing.dummy_pos) () =
+      run_over_expectation
+        ~here
+        ~function_name:"is_successful"
+        ~resolve:false
+        ~f:(fun e -> e.is_successful)
+    ;;
+
+    let actual ?(here = Stdlib.Lexing.dummy_pos) () =
+      run_over_expectation ~here ~function_name:"actual" ~resolve:false ~f:(fun e ->
+        e.actual)
+    ;;
+
+    let expected ?(here = Stdlib.Lexing.dummy_pos) () =
+      run_over_expectation ~here ~function_name:"expected" ~resolve:false ~f:(fun e ->
+        e.expected)
+    ;;
+  end
 end

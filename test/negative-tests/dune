@@ -20,7 +20,7 @@
    current_test_has_output_that_does_not_match_exn.ml.corrected
    escaped_strings.ml.corrected exact.ml.corrected exn.ml.corrected
    exn_and_trailing.ml.corrected exn_missing.ml.corrected
-   expect_output.ml.corrected flexible.ml.corrected
+   expect_output.ml.corrected expectation.ml.corrected flexible.ml.corrected
    function_with_distinct_outputs.ml.corrected functor.ml.corrected
    missing.ml.corrected nine.ml.corrected normal_strings.ml.corrected
    semicolon.ml.corrected similar_distinct_outputs.ml.corrected
@@ -85,6 +85,12 @@
 (rule
  (alias runtest)
  (deps expect_output.ml.corrected.expected expect_output.ml.corrected)
+ (action
+  (bash "diff -a %{deps}")))
+
+(rule
+ (alias runtest)
+ (deps expectation.ml.corrected.expected expectation.ml.corrected)
  (action
   (bash "diff -a %{deps}")))
 

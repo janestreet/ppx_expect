@@ -84,6 +84,8 @@ module Expectation_node = struct
     | Expect_exact of expect_node_info
     | Expect_if_reached of expect_node_info
     | Expect_unreachable of Compact_loc.t
+    | Expectation of expect_node_info
+    | Expectation_never_committed of Compact_loc.t
 
   let id t ~loc =
     match t with
@@ -100,6 +102,13 @@ module Expectation_node = struct
       [%expr
         Ppx_expect_runtime.Test_node.Create.expect_unreachable
         [@alert "-ppx_expect_runtime"]]
+    | Expectation _ ->
+      [%expr
+        Ppx_expect_runtime.Test_node.Create.expectation [@alert "-ppx_expect_runtime"]]
+    | Expectation_never_committed _ ->
+      [%expr
+        Ppx_expect_runtime.Test_node.Create.expectation_never_committed
+        [@alert "-ppx_expect_runtime"]]
   ;;
 
   let to_expr ~loc t =
@@ -112,8 +121,9 @@ module Expectation_node = struct
           ~node_loc:[%e Expr.compact_loc ~loc node_loc]]
     in
     match t with
-    | Expect expect_node_info -> make_expect_node (id t ~loc) expect_node_info
-    | Expect_exact expect_node_info -> make_expect_node (id t ~loc) expect_node_info
+    | Expect expect_node_info
+    | Expect_exact expect_node_info
+    | Expectation expect_node_info -> make_expect_node (id t ~loc) expect_node_info
     | Expect_if_reached expect_node_info ->
       if !allow_skipping_reachability_check
       then make_expect_node (id t ~loc) expect_node_info
@@ -126,6 +136,8 @@ module Expectation_node = struct
         in
         [%expr [%ocaml.error [%e estring ~loc error_text]]])
     | Expect_unreachable node_loc ->
+      [%expr [%e id t ~loc] ~node_loc:[%e Expr.compact_loc ~loc node_loc]]
+    | Expectation_never_committed node_loc ->
       [%expr [%e id t ~loc] ~node_loc:[%e Expr.compact_loc ~loc node_loc]]
   ;;
 end
@@ -156,6 +168,7 @@ let maybe_string_payload = Pattern.maybe_string
 module Parsed_node = struct
   type t =
     | Expectation_node of Expectation_id.t * Expectation_node.t
+    | Expectation_result_node of Expectation_id.t * Expectation_node.t
     | Output
 
   open struct
@@ -186,6 +199,17 @@ module Parsed_node = struct
       Expect_if_reached { located_payload; node_loc })
   ;;
 
+  let expectation =
+    Extension.Expert.declare
+      "expectation"
+      Expression
+      (Pattern.maybe_string ())
+      (fun ~located_payload node_loc ->
+         Expectation_result_node
+           ( Expectation_id.lookup_or_mint Parsed node_loc
+           , Expectation { located_payload; node_loc } ))
+  ;;
+
   let expect_output =
     Extension.Expert.declare "@expect.output" Expression (Pattern.empty ()) (fun _ ->
       Output)
@@ -202,9 +226,27 @@ module Parsed_node = struct
            , Expect_unreachable compact_loc ))
   ;;
 
+  let expectation_never_committed =
+    Extension.Expert.declare
+      "@expectation.never_committed"
+      Expression
+      (Pattern.empty ())
+      (fun compact_loc ->
+         Expectation_result_node
+           ( Expectation_id.lookup_or_mint Parsed compact_loc
+           , Expectation_never_committed compact_loc ))
+  ;;
+
   let match_expectation =
     let expectations =
-      [ expect; expect_exact; expect_if_reached; expect_output; expect_unreachable ]
+      [ expect
+      ; expect_exact
+      ; expect_if_reached
+      ; expect_output
+      ; expect_unreachable
+      ; expectation
+      ; expectation_never_committed
+      ]
     in
     function
     | { pexp_desc = Pexp_extension extension; pexp_loc; _ } ->
@@ -227,6 +269,11 @@ let replace_and_collect_expects =
           match expect_node (compact_loc_of_ppxlib_location loc) with
           | Expectation_node (id, expect_expr) ->
             ( [%expr Ppx_expect_test_block.run_test ~test_id:[%e Expr.id ~loc id]]
+            , (id, Expectation_node.to_expr expect_expr ~loc) :: acc )
+          | Expectation_result_node (id, expect_expr) ->
+            ( [%expr
+                Ppx_expect_test_block.run_test_without_commiting
+                  ~test_id:[%e Expr.id ~loc id]]
             , (id, Expectation_node.to_expr expect_expr ~loc) :: acc )
           | Output ->
             [%expr Ppx_expect_test_block.read_test_output_no_backtrace_check ()], acc
