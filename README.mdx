@@ -538,6 +538,82 @@ Other uses of `[%expect.output]` include:
 * Performing some sort of additional validation on the output before printing it to a
   normal `[%expect]` block.
 
+# Interactive expectations
+
+The `[%expectation]` extension point provides programmatic control over test expectations,
+allowing for dynamic handling of test outputs.
+
+The public API for this functionality is available in
+[expect_test_helpers_core](https://github.com/janestreet/expect_test_helpers_core).
+
+## Expectation lifecycle
+
+An expectation becomes "active" when execution encounters an `[%expectation]` block. Only
+one expectation can be active at a time. The active expectation remains active until
+explicitly resolved through one of the following functions:
+
+- `commit`: Accepts the test result for the currently active expectation. If the test
+  passes, no diff is produced. If it fails, the expectation is updated in the corrected
+  file.
+- `skip`: Ignores the test result, making no changes to the expectation block even if it
+  fails. The expectation still consumes its input.
+- `reset`: Like `skip`, but also restores the collected input, allowing subsequent expect
+  blocks to capture it.
+
+Each `[%expectation]` must be followed by exactly one call to `commit`, `skip`, or `reset`
+before the next `[%expect]`, `[%expect_exact]`, `[%expectation]`, or the end of the test.
+
+## Inspection functions
+
+While an expectation is active, these functions can be called to examine its state:
+
+- `is_successful`: Reports whether the actual output matches the expected output
+  (accounting for whitespace normalization)
+- `expected`: Returns the expected output string
+- `actual`: Returns the actual output string captured so far
+
+## Common use case: polling for state changes
+
+This functionality is particularly valuable for testing asynchronous systems where state
+changes don't occur immediately. Consider a test with the following pattern:
+
+1. Trigger a state change
+2. Wait for the state to propagate
+3. Verify the new state
+
+Standard expect tests lack the waiting mechanism in step 2, which can lead to flaky tests,
+especially in UI testing where timing varies. The `[%expectation]` extension allows
+implementation of a polling pattern:
+
+<!-- $MDX file=../../lib/expect_test_helpers/base/test/test_expect_test_helpers_base.ml,part=expectation_example -->
+```ocaml
+let animate state ~target ~step = Int.min (state + step) target
+
+let progress_bar state ~target =
+  state := animate !state ~target ~step:1;
+  for i = 0 to 9 do
+    printf (if i < !state then "#" else ".")
+  done
+;;
+
+let%expect_test "progress_bar_state_change" =
+  let progress = ref 0 in
+  let timeout = ref 100 in
+  let target = 6 in
+  while !timeout > 0 do
+    timeout := !timeout - 1;
+    progress_bar progress ~target;
+    [%expectation {| ######.... |}];
+    if Expectation.is_successful () || !timeout = 0
+    then Expectation.commit ()
+    else Expectation.skip ()
+  done
+;;
+```
+
+This approach combines the waiting (2) and verification (3) steps, reducing flakiness by
+polling until the actual state matches the expected state or a timeout occurs.
+
 # Configuration
 
 Expect-test exposes hooks for configuring how the bodies of expect tests are run, which
