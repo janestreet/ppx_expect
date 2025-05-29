@@ -247,6 +247,7 @@ let let_expect_pat =
        (Attribute.pattern
           uncaught_exn
           (value_binding
+             ~constraint_:drop
              ~pat:
                (map
                   (Attribute.pattern Ppx_inline_test.tags opt_name)
