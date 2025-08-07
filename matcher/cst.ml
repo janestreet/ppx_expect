@@ -10,12 +10,12 @@ let for_all_string s ~f =
 ;;
 
 let is_blank = function
-  | ' ' | '\t' -> true
+  | ' ' | '\t' | '\r' -> true
   | _ -> false
 ;;
 
 let is_space = function
-  | ' ' | '\t' | '\n' -> true
+  | ' ' | '\t' | '\n' | '\r' -> true
   | _ -> false
 ;;
 
