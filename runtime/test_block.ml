@@ -1,4 +1,5 @@
 open! Base
+open! Portable
 open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
 
 let sexp_of_character_range ({ start_pos; end_pos; _ } : Compact_loc.t) : Sexp.t =
@@ -38,8 +39,8 @@ module Shared : sig
 
   val src_filename : t -> string
   val output_file : t -> string
-  val failure_ref : t -> bool ref
-  val expectation_ref : t -> Expectation.t option ref
+  val failure_atomic : t -> bool Atomic.t
+  val expectation_atomic : t -> Expectation.t option Atomic.t
   val set_up_block : string -> t
   val read_test_output_unsanitized : t -> string
   val flush : unit -> unit
@@ -81,23 +82,28 @@ end = struct
     let to_string t = String.concat (to_list t) [@nontail]
   end
 
-  type t =
+  type%fuelproof 'k inner =
     { src_filename : string
     ; output_file : string
-    ; fail : bool ref
-    ; expectation : Expectation.t option ref
+    ; fail : bool Atomic.t
+    ; expectation : Expectation.t option Atomic.t
     ; test_output_reader : Stdlib.in_channel
     ; test_output_writer : Stdlib.out_channel
     ; output_reader_for_stubs_do_not_read : Stdlib.in_channel option
-    ; old_offset : int ref
-    ; pushed_output : Rope.t Stack.t
-    ; popped_output : Rope.t ref
+    ; (* The following three fields are mutated together, so are synchronized using the
+         same mutex *)
+      old_offset : (int ref, 'k) Capsule.Data.t
+    ; pushed_output : (Rope.t Stack.t, 'k) Capsule.Data.t
+    ; popped_output : (Rope.t ref, 'k) Capsule.Data.t
+    ; mutex : 'k Capsule.Mutex.t
     }
 
-  let src_filename { src_filename; _ } = src_filename
-  let output_file { output_file; _ } = output_file
-  let failure_ref { fail; _ } = fail
-  let expectation_ref { expectation; _ } = expectation
+  type%fuelproof t = T : 'k inner -> t
+
+  let src_filename (T { src_filename; _ }) = src_filename
+  let output_file (T { output_file; _ }) = output_file
+  let failure_atomic (T { fail; _ }) = fail
+  let expectation_atomic (T { expectation; _ }) = expectation
 
   external redirect_stdout
     :  output_writer:Stdlib.out_channel
@@ -112,6 +118,12 @@ end = struct
     -> stderr:Stdlib.out_channel
     -> unit
     = "ppx_expect_runtime_after_test"
+
+  (* SAFETY: These two functions are not in general thread safe, but are only ever called
+     from one thread at a time. This is ensured because of the synchronization on
+     [Current_test.current_test] *)
+  let redirect_stdout = Obj.magic_portable redirect_stdout
+  let restore_stdout = Obj.magic_portable restore_stdout
 
   external pos_out : Stdlib.out_channel -> int = "ppx_expect_runtime_out_channel_position"
   external flush_stubs : unit -> unit = "ppx_expect_runtime_flush_stubs_streams"
@@ -135,32 +147,37 @@ end = struct
       ~output_reader_for_stubs_do_not_read
       ~stdout:Stdlib.stdout
       ~stderr:Stdlib.stderr;
-    { src_filename
-    ; output_file
-    ; test_output_reader
-    ; test_output_writer
-    ; output_reader_for_stubs_do_not_read
-    ; old_offset = ref 0
-    ; fail = ref false
-    ; expectation = ref None
-    ; pushed_output = Stack.create ()
-    ; popped_output = ref Rope.empty
-    }
+    let (P mutex) = Capsule.Mutex.create () in
+    T
+      { src_filename
+      ; output_file
+      ; test_output_reader
+      ; test_output_writer
+      ; output_reader_for_stubs_do_not_read
+      ; old_offset = Capsule.Data.create (fun () -> ref 0)
+      ; fail = Atomic.make false
+      ; expectation = Atomic.make None
+      ; pushed_output = Capsule.Data.create Stack.create
+      ; popped_output = Capsule.Data.create (fun () -> ref Rope.empty)
+      ; mutex
+      }
   ;;
 
   (** Close the temp file and restore stdout and stderr. *)
   let clean_up_block
-    { output_file
-    ; test_output_reader
-    ; test_output_writer
-    ; output_reader_for_stubs_do_not_read
-    ; src_filename = _
-    ; fail = _
-    ; expectation = _
-    ; old_offset = _
-    ; pushed_output = _
-    ; popped_output = _
-    }
+    (T
+      { output_file
+      ; test_output_reader
+      ; test_output_writer
+      ; output_reader_for_stubs_do_not_read
+      ; src_filename = _
+      ; fail = _
+      ; expectation = _
+      ; old_offset = _
+      ; pushed_output = _
+      ; popped_output = _
+      ; mutex = _
+      })
     =
     Stdlib.close_in test_output_reader;
     Stdlib.close_out test_output_writer;
@@ -170,16 +187,21 @@ end = struct
   ;;
 
   let flush () =
-    Stdlib.Format.pp_print_flush Stdlib.Format.std_formatter ();
-    Stdlib.Format.pp_print_flush Stdlib.Format.err_formatter ();
+    let open Basement.Stdlib_shim in
+    Domain.Safe.DLS.access (fun access ->
+      Stdlib.Format.pp_print_flush (Format.Safe.get_std_formatter access) ();
+      Stdlib.Format.pp_print_flush (Format.Safe.get_err_formatter access) ());
     Stdlib.flush Stdlib.stdout;
     Stdlib.flush Stdlib.stderr;
     flush_stubs ()
   ;;
 
   let read_test_output_unsanitized_rope
+    ~access
     { test_output_reader; old_offset; popped_output; _ }
     =
+    let old_offset = Capsule.Data.unwrap ~access old_offset in
+    let popped_output = Capsule.Data.unwrap ~access popped_output in
     let new_offset =
       flush ();
       pos_out Stdlib.stdout
@@ -192,22 +214,27 @@ end = struct
     Rope.append old_output new_output
   ;;
 
-  let read_test_output_unsanitized t =
-    Rope.to_string (read_test_output_unsanitized_rope t)
+  let read_test_output_unsanitized (T t) =
+    Capsule.Mutex.with_lock t.mutex ~f:(fun access ->
+      Rope.to_string (read_test_output_unsanitized_rope ~access t))
   ;;
 
-  let push_output_onto_stack t =
-    let output = read_test_output_unsanitized_rope t in
-    Stack.push t.pushed_output output
+  let push_output_onto_stack (T t) =
+    Capsule.Mutex.with_lock t.mutex ~f:(fun access ->
+      let output = read_test_output_unsanitized_rope ~access t in
+      Stack.push (Capsule.Data.unwrap ~access t.pushed_output) output)
   ;;
 
-  let pop_output_from_stack_exn { pushed_output; popped_output; _ } =
-    let pushed = Stack.pop_exn pushed_output in
-    Ref.replace popped_output (fun popped -> Rope.append pushed popped)
+  let pop_output_from_stack_exn (T { pushed_output; popped_output; mutex; _ }) =
+    Capsule.Mutex.with_lock mutex ~f:(fun access ->
+      let pushed_output = Capsule.Data.unwrap ~access pushed_output in
+      let popped_output = Capsule.Data.unwrap ~access popped_output in
+      let pushed = Stack.pop_exn pushed_output in
+      Ref.replace popped_output (fun popped -> Rope.append pushed popped))
   ;;
 
-  let assert_no_expectation ~message { expectation; _ } =
-    match !expectation with
+  let assert_no_expectation ~message (T { expectation; _ }) =
+    match Atomic.get expectation with
     | Some e -> e |> Expectation.sexp_of_t |> message |> raise_s
     | None -> ()
   ;;
@@ -329,21 +356,24 @@ end = struct
     ; test_name : string option
     }
 
-  let test_is_running : t Or_no_test_running.t ref =
-    ref Or_no_test_running.No_test_running
+  let test_is_running =
+    (* NOTE: This is an atomic, not a dynamic, because we guarantee that only one test is
+       running at once *)
+    Atomic.make (No_test_running : t Or_no_test_running.t)
   ;;
 
-  let set t = test_is_running := Ok t
-  let unset () = test_is_running := No_test_running
+  let set t = Atomic.set test_is_running (Ok t)
+  let unset () = Atomic.set test_is_running No_test_running
+  let get () = Atomic.get test_is_running
 
   let is_running () =
-    match !test_is_running with
+    match get () with
     | Ok _ -> true
     | No_test_running -> false
   ;;
 
   let current_test () =
-    Or_no_test_running.map !test_is_running ~f:(fun { test_block; _ } -> test_block)
+    Or_no_test_running.map (get ()) ~f:(fun { test_block; _ } -> test_block)
   ;;
 
   let current_test_exn () =
@@ -355,11 +385,11 @@ end = struct
   ;;
 
   let current_test_name () =
-    Or_no_test_running.map !test_is_running ~f:(fun { test_name; _ } -> test_name)
+    Or_no_test_running.map (get ()) ~f:(fun { test_name; _ } -> test_name)
   ;;
 
   let iter ~f =
-    match !test_is_running with
+    match get () with
     | Ok a -> f a
     | No_test_running -> ()
   ;;
@@ -434,10 +464,10 @@ module Make (C : Expect_test_config_types.S) = struct
     , fun () ->
         Test_node.record_result
           ~test_output_raw
-          ~failure_ref:(Shared.failure_ref t)
+          ~failure_atomic:(Shared.failure_atomic t)
           node
           result;
-        Shared.expectation_ref t := None )
+        Atomic.set (Shared.expectation_atomic t) None )
   ;;
 
   let run_test_inner ~skip_expectation_check ~test_id ~test_output_raw t =
@@ -466,14 +496,15 @@ module Make (C : Expect_test_config_types.S) = struct
       | Pass -> true
       | Fail _ -> false
     in
-    Shared.expectation_ref t
-    := Some
+    Atomic.set
+      (Shared.expectation_atomic t)
+      (Some
          { actual = test_output_raw
          ; expected = Test_node.expectation_of_t node
          ; is_successful
          ; character_range = Test_node.loc node
          ; commit
-         }
+         })
   ;;
 
   let run_suite
@@ -692,77 +723,69 @@ module For_external = struct
   ;;
 
   let current_test_has_output_that_does_not_match_exn ~here =
-    let test_block =
-      Current_test.current_test ()
-      |> require_test_running
-           ~here
-           ~function_name:"current_test_has_output_that_does_not_match_exn"
-    in
-    !(Shared.failure_ref test_block)
+    Current_test.current_test ()
+    |> require_test_running
+         ~here
+         ~function_name:"current_test_has_output_that_does_not_match_exn"
+    |> Shared.failure_atomic
+    |> Atomic.get
+  ;;
+
+  let with_current ~here ~function_name ~f =
+    Current_test.current_test () |> require_test_running ~here ~function_name |> f
   ;;
 
   module Expectation = struct
-    let get_expectation ~here ~function_name =
-      Current_test.current_test ()
-      |> require_test_running ~here ~function_name:("Expectation." ^ function_name)
-      |> Shared.expectation_ref
-    ;;
-
     let is_active ?(here = Stdlib.Lexing.dummy_pos) () =
-      Option.is_some !(get_expectation ~here ~function_name:"is_active")
+      with_current
+        ~f:(fun t -> Option.is_some (Atomic.get (Shared.expectation_atomic t)))
+        ~here
+        ~function_name:"is_active"
     ;;
 
-    let run_over_expectation ~here ~function_name ~resolve ~f =
-      let expectation = get_expectation ~here ~function_name in
-      let res =
-        match !expectation with
-        | None ->
-          raise_s
-            (Sexp.message
-               (Printf.sprintf
-                  "Ppx_expect_runtime.For_external.Expectation.%s called with no \
-                   unresolved [[%%expectation]]"
-                  function_name)
-               [ "", Source_code_position.sexp_of_t here ])
-        | Some expectation -> f expectation
-      in
-      if resolve then expectation := None;
-      res
+    let get_exn ~function_name ~here t =
+      match Atomic.get (Shared.expectation_atomic t) with
+      | None ->
+        raise_s
+          (Sexp.message
+             (Printf.sprintf
+                "Ppx_expect_runtime.For_external.Expectation.%s called with no \
+                 unresolved [[%%expectation]]"
+                function_name)
+             [ "", Source_code_position.sexp_of_t here ])
+      | Some expectation -> expectation
+    ;;
+
+    let run_over_expectation ~here ~function_name ~f =
+      with_current ~here ~function_name:("Expectation." ^ function_name) ~f:(fun t ->
+        f t (get_exn ~here ~function_name t))
     ;;
 
     let commit ?(here = Stdlib.Lexing.dummy_pos) () =
-      run_over_expectation ~here ~function_name:"commit" ~resolve:true ~f:(fun e ->
-        e.commit ())
+      run_over_expectation ~here ~function_name:"commit" ~f:(fun _ e -> e.commit ())
     ;;
 
     let skip ?(here = Stdlib.Lexing.dummy_pos) () =
-      run_over_expectation ~here ~function_name:"skip" ~resolve:true ~f:ignore
+      run_over_expectation ~here ~function_name:"skip" ~f:(fun t (_ : Expectation.t) ->
+        Atomic.set (Shared.expectation_atomic t) None)
     ;;
 
     let sexp_for_debugging ?(here = Stdlib.Lexing.dummy_pos) () =
-      run_over_expectation
-        ~here
-        ~function_name:"sexp_for_debugging"
-        ~resolve:false
-        ~f:Expectation.sexp_of_t
+      run_over_expectation ~here ~function_name:"sexp_for_debugging" ~f:(fun _ e ->
+        Expectation.sexp_of_t e)
     ;;
 
     let is_successful ?(here = Stdlib.Lexing.dummy_pos) () =
-      run_over_expectation
-        ~here
-        ~function_name:"is_successful"
-        ~resolve:false
-        ~f:(fun e -> e.is_successful)
+      run_over_expectation ~here ~function_name:"is_successful" ~f:(fun _ e ->
+        e.is_successful)
     ;;
 
     let actual ?(here = Stdlib.Lexing.dummy_pos) () =
-      run_over_expectation ~here ~function_name:"actual" ~resolve:false ~f:(fun e ->
-        e.actual)
+      run_over_expectation ~here ~function_name:"actual" ~f:(fun _ e -> e.actual)
     ;;
 
     let expected ?(here = Stdlib.Lexing.dummy_pos) () =
-      run_over_expectation ~here ~function_name:"expected" ~resolve:false ~f:(fun e ->
-        e.expected)
+      run_over_expectation ~here ~function_name:"expected" ~f:(fun _ e -> e.expected)
     ;;
   end
 end

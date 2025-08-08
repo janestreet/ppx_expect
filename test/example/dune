@@ -14,5 +14,5 @@
     "cp %{first_dep} %{targets}; %{bin:apply-style} -directory-config jbuild -in-place %{targets}")))
 
 (alias
- (name DEFAULT)
+ (name default)
  (deps tests.ml.pp))

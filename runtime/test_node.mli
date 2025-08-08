@@ -1,4 +1,5 @@
 open! Base
+open Portable
 open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
 
 (** Accumulator of test results for one expect node *)
@@ -69,12 +70,13 @@ val compute_but_do_not_record_test_result
 
 (** [record_result ~test_output_raw ~failure_ref t result] records the [result] of
     receiving output [test_output_raw] at [t]. If the output results in a correction, sets
-    [failure_ref := true]. We use a [bool ref] argument instead of a [bool] return value
-    to decrease the chance that failures in tests are accidentally dropped and make it
-    more likely that they are correctly reported to e.g. the inline test runner harness. *)
+    [failure_atomic] to [true]. We use a [bool Atomic.t] argument instead of a [bool]
+    return value to decrease the chance that failures in tests are accidentally dropped
+    and make it more likely that they are correctly reported to e.g. the inline test
+    runner harness. *)
 val record_result
   :  test_output_raw:string
-  -> failure_ref:bool ref
+  -> failure_atomic:bool Atomic.t
   -> t
   -> Output.Test_result.t
   -> unit
@@ -120,12 +122,12 @@ module For_mlt : sig
 
   (** Records the test result of receiving the raw test output [test_output_raw]. If the
       test "fails" (the output is not considered to match the expectation), sets
-      [failure_ref := true] and returns the number of lines that will be spanned by
+      [failure_atomic] to [true] and returns the number of lines that will be spanned by
       inserted correction. If the test "passes", does not update [failure_ref] and returns
       [None]. *)
   val record_and_return_number_of_lines_in_correction
     :  expect_node_formatting:Expect_node_formatting.t
-    -> failure_ref:bool ref
+    -> failure_atomic:bool Atomic.t
     -> test_output_raw:string
     -> t
     -> int option

@@ -12,12 +12,16 @@ end
 
 (** Captured output that has been formatted according to the rules of the [Type.t] of its
     corresponding node. *)
-module Formatted : T
+module Formatted : sig
+  type t
+end
 
 (** Captured test output, possibly from multiple tests, after it has been formatted and
     compared to the original contents of the node; the contents that will be written to
     the node in the corrected file. *)
-module Reconciled : T
+module Reconciled : sig
+  type t
+end
 
 module Formatter : sig
   (** A [Formatter.t] describes how to convert captured [string] output into a
