@@ -32,6 +32,11 @@ let initial_dir =
   lazy (Or_error.ok_exn dir_or_error)
 ;;
 
+let remove_top_dir file =
+  let maybe_split = String.lsplit2 ~on:'/' file in
+  Option.value_map ~f:(fun (_, suffix) -> suffix) ~default:file maybe_split
+;;
+
 let absolute_path file =
   if Stdlib.Filename.is_relative file
   then Stdlib.Filename.concat (Lazy.force initial_dir) file
