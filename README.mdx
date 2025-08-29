@@ -683,6 +683,31 @@ let%expect_test "sanitization" =
 ;;
 ```
 
+Note that we don't run `sanitize` on the contents of
+`[@@expect.uncaught_exn]` attributes:
+
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml.corrected.expected,part=sanitization-exn -->
+```ocaml
+let%expect_test "sanitization in exceptions" =
+  print_message "Hello";
+  [%expect {| XXXX-XX-XX XX:XX:XX.XXXXXXZ: Hello |}];
+  let () = failwith (error_message "world") in
+  [%expect.unreachable]
+[@@expect.uncaught_exn {| (Failure "2025-08-05 19:15:45.404413Z: world\n") |}]
+;;
+```
+
+Since `[@@expect.uncaught_exn]` is designed to surface information
+while debugging tests, we don't want to hide information like
+timestamps, line numbers, or stack traces from its payload.
+
+When we want to exhibit the raising behavior of some function from an
+expect test, we use `require_does_raise` from
+[`Expect_test_helpers_core`](https://github.com/janestreet/expect_test_helpers_core)
+to capture the error in a normal `[%expect]` block, where all normal
+censoring logic runs. `require_does_raise` additionally provides its
+own `hide_positions` and `show_backtrace` arguments.
+
 # Debugging deadlocks & hanging tests
 
 

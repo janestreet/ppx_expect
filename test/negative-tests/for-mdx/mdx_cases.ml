@@ -249,3 +249,16 @@ let%expect_test "sanitization" =
 ;;
 
 (* $MDX part-end *)
+
+let error_message s = sprintf "2025-08-05 19:15:45.404413Z: %s\n" s
+
+(* $MDX part-begin=sanitization-exn *)
+
+let%expect_test "sanitization in exceptions" =
+  print_message "Hello";
+  [%expect {| |}];
+  let () = failwith (error_message "world") in
+  [%expect {| |}]
+;;
+
+(* $MDX part-end *)
