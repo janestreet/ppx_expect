@@ -12,6 +12,12 @@ val get : unit -> string
     Forcing the [Lazy.t] raises if the initial call to [Stdlib.Sys.getcwd] raised. *)
 val initial_dir : string Lazy.t
 
+(** Given a path, removes the first element of that path.
+
+    i.e. if given foo/bar/file, returns bar/file
+   *)
+val remove_top_dir: string -> string
+
 (** Given a path relative to the initial working directory, returns an absolute path.
 
     Raises if the initial call to [Stdlib.Sys.getcwd] raised. *)
