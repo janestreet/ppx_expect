@@ -2,4 +2,5 @@
  (name ppx_expect_runtime_types)
  (public_name ppx_expect.runtime_types)
  (libraries base)
- (preprocess no_preprocessing))
+ (preprocess
+  (pps ppx_fuelproof)))

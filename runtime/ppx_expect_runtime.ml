@@ -5,7 +5,7 @@ open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
    [Ppx_inline_test_lib] *)
 let () =
   Ppx_inline_test_lib.add_evaluator ~f:(fun () ->
-    Stdlib.Sys.chdir (Lazy.force Current_file.initial_dir);
+    Stdlib.Sys.chdir (force Current_file.initial_dir);
     Test_node.Global_results_table.process_each_file
       ~f:(fun ~filename ~test_nodes ~postprocess ->
         Write_corrected_file.f

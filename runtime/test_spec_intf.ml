@@ -56,7 +56,7 @@ module Definitions = struct
         It is either [`Expect] (indicating that both corrections for unexpected output and
         rewrites for unreachability are possible) or [`Unreachable] (indicating that only
         corrections for unexpected output are possible). *)
-    type _ t =
+    type%fuelproof _ t : immutable_data =
       | Expect :
           { payload : Payload.t
           ; on_unreachable : On_unreachable.t
@@ -75,7 +75,7 @@ module Definitions = struct
       expect node and rewrite it in the source file if there are corrections. The
       ['behavior_type] type variable has the same meanings as in
       ['behavior_type Behavior.t]. *)
-  type 'behavior_type t =
+  type 'behavior_type t : immutable_data =
     { position : Insert_loc.t
     ; behavior : 'behavior_type Behavior.t
     ; payload_type : Output.Type.t
@@ -104,7 +104,7 @@ module type Test_spec = sig
       include Insert_loc
     end
 
-    val loc : Insert_loc.t -> Compact_loc.t
+    val loc : Insert_loc.t -> Compact_loc.t @@ portable
   end
 
   val with_behavior : 'old_behavior t -> 'new_behavior Behavior.t -> 'new_behavior t

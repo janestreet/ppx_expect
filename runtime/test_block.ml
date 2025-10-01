@@ -1,5 +1,7 @@
 open! Base
+open! Portable
 open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
+open Basement.Blocking_sync [@@alert "-deprecated"]
 
 let sexp_of_character_range ({ start_pos; end_pos; _ } : Compact_loc.t) : Sexp.t =
   List
@@ -30,27 +32,39 @@ module Expectation = struct
   ;;
 end
 
+module Match_or_mismatch = struct
+  type t =
+    | Match
+    | Mismatch
+end
+
 (** [Shared] and [Configured] primarily contain boilerplate involving the FFI and printing
     [CR]s. The interesting logic is in [Make]. *)
 
-module Shared : sig
-  type t
+module Shared : sig @@ portable
+  type t : value mod contended portable
 
   val src_filename : t -> string
   val output_file : t -> string
-  val failure_ref : t -> bool ref
-  val expectation_ref : t -> Expectation.t option ref
-  val set_up_block : string -> t
+  val failure_atomic : t -> bool Atomic.t
+  val expectation_atomic : t -> Expectation.t option Atomic.t
+  val set_up_block : string -> t @@ nonportable
   val read_test_output_unsanitized : t -> string
   val flush : unit -> unit
   val clean_up_block : t -> unit
   val assert_no_expectation : message:(Sexp.t -> Sexp.t) -> t -> unit
-  val push_output_onto_stack : t -> unit
-  val pop_output_from_stack_exn : t -> unit
+  val assert_stack_empty : message:(Sexp.t -> Sexp.t) -> t -> unit
+
+  module Stack_frame : sig
+    type t
+  end
+
+  val push_output_onto_stack : t -> Stack_frame.t
+  val pop_output_from_stack : t -> Stack_frame.t -> Match_or_mismatch.t
 end = struct
   (** Simple data structure for strings with fast append *)
-  module Rope : sig
-    type t
+  module Rope : sig @@ portable
+    type t : immutable_data
 
     val empty : t
     val append : t -> t -> t
@@ -81,23 +95,28 @@ end = struct
     let to_string t = String.concat (to_list t) [@nontail]
   end
 
-  type t =
+  type%fuelproof 'k inner : value mod contended portable =
     { src_filename : string
     ; output_file : string
-    ; fail : bool ref
-    ; expectation : Expectation.t option ref
+    ; fail : bool Atomic.t
+    ; expectation : Expectation.t option Atomic.t
     ; test_output_reader : Stdlib.in_channel
     ; test_output_writer : Stdlib.out_channel
     ; output_reader_for_stubs_do_not_read : Stdlib.in_channel option
-    ; old_offset : int ref
-    ; pushed_output : Rope.t Stack.t
-    ; popped_output : Rope.t ref
+    ; (* The following three fields are mutated together, so are synchronized using the
+         same mutex *)
+      old_offset : (int ref, 'k) Capsule.Data.t
+    ; pushed_output : (Rope.t Stack.t, 'k) Capsule.Data.t
+    ; popped_output : (Rope.t ref, 'k) Capsule.Data.t
+    ; mutex : 'k Mutex.t
     }
 
-  let src_filename { src_filename; _ } = src_filename
-  let output_file { output_file; _ } = output_file
-  let failure_ref { fail; _ } = fail
-  let expectation_ref { expectation; _ } = expectation
+  type%fuelproof t : value mod contended portable = T : 'k inner -> t
+
+  let src_filename (T { src_filename; _ }) = src_filename
+  let output_file (T { output_file; _ }) = output_file
+  let failure_atomic (T { fail; _ }) = fail
+  let expectation_atomic (T { expectation; _ }) = expectation
 
   external redirect_stdout
     :  output_writer:Stdlib.out_channel
@@ -113,8 +132,23 @@ end = struct
     -> unit
     = "ppx_expect_runtime_after_test"
 
-  external pos_out : Stdlib.out_channel -> int = "ppx_expect_runtime_out_channel_position"
-  external flush_stubs : unit -> unit = "ppx_expect_runtime_flush_stubs_streams"
+  (* SAFETY: These two functions are not in general thread safe, but are only ever called
+     from one thread at a time. This is ensured because of the synchronization on
+     [Current_test.current_test] *)
+  let redirect_stdout = Obj.magic_portable redirect_stdout
+  let restore_stdout = Obj.magic_portable restore_stdout
+
+  external pos_out
+    :  Stdlib.out_channel
+    -> int
+    @@ portable
+    = "ppx_expect_runtime_out_channel_position"
+
+  external flush_stubs
+    :  unit
+    -> unit
+    @@ portable
+    = "ppx_expect_runtime_flush_stubs_streams"
 
   (** Save std file descriptors, open a temp file for test output, and reroute stdout and
       stderr there. *)
@@ -135,32 +169,38 @@ end = struct
       ~output_reader_for_stubs_do_not_read
       ~stdout:Stdlib.stdout
       ~stderr:Stdlib.stderr;
-    { src_filename
-    ; output_file
-    ; test_output_reader
-    ; test_output_writer
-    ; output_reader_for_stubs_do_not_read
-    ; old_offset = ref 0
-    ; fail = ref false
-    ; expectation = ref None
-    ; pushed_output = Stack.create ()
-    ; popped_output = ref Rope.empty
-    }
+    let (P key) = Capsule.Expert.create () in
+    let mutex = Mutex.create key in
+    T
+      { src_filename
+      ; output_file
+      ; test_output_reader
+      ; test_output_writer
+      ; output_reader_for_stubs_do_not_read
+      ; old_offset = Capsule.Data.create (fun () -> ref 0)
+      ; fail = Atomic.make false
+      ; expectation = Atomic.make None
+      ; pushed_output = Capsule.Data.create Stack.create
+      ; popped_output = Capsule.Data.create (fun () -> ref Rope.empty)
+      ; mutex
+      }
   ;;
 
   (** Close the temp file and restore stdout and stderr. *)
   let clean_up_block
-    { output_file
-    ; test_output_reader
-    ; test_output_writer
-    ; output_reader_for_stubs_do_not_read
-    ; src_filename = _
-    ; fail = _
-    ; expectation = _
-    ; old_offset = _
-    ; pushed_output = _
-    ; popped_output = _
-    }
+    (T
+      { output_file
+      ; test_output_reader
+      ; test_output_writer
+      ; output_reader_for_stubs_do_not_read
+      ; src_filename = _
+      ; fail = _
+      ; expectation = _
+      ; old_offset = _
+      ; pushed_output = _
+      ; popped_output = _
+      ; mutex = _
+      })
     =
     Stdlib.close_in test_output_reader;
     Stdlib.close_out test_output_writer;
@@ -169,17 +209,23 @@ end = struct
     Stdlib.Sys.remove output_file
   ;;
 
+  let get_std_formatter = Obj.magic_portable Stdlib.Format.get_std_formatter
+  let get_err_formatter = Obj.magic_portable Stdlib.Format.get_err_formatter
+
   let flush () =
-    Stdlib.Format.pp_print_flush Stdlib.Format.std_formatter ();
-    Stdlib.Format.pp_print_flush Stdlib.Format.err_formatter ();
+    Stdlib.Format.pp_print_flush (get_std_formatter ()) ();
+    Stdlib.Format.pp_print_flush (get_err_formatter ()) ();
     Stdlib.flush Stdlib.stdout;
     Stdlib.flush Stdlib.stderr;
     flush_stubs ()
   ;;
 
   let read_test_output_unsanitized_rope
+    ~access
     { test_output_reader; old_offset; popped_output; _ }
     =
+    let old_offset = Capsule.Data.unwrap ~access old_offset in
+    let popped_output = Capsule.Data.unwrap ~access popped_output in
     let new_offset =
       flush ();
       pos_out Stdlib.stdout
@@ -192,24 +238,72 @@ end = struct
     Rope.append old_output new_output
   ;;
 
-  let read_test_output_unsanitized t =
-    Rope.to_string (read_test_output_unsanitized_rope t)
+  let read_test_output_unsanitized (T t) =
+    (Mutex.with_lock t.mutex ~f:(fun password ->
+       Capsule.Expert.access ~password ~f:(fun access ->
+         { aliased = Rope.to_string (read_test_output_unsanitized_rope ~access t) })
+       [@nontail]))
+      .aliased
   ;;
 
-  let push_output_onto_stack t =
-    let output = read_test_output_unsanitized_rope t in
-    Stack.push t.pushed_output output
+  module Stack_frame = struct
+    (* We use the length of the stack after a frame is pushed as an ID for the frame. *)
+    type t = int
+  end
+
+  let push_output_onto_stack (T t) =
+    Mutex.with_lock t.mutex ~f:(fun password ->
+      Capsule.Expert.access ~password ~f:(fun access ->
+        let output = read_test_output_unsanitized_rope ~access t in
+        let stack = Capsule.Data.unwrap ~access t.pushed_output in
+        Stack.push stack output;
+        Stack.length stack)
+      [@nontail])
+    [@nontail]
   ;;
 
-  let pop_output_from_stack_exn { pushed_output; popped_output; _ } =
-    let pushed = Stack.pop_exn pushed_output in
-    Ref.replace popped_output (fun popped -> Rope.append pushed popped)
+  let pop_output_from_stack (T { pushed_output; popped_output; mutex; _ }) stack_frame =
+    Mutex.with_lock mutex ~f:(fun password ->
+      Capsule.Expert.access ~password ~f:(fun access ->
+        let pushed_output = Capsule.Data.unwrap ~access pushed_output in
+        let popped_output = Capsule.Data.unwrap ~access popped_output in
+        let matched : Match_or_mismatch.t =
+          if Stack.length pushed_output = stack_frame then Match else Mismatch
+        in
+        (* If we're popping out of order, pop down to the current frame. This results in
+         more sensible errors than just refusing to pop anything. We'll be checking at
+         every other [pop_output_from_stack], and at end of the expect test, anyway. *)
+        while Stack.length pushed_output >= stack_frame do
+          let pushed = Stack.pop_exn pushed_output in
+          Ref.replace popped_output (fun popped -> Rope.append pushed popped)
+        done;
+        matched)
+      [@nontail])
+    [@nontail]
   ;;
 
-  let assert_no_expectation ~message { expectation; _ } =
-    match !expectation with
+  let assert_no_expectation ~message (T { expectation; _ }) =
+    match Atomic.get expectation with
     | Some e -> e |> Expectation.sexp_of_t |> message |> raise_s
     | None -> ()
+  ;;
+
+  let assert_stack_empty ~message (T { mutex; pushed_output; _ }) =
+    match
+      (Mutex.with_lock mutex ~f:(fun password ->
+         Capsule.Expert.access ~password ~f:(fun access ->
+           let stack = Capsule.Data.unwrap ~access pushed_output in
+           { aliased = Stack.to_list stack })
+         [@nontail]))
+        .aliased
+    with
+    | [] -> ()
+    | nonempty ->
+      nonempty
+      |> List.map ~f:Rope.to_string
+      |> sexp_of_list sexp_of_string
+      |> message
+      |> raise_s
   ;;
 end
 
@@ -285,7 +379,7 @@ end
 
 (** The expect test currently being executed and some info we print if the program crashes
     in the middle of a test. *)
-module Current_test : sig
+module Current_test : sig @@ portable
   module Or_no_test_running : sig
     type 'a t =
       | Ok of 'a
@@ -329,21 +423,24 @@ end = struct
     ; test_name : string option
     }
 
-  let test_is_running : t Or_no_test_running.t ref =
-    ref Or_no_test_running.No_test_running
+  let test_is_running =
+    (* NOTE: This is an atomic, not a dynamic, because we guarantee that only one test is
+       running at once *)
+    Atomic.make (No_test_running : t Or_no_test_running.t)
   ;;
 
-  let set t = test_is_running := Ok t
-  let unset () = test_is_running := No_test_running
+  let set t = Atomic.set test_is_running (Ok t)
+  let unset () = Atomic.set test_is_running No_test_running
+  let get () = Atomic.get test_is_running
 
   let is_running () =
-    match !test_is_running with
+    match get () with
     | Ok _ -> true
     | No_test_running -> false
   ;;
 
   let current_test () =
-    Or_no_test_running.map !test_is_running ~f:(fun { test_block; _ } -> test_block)
+    Or_no_test_running.map (get ()) ~f:(fun { test_block; _ } -> test_block)
   ;;
 
   let current_test_exn () =
@@ -355,11 +452,11 @@ end = struct
   ;;
 
   let current_test_name () =
-    Or_no_test_running.map !test_is_running ~f:(fun { test_name; _ } -> test_name)
+    Or_no_test_running.map (get ()) ~f:(fun { test_name; _ } -> test_name)
   ;;
 
   let iter ~f =
-    match !test_is_running with
+    match get () with
     | Ok a -> f a
     | No_test_running -> ()
   ;;
@@ -434,10 +531,10 @@ module Make (C : Expect_test_config_types.S) = struct
     , fun () ->
         Test_node.record_result
           ~test_output_raw
-          ~failure_ref:(Shared.failure_ref t)
+          ~failure_atomic:(Shared.failure_atomic t)
           node
           result;
-        Shared.expectation_ref t := None )
+        Atomic.set (Shared.expectation_atomic t) None )
   ;;
 
   let run_test_inner ~skip_expectation_check ~test_id ~test_output_raw t =
@@ -466,14 +563,15 @@ module Make (C : Expect_test_config_types.S) = struct
       | Pass -> true
       | Fail _ -> false
     in
-    Shared.expectation_ref t
-    := Some
+    Atomic.set
+      (Shared.expectation_atomic t)
+      (Some
          { actual = test_output_raw
          ; expected = Test_node.expectation_of_t node
          ; is_successful
          ; character_range = Test_node.loc node
          ; commit
-         }
+         })
   ;;
 
   let run_suite
@@ -571,7 +669,15 @@ module Make (C : Expect_test_config_types.S) = struct
                   "reached end of test with unresolved [[%expectation]]"
                   [ "expectation", e ]))
           in
-          [ body_exn; open_expectation_exn ]
+          let stack_empty_exn =
+            Configured.dump_backtrace (fun () ->
+              Shared.assert_stack_empty test_block ~message:(fun s ->
+                Sexp.message
+                  "reached end of test before completion of \
+                   [with_empty_expect_test_output_async] or similar function"
+                  [ "stack", s ]))
+          in
+          [ body_exn; open_expectation_exn; stack_empty_exn ]
           |> List.filter_opt
           |> function
           | [] -> None
@@ -670,13 +776,23 @@ module For_external = struct
     |> Expect_test_config.sanitize
   ;;
 
-  let with_empty_test_output ~here f =
+  module Stack_frame = Shared.Stack_frame
+  module Match_or_mismatch = Match_or_mismatch
+
+  let push_output_exn ~here =
     let shared =
       Current_test.current_test ()
-      |> require_test_running ~here ~function_name:"read_current_test_output_exn"
+      |> require_test_running ~here ~function_name:"push_output_exn"
     in
-    Shared.push_output_onto_stack shared;
-    Exn.protect ~f ~finally:(fun () -> Shared.pop_output_from_stack_exn shared)
+    Shared.push_output_onto_stack shared
+  ;;
+
+  let pop_output_exn ~here frame =
+    let shared =
+      Current_test.current_test ()
+      |> require_test_running ~here ~function_name:"pop_output_exn"
+    in
+    Shared.pop_output_from_stack shared frame
   ;;
 
   let am_running_expect_test = Current_test.is_running
@@ -692,77 +808,69 @@ module For_external = struct
   ;;
 
   let current_test_has_output_that_does_not_match_exn ~here =
-    let test_block =
-      Current_test.current_test ()
-      |> require_test_running
-           ~here
-           ~function_name:"current_test_has_output_that_does_not_match_exn"
-    in
-    !(Shared.failure_ref test_block)
+    Current_test.current_test ()
+    |> require_test_running
+         ~here
+         ~function_name:"current_test_has_output_that_does_not_match_exn"
+    |> Shared.failure_atomic
+    |> Atomic.get
+  ;;
+
+  let with_current ~here ~function_name ~f =
+    Current_test.current_test () |> require_test_running ~here ~function_name |> f
   ;;
 
   module Expectation = struct
-    let get_expectation ~here ~function_name =
-      Current_test.current_test ()
-      |> require_test_running ~here ~function_name:("Expectation." ^ function_name)
-      |> Shared.expectation_ref
-    ;;
-
     let is_active ~(here : [%call_pos]) () =
-      Option.is_some !(get_expectation ~here ~function_name:"is_active")
+      with_current
+        ~f:(fun t -> Option.is_some (Atomic.get (Shared.expectation_atomic t)))
+        ~here
+        ~function_name:"is_active"
     ;;
 
-    let run_over_expectation ~here ~function_name ~resolve ~f =
-      let expectation = get_expectation ~here ~function_name in
-      let res =
-        match !expectation with
-        | None ->
-          raise_s
-            (Sexp.message
-               (Printf.sprintf
-                  "Ppx_expect_runtime.For_external.Expectation.%s called with no \
-                   unresolved [[%%expectation]]"
-                  function_name)
-               [ "", Source_code_position.sexp_of_t here ])
-        | Some expectation -> f expectation
-      in
-      if resolve then expectation := None;
-      res
+    let get_exn ~function_name ~here t =
+      match Atomic.get (Shared.expectation_atomic t) with
+      | None ->
+        raise_s
+          (Sexp.message
+             (Printf.sprintf
+                "Ppx_expect_runtime.For_external.Expectation.%s called with no \
+                 unresolved [[%%expectation]]"
+                function_name)
+             [ "", Source_code_position.sexp_of_t here ])
+      | Some expectation -> expectation
+    ;;
+
+    let run_over_expectation ~here ~function_name ~f =
+      with_current ~here ~function_name:("Expectation." ^ function_name) ~f:(fun t ->
+        f t (get_exn ~here ~function_name t))
     ;;
 
     let commit ~(here : [%call_pos]) () =
-      run_over_expectation ~here ~function_name:"commit" ~resolve:true ~f:(fun e ->
-        e.commit ())
+      run_over_expectation ~here ~function_name:"commit" ~f:(fun _ e -> e.commit ())
     ;;
 
     let skip ~(here : [%call_pos]) () =
-      run_over_expectation ~here ~function_name:"skip" ~resolve:true ~f:ignore
+      run_over_expectation ~here ~function_name:"skip" ~f:(fun t (_ : Expectation.t) ->
+        Atomic.set (Shared.expectation_atomic t) None)
     ;;
 
     let sexp_for_debugging ~(here : [%call_pos]) () =
-      run_over_expectation
-        ~here
-        ~function_name:"sexp_for_debugging"
-        ~resolve:false
-        ~f:Expectation.sexp_of_t
+      run_over_expectation ~here ~function_name:"sexp_for_debugging" ~f:(fun _ e ->
+        Expectation.sexp_of_t e)
     ;;
 
     let is_successful ~(here : [%call_pos]) () =
-      run_over_expectation
-        ~here
-        ~function_name:"is_successful"
-        ~resolve:false
-        ~f:(fun e -> e.is_successful)
+      run_over_expectation ~here ~function_name:"is_successful" ~f:(fun _ e ->
+        e.is_successful)
     ;;
 
     let actual ~(here : [%call_pos]) () =
-      run_over_expectation ~here ~function_name:"actual" ~resolve:false ~f:(fun e ->
-        e.actual)
+      run_over_expectation ~here ~function_name:"actual" ~f:(fun _ e -> e.actual)
     ;;
 
     let expected ~(here : [%call_pos]) () =
-      run_over_expectation ~here ~function_name:"expected" ~resolve:false ~f:(fun e ->
-        e.expected)
+      run_over_expectation ~here ~function_name:"expected" ~f:(fun _ e -> e.expected)
     ;;
   end
 end

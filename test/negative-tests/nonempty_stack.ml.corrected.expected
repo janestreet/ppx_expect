@@ -1,0 +1,10 @@
+let%expect_test _ =
+  ignore
+    (Ppx_expect_runtime.For_external.push_output_exn ~here:[%here]
+     : Ppx_expect_runtime.For_external.Stack_frame.t) [@alert "-ppx_expect_runtime"]
+[@@expect.uncaught_exn
+  {|
+  ("reached end of test before completion of [with_empty_expect_test_output_async] or similar function"
+    (stack ("")))
+  |}]
+;;

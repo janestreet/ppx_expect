@@ -1,5 +1,7 @@
 open! Base
+open! Portable
 open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
+open Basement.Blocking_sync [@@alert "-deprecated"]
 
 module Correction = struct
   type t =
@@ -141,23 +143,31 @@ type one_run =
   | Reached_with_output of one_output
   | Did_not_reach
 
-type 'behavior inner =
+type%fuelproof 'behavior inner : value mod contended portable =
   | Test :
       { expectation : ([< Test_spec.Behavior_type.t ] as 'behavior) Test_spec.t
-      ; results : one_run Queue.t
-      ; mutable reached_this_run : bool
+      ; results : (one_run Queue.t, 'k) Capsule.Data.t
+      ; mutex : 'k Mutex.t
+      ; reached_this_run : bool Atomic.t
       }
       -> 'behavior inner
 
-type t = T : 'behavior inner -> t
+type%fuelproof t : value mod contended portable = T : 'behavior inner -> t
 
 let to_correction
   ~expect_node_formatting
   ~cr_for_multiple_outputs
-  (T (Test { expectation; results; reached_this_run = _ }))
+  (T (Test { expectation; results; mutex; reached_this_run = _ }))
   : Correction.t option
   =
-  let results_list = Queue.to_list results in
+  let results_list =
+    (Mutex.with_lock mutex ~f:(fun password ->
+       Capsule.Expert.access ~password ~f:(fun access ->
+         let results = Capsule.Data.unwrap ~access results in
+         { aliased = Queue.to_list results })
+       [@nontail]))
+      .aliased
+  in
   let unreached_list, outputs_list =
     List.partition_map results_list ~f:(function
       | Did_not_reach -> First ()
@@ -237,26 +247,38 @@ let compute_but_do_not_record_test_result
 
 let record_result
   ~test_output_raw
-  ~failure_ref
+  ~failure_atomic
   (T (Test t))
   (result : Output.Test_result.t)
   =
   (match result with
-   | Fail _ -> failure_ref := true
+   | Fail _ -> Atomic.set failure_atomic true
    | Pass -> ());
-  Queue.enqueue t.results (Reached_with_output { result; raw = test_output_raw });
-  t.reached_this_run <- true
+  Mutex.with_lock t.mutex ~f:(fun password ->
+    Capsule.Expert.Data.iter t.results ~password ~f:(fun q ->
+      Queue.enqueue q (Reached_with_output { result; raw = test_output_raw }))
+    [@nontail]);
+  Atomic.set t.reached_this_run true
 ;;
 
 let of_expectation expectation =
-  T (Test { expectation; results = Queue.create (); reached_this_run = false })
+  let (P key) = Capsule.Expert.create () in
+  T
+    (Test
+       { expectation
+       ; results = Capsule.Data.create Queue.create
+       ; mutex = Mutex.create key
+       ; reached_this_run = Atomic.make false
+       })
 ;;
 
-let loc (T (Test { expectation = { position; _ }; results = _; reached_this_run = _ })) =
+let loc (T (Test { expectation = { position; _ }; results = _; _ })) =
   Test_spec.Insert_loc.loc position
 ;;
 
-let expectation_of_t (T (Test { expectation; results = _; reached_this_run = _ })) =
+let expectation_of_t
+  (T (Test { expectation; results = _; mutex = _; reached_this_run = _ }))
+  =
   match expectation.behavior with
   | Expect { payload = { contents; tag = _ }; on_unreachable = _; reachability = _ } ->
     Some contents
@@ -264,8 +286,14 @@ let expectation_of_t (T (Test { expectation; results = _; reached_this_run = _ }
 ;;
 
 let record_end_of_run t =
-  let (T (Test { expectation = _; results; reached_this_run })) = t in
-  if not reached_this_run then Queue.enqueue results Did_not_reach
+  let (T (Test { expectation = _; results; mutex; reached_this_run })) = t in
+  if not (Atomic.get reached_this_run)
+  then
+    Mutex.with_lock mutex ~f:(fun password ->
+      Capsule.Expert.Data.iter results ~password ~f:(fun q ->
+        Queue.enqueue q Did_not_reach)
+      [@nontail])
+    [@nontail]
 ;;
 
 module Global_results_table = struct
@@ -305,7 +333,7 @@ module Global_results_table = struct
         ~dst:file.expectations
         ~f:(fun ~key:test_id new_test existing_test ->
           let (T (Test t) as test) = Option.value existing_test ~default:new_test in
-          t.reached_this_run <- false;
+          Atomic.set t.reached_this_run false;
           Queue.enqueue tests_as_in_table (test_id, test);
           Set_to test);
       file);
@@ -354,14 +382,14 @@ end
 module For_mlt = struct
   let record_and_return_number_of_lines_in_correction
     ~expect_node_formatting
-    ~failure_ref
+    ~failure_atomic
     ~test_output_raw
     t
     =
     let result, tag =
       compute_but_do_not_record_test_result ~expect_node_formatting ~test_output_raw t
     in
-    record_result ~test_output_raw ~failure_ref t result;
+    record_result ~test_output_raw ~failure_atomic t result;
     match result with
     | Fail contents ->
       let correction =

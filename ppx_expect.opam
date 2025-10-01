@@ -12,6 +12,9 @@ build: [
 depends: [
   "ocaml" {>= "5.1.0"}
   "base"
+  "basement"
+  "portable"
+  "ppx_fuelproof"
   "ppx_here"
   "ppx_inline_test"
   "stdio"

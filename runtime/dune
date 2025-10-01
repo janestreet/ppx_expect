@@ -5,10 +5,12 @@
  (name ppx_expect_runtime)
  (public_name ppx_expect.runtime)
  (libraries base stdio ppx_inline_test.runtime-lib make_corrected_file
-   expect_test_config expect_test_config_types ppx_expect_runtime_types)
+   basement expect_test_config expect_test_config_types portable
+   ppx_expect_runtime_types)
  (js_of_ocaml
   (javascript_files runtime.js))
- (preprocess no_preprocessing)
+ (preprocess
+  (pps ppx_fuelproof))
  (wasm_of_ocaml
   (javascript_files runtime.js)
   (wasm_files runtime.wat)))
