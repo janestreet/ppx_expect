@@ -1,6 +1,7 @@
 open! Base
 open! Portable
 open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
+open Basement.Blocking_sync [@@alert "-deprecated"]
 
 let sexp_of_character_range ({ start_pos; end_pos; _ } : Compact_loc.t) : Sexp.t =
   List
@@ -31,6 +32,12 @@ module Expectation = struct
   ;;
 end
 
+module Match_or_mismatch = struct
+  type t =
+    | Match
+    | Mismatch
+end
+
 (** [Shared] and [Configured] primarily contain boilerplate involving the FFI and printing
     [CR]s. The interesting logic is in [Make]. *)
 
@@ -46,8 +53,14 @@ module Shared : sig
   val flush : unit -> unit
   val clean_up_block : t -> unit
   val assert_no_expectation : message:(Sexp.t -> Sexp.t) -> t -> unit
-  val push_output_onto_stack : t -> unit
-  val pop_output_from_stack_exn : t -> unit
+  val assert_stack_empty : message:(Sexp.t -> Sexp.t) -> t -> unit
+
+  module Stack_frame : sig
+    type t
+  end
+
+  val push_output_onto_stack : t -> Stack_frame.t
+  val pop_output_from_stack : t -> Stack_frame.t -> Match_or_mismatch.t
 end = struct
   (** Simple data structure for strings with fast append *)
   module Rope : sig
@@ -95,7 +108,7 @@ end = struct
       old_offset : (int ref, 'k) Capsule.Data.t
     ; pushed_output : (Rope.t Stack.t, 'k) Capsule.Data.t
     ; popped_output : (Rope.t ref, 'k) Capsule.Data.t
-    ; mutex : 'k Capsule.Mutex.t
+    ; mutex : 'k Mutex.t
     }
 
   type%fuelproof t = T : 'k inner -> t
@@ -147,7 +160,8 @@ end = struct
       ~output_reader_for_stubs_do_not_read
       ~stdout:Stdlib.stdout
       ~stderr:Stdlib.stderr;
-    let (P mutex) = Capsule.Mutex.create () in
+    let (P key) = Capsule.Expert.create () in
+    let mutex = Mutex.create key in
     T
       { src_filename
       ; output_file
@@ -186,11 +200,12 @@ end = struct
     Stdlib.Sys.remove output_file
   ;;
 
+  let get_std_formatter = Obj.magic_portable Stdlib.Format.get_std_formatter
+  let get_err_formatter = Obj.magic_portable Stdlib.Format.get_err_formatter
+
   let flush () =
-    let open Basement.Stdlib_shim in
-    Domain.Safe.DLS.access (fun access ->
-      Stdlib.Format.pp_print_flush (Format.Safe.get_std_formatter access) ();
-      Stdlib.Format.pp_print_flush (Format.Safe.get_err_formatter access) ());
+    Stdlib.Format.pp_print_flush (get_std_formatter ()) ();
+    Stdlib.Format.pp_print_flush (get_err_formatter ()) ();
     Stdlib.flush Stdlib.stdout;
     Stdlib.flush Stdlib.stderr;
     flush_stubs ()
@@ -215,28 +230,71 @@ end = struct
   ;;
 
   let read_test_output_unsanitized (T t) =
-    Capsule.Mutex.with_lock t.mutex ~f:(fun access ->
-      Rope.to_string (read_test_output_unsanitized_rope ~access t))
+    (Mutex.with_lock t.mutex ~f:(fun password ->
+       Capsule.Expert.access ~password ~f:(fun access ->
+         { aliased = Rope.to_string (read_test_output_unsanitized_rope ~access t) })
+       [@nontail]))
+      .aliased
   ;;
+
+  module Stack_frame = struct
+    (* We use the length of the stack after a frame is pushed as an ID for the frame. *)
+    type t = int
+  end
 
   let push_output_onto_stack (T t) =
-    Capsule.Mutex.with_lock t.mutex ~f:(fun access ->
-      let output = read_test_output_unsanitized_rope ~access t in
-      Stack.push (Capsule.Data.unwrap ~access t.pushed_output) output)
+    Mutex.with_lock t.mutex ~f:(fun password ->
+      Capsule.Expert.access ~password ~f:(fun access ->
+        let output = read_test_output_unsanitized_rope ~access t in
+        let stack = Capsule.Data.unwrap ~access t.pushed_output in
+        Stack.push stack output;
+        Stack.length stack)
+      [@nontail])
+    [@nontail]
   ;;
 
-  let pop_output_from_stack_exn (T { pushed_output; popped_output; mutex; _ }) =
-    Capsule.Mutex.with_lock mutex ~f:(fun access ->
-      let pushed_output = Capsule.Data.unwrap ~access pushed_output in
-      let popped_output = Capsule.Data.unwrap ~access popped_output in
-      let pushed = Stack.pop_exn pushed_output in
-      Ref.replace popped_output (fun popped -> Rope.append pushed popped))
+  let pop_output_from_stack (T { pushed_output; popped_output; mutex; _ }) stack_frame =
+    Mutex.with_lock mutex ~f:(fun password ->
+      Capsule.Expert.access ~password ~f:(fun access ->
+        let pushed_output = Capsule.Data.unwrap ~access pushed_output in
+        let popped_output = Capsule.Data.unwrap ~access popped_output in
+        let matched : Match_or_mismatch.t =
+          if Stack.length pushed_output = stack_frame then Match else Mismatch
+        in
+        (* If we're popping out of order, pop down to the current frame. This results in
+         more sensible errors than just refusing to pop anything. We'll be checking at
+         every other [pop_output_from_stack], and at end of the expect test, anyway. *)
+        while Stack.length pushed_output >= stack_frame do
+          let pushed = Stack.pop_exn pushed_output in
+          Ref.replace popped_output (fun popped -> Rope.append pushed popped)
+        done;
+        matched)
+      [@nontail])
+    [@nontail]
   ;;
 
   let assert_no_expectation ~message (T { expectation; _ }) =
     match Atomic.get expectation with
     | Some e -> e |> Expectation.sexp_of_t |> message |> raise_s
     | None -> ()
+  ;;
+
+  let assert_stack_empty ~message (T { mutex; pushed_output; _ }) =
+    match
+      (Mutex.with_lock mutex ~f:(fun password ->
+         Capsule.Expert.access ~password ~f:(fun access ->
+           let stack = Capsule.Data.unwrap ~access pushed_output in
+           { aliased = Stack.to_list stack })
+         [@nontail]))
+        .aliased
+    with
+    | [] -> ()
+    | nonempty ->
+      nonempty
+      |> List.map ~f:Rope.to_string
+      |> sexp_of_list sexp_of_string
+      |> message
+      |> raise_s
   ;;
 end
 
@@ -602,7 +660,15 @@ module Make (C : Expect_test_config_types.S) = struct
                   "reached end of test with unresolved [[%expectation]]"
                   [ "expectation", e ]))
           in
-          [ body_exn; open_expectation_exn ]
+          let stack_empty_exn =
+            Configured.dump_backtrace (fun () ->
+              Shared.assert_stack_empty test_block ~message:(fun s ->
+                Sexp.message
+                  "reached end of test before completion of \
+                   [with_empty_expect_test_output_async] or similar function"
+                  [ "stack", s ]))
+          in
+          [ body_exn; open_expectation_exn; stack_empty_exn ]
           |> List.filter_opt
           |> function
           | [] -> None
@@ -701,13 +767,23 @@ module For_external = struct
     |> Expect_test_config.sanitize
   ;;
 
-  let with_empty_test_output ~here f =
+  module Stack_frame = Shared.Stack_frame
+  module Match_or_mismatch = Match_or_mismatch
+
+  let push_output_exn ~here =
     let shared =
       Current_test.current_test ()
-      |> require_test_running ~here ~function_name:"read_current_test_output_exn"
+      |> require_test_running ~here ~function_name:"push_output_exn"
     in
-    Shared.push_output_onto_stack shared;
-    Exn.protect ~f ~finally:(fun () -> Shared.pop_output_from_stack_exn shared)
+    Shared.push_output_onto_stack shared
+  ;;
+
+  let pop_output_exn ~here frame =
+    let shared =
+      Current_test.current_test ()
+      |> require_test_running ~here ~function_name:"pop_output_exn"
+    in
+    Shared.pop_output_from_stack shared frame
   ;;
 
   let am_running_expect_test = Current_test.is_running

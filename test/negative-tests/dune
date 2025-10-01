@@ -22,13 +22,13 @@
    exn_and_trailing.ml.corrected exn_missing.ml.corrected
    expect_output.ml.corrected expectation.ml.corrected flexible.ml.corrected
    function_with_distinct_outputs.ml.corrected functor.ml.corrected
-   missing.ml.corrected nine.ml.corrected normal_strings.ml.corrected
-   semicolon.ml.corrected similar_distinct_outputs.ml.corrected
-   spacing.ml.corrected string_extension_syntax.ml.corrected
-   string_padding.ml.corrected tag.ml.corrected three.ml.corrected
-   trailing.ml.corrected trailing_in_module.ml.corrected
-   unidiomatic_syntax.ml.corrected unusual_payload_location.ml.corrected
-   zero_alloc.ml.corrected test-output)
+   missing.ml.corrected nine.ml.corrected nonempty_stack.ml.corrected
+   normal_strings.ml.corrected semicolon.ml.corrected
+   similar_distinct_outputs.ml.corrected spacing.ml.corrected
+   string_extension_syntax.ml.corrected string_padding.ml.corrected
+   tag.ml.corrected three.ml.corrected trailing.ml.corrected
+   trailing_in_module.ml.corrected unidiomatic_syntax.ml.corrected
+   unusual_payload_location.ml.corrected zero_alloc.ml.corrected test-output)
  (action
   (bash
     "\nrm -f *.ml.corrected 2>/dev/null\n! ./inline_tests_runner -no-color > test-output 2>&1\nfor f in %{targets}\ndo\n  if [[ $f == *.corrected ]]\n  then\n    if [[ -e $f ]]\n    then\n      %{workspace_root}/bin/apply-style \\\n        -directory-config jbuild \\\n        -original-file $(basename $f .corrected) \\\n        - < $f > $f.tmp\n      mv $f.tmp $f\n    else\n      echo \"=== Failed to generate corrected file ===\" > $f\n    fi\n  fi\ndone\n")))
@@ -122,6 +122,12 @@
 (rule
  (alias runtest)
  (deps nine.ml.corrected.expected nine.ml.corrected)
+ (action
+  (bash "diff -a %{deps}")))
+
+(rule
+ (alias runtest)
+ (deps nonempty_stack.ml.corrected.expected nonempty_stack.ml.corrected)
  (action
   (bash "diff -a %{deps}")))
 

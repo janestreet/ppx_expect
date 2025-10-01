@@ -94,7 +94,6 @@ module For_external : sig
       If there is no test running, raise an error that includes [here]. *)
   val read_current_test_output_exn : here:Source_code_position.t -> string
 
-  val with_empty_test_output : here:Source_code_position.t -> (unit -> 'a) -> 'a
   val am_running_expect_test : unit -> bool
 
   (** The name of the currently-running expect-test.
@@ -117,6 +116,24 @@ module For_external : sig
   val current_test_has_output_that_does_not_match_exn
     :  here:Source_code_position.t
     -> bool
+
+  module Stack_frame : sig
+    type t
+  end
+
+  module Match_or_mismatch : sig
+    type t =
+      | Match
+      | Mismatch
+  end
+
+  (** Push current output onto a notional stack. Until the output is popped, it will be
+      excluded from [read_current_test_output_exn]. *)
+  val push_output_exn : here:Source_code_position.t -> Stack_frame.t
+
+  (** Pop the top output stack frame, which must be the given frame. Returns [Mismatch] if
+      the stack frame is not popped in the correct order. *)
+  val pop_output_exn : here:Source_code_position.t -> Stack_frame.t -> Match_or_mismatch.t
 
   module Expectation : sig
     (** The functions below are more thoroughly documented in the public interface in

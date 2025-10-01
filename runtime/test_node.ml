@@ -1,6 +1,7 @@
 open! Base
 open! Portable
 open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
+open Basement.Blocking_sync [@@alert "-deprecated"]
 
 module Correction = struct
   type t =
@@ -145,7 +146,8 @@ type one_run =
 type%fuelproof 'behavior inner =
   | Test :
       { expectation : ([< Test_spec.Behavior_type.t ] as 'behavior) Test_spec.t
-      ; results : one_run Queue.t Capsule.With_mutex.t
+      ; results : (one_run Queue.t, 'k) Capsule.Data.t
+      ; mutex : 'k Mutex.t
       ; reached_this_run : bool Atomic.t
       }
       -> 'behavior inner
@@ -155,10 +157,17 @@ type%fuelproof t = T : 'behavior inner -> t
 let to_correction
   ~expect_node_formatting
   ~cr_for_multiple_outputs
-  (T (Test { expectation; results; reached_this_run = _ }))
+  (T (Test { expectation; results; mutex; reached_this_run = _ }))
   : Correction.t option
   =
-  let results_list = Capsule.With_mutex.with_lock results ~f:(fun x -> Queue.to_list x) in
+  let results_list =
+    (Mutex.with_lock mutex ~f:(fun password ->
+       Capsule.Expert.access ~password ~f:(fun access ->
+         let results = Capsule.Data.unwrap ~access results in
+         { aliased = Queue.to_list results })
+       [@nontail]))
+      .aliased
+  in
   let unreached_list, outputs_list =
     List.partition_map results_list ~f:(function
       | Did_not_reach -> First ()
@@ -245,16 +254,20 @@ let record_result
   (match result with
    | Fail _ -> Atomic.set failure_atomic true
    | Pass -> ());
-  Capsule.With_mutex.iter t.results ~f:(fun q ->
-    Queue.enqueue q (Reached_with_output { result; raw = test_output_raw }));
+  Mutex.with_lock t.mutex ~f:(fun password ->
+    Capsule.Expert.Data.iter t.results ~password ~f:(fun q ->
+      Queue.enqueue q (Reached_with_output { result; raw = test_output_raw }))
+    [@nontail]);
   Atomic.set t.reached_this_run true
 ;;
 
 let of_expectation expectation =
+  let (P key) = Capsule.Expert.create () in
   T
     (Test
        { expectation
-       ; results = Capsule.With_mutex.create Queue.create
+       ; results = Capsule.Data.create Queue.create
+       ; mutex = Mutex.create key
        ; reached_this_run = Atomic.make false
        })
 ;;
@@ -263,7 +276,9 @@ let loc (T (Test { expectation = { position; _ }; results = _; _ })) =
   Test_spec.Insert_loc.loc position
 ;;
 
-let expectation_of_t (T (Test { expectation; results = _; reached_this_run = _ })) =
+let expectation_of_t
+  (T (Test { expectation; results = _; mutex = _; reached_this_run = _ }))
+  =
   match expectation.behavior with
   | Expect { payload = { contents; tag = _ }; on_unreachable = _; reachability = _ } ->
     Some contents
@@ -271,9 +286,14 @@ let expectation_of_t (T (Test { expectation; results = _; reached_this_run = _ }
 ;;
 
 let record_end_of_run t =
-  let (T (Test { expectation = _; results; reached_this_run })) = t in
+  let (T (Test { expectation = _; results; mutex; reached_this_run })) = t in
   if not (Atomic.get reached_this_run)
-  then Capsule.With_mutex.iter results ~f:(fun q -> Queue.enqueue q Did_not_reach)
+  then
+    Mutex.with_lock mutex ~f:(fun password ->
+      Capsule.Expert.Data.iter results ~password ~f:(fun q ->
+        Queue.enqueue q Did_not_reach)
+      [@nontail])
+    [@nontail]
 ;;
 
 module Global_results_table = struct
