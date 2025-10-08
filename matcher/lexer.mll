@@ -11,8 +11,8 @@
     Fmt.Literal unescaped
 }
 
-let space = [' ' '\t']
-let line_contents = [^' ' '\t' '\n']+ (space* [^' ' '\t' '\n']+)*
+let space = [' ' '\t' '\r']
+let line_contents = [^' ' '\t' '\r' '\n']+ (space* [^' ' '\t' '\n' '\r']+)*
 let lowercase = ['a'-'z' '_']
 
 let conflict_marker = "<<<<<<< " line_contents space*
@@ -36,18 +36,18 @@ and pretty_line_no_output_patterns = parse
                 "Lexer.pretty_line_no_output_patterns %S" s }
 
 and leading_spaces = parse
-  | (space* '\n')* as s { s }
+  | (space* '\r'? '\n')* as s { s }
 
 and lines_with_identation acc = parse
-  | conflict_marker as c '\n'
+  | conflict_marker as c '\r' ? '\n'
     { let line = Cst.Line.Conflict_marker c in
       lines_with_identation (line :: acc) lexbuf
     }
-  | space* as sp '\n'
+  | space* as sp '\r' ? '\n'
     { let line = Cst.Line.Blank sp in
       lines_with_identation (line :: acc) lexbuf
     }
-  | (space | '\n')* as tr eof
+  | (space | '\r' ? '\n')* as tr eof
     { (List.rev acc,
        (* Add the newline that was consumed by the previous line. Since
           [lines_with_identation] is never called on blank strings, we know there is such
@@ -63,7 +63,7 @@ and lines_with_identation acc = parse
       in
       (List.rev (line :: acc), tr)
     }
-  | space* line_contents as s (space* as tr) '\n'
+  | space* line_contents as s (space* as tr)  '\r' ? '\n'
     { let line =
         Cst.Line.Not_blank
           { orig = s
@@ -75,9 +75,9 @@ and lines_with_identation acc = parse
     }
 
 and strip_surrounding_whitespaces = parse
-  | (space | '\n')* eof as s
+  | (space | '\r' ? '\n')* eof as s
     { Cst.Empty s }
-  | (space* as leading) (line_contents as s) ((space | '\n')* as trailing) eof
+  | (space* as leading) (line_contents as s) ((space | '\r' ? '\n')* as trailing) eof
     { Cst.Single_line
         { leading_blanks  = leading
         ; trailing_spaces = trailing
