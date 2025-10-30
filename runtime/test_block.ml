@@ -582,7 +582,7 @@ module Make (C : Expect_test_config_types.S) = struct
     f
     =
     let ({ start_bol; start_pos; end_pos } : Compact_loc.t) = location in
-    let basename = Stdlib.Filename.basename filename_rel_to_project_root in
+    let basename = Current_file.remove_top_dir filename_rel_to_project_root in
     (* Even if the current tag set indicates this test should be dropped, check that it
        wasn't reached from another expect test *)
     Current_test.assert_no_test_running ~basename ~line_number;
