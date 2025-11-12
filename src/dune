@@ -2,8 +2,8 @@
  (name ppx_expect)
  (public_name ppx_expect)
  (kind ppx_rewriter)
- (libraries base ppxlib ppx_expect_runtime_types ppx_inline_test
-   ppx_inline_test.libname ppx_here.expander)
+ (libraries base ppx_expect_runtime_types ppx_here.expander ppx_inline_test
+   ppx_inline_test.libname ppxlib)
  (ppx_runtime_libraries ppx_expect.runtime ppx_inline_test.runtime-lib
    ppx_expect.config)
  (preprocess
