@@ -1,6 +1,11 @@
 open! Core
 
-module M (X : Sexpable) = struct
+module M (X : sig
+    type t
+
+    include Sexpable with type t := t
+  end) =
+struct
   module N (Y : sig
       val x : X.t
     end) =

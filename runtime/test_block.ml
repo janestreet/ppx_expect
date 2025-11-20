@@ -1,7 +1,7 @@
 open! Base
 open! Portable
 open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
-open Basement.Blocking_sync [@@alert "-deprecated"]
+open Capsule.Blocking_sync [@@alert "-deprecated"]
 
 let sexp_of_character_range ({ start_pos; end_pos; _ } : Compact_loc.t) : Sexp.t =
   List
@@ -271,8 +271,8 @@ end = struct
           if Stack.length pushed_output = stack_frame then Match else Mismatch
         in
         (* If we're popping out of order, pop down to the current frame. This results in
-         more sensible errors than just refusing to pop anything. We'll be checking at
-         every other [pop_output_from_stack], and at end of the expect test, anyway. *)
+           more sensible errors than just refusing to pop anything. We'll be checking at
+           every other [pop_output_from_stack], and at end of the expect test, anyway. *)
         while Stack.length pushed_output >= stack_frame do
           let pushed = Stack.pop_exn pushed_output in
           Ref.replace popped_output (fun popped -> Rope.append pushed popped)
@@ -719,7 +719,7 @@ module Make (C : Expect_test_config_types.S) = struct
         Shared.clean_up_block test_block;
         Current_test.unset ();
         (* Report that this test passed, because we report expect test failures by a
-            different mechanism. *)
+           different mechanism. *)
         true)
   ;;
 end

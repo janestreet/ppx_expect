@@ -424,11 +424,11 @@ let () =
         (* Insert the header and footer used for "current file" tracking only if:
            1. The file is nonempty and
            2. The executable is being built with the [-inline-test-lib _] flag, indicating
-           that there is some library for which we might run expect tests. If the
-           [-inline-test-lib] flag was not passed, then we shouldn't insert the header and
-           footer, as we will not be running expect tests and the [Ppx_expect_runtime]
-           library might not even be in scope (as is the case in toplevel expect tests,
-           which are not run through [Ppx_inline_test_lib]).
+              that there is some library for which we might run expect tests. If the
+              [-inline-test-lib] flag was not passed, then we shouldn't insert the header
+              and footer, as we will not be running expect tests and the
+              [Ppx_expect_runtime] library might not even be in scope (as is the case in
+              toplevel expect tests, which are not run through [Ppx_inline_test_lib]).
         *)
         let loc = { loc with loc_ghost = true } in
         let filename_rel_to_project_root =

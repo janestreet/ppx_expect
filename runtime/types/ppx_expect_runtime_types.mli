@@ -134,7 +134,7 @@ module String_node_format : sig
   type shorthand = Shorthand
 
   module Hand : sig
-    (** "Handedness" of syntax: longhand or shorthand, as described above. **)
+    (** "Handedness" of syntax: longhand or shorthand, as described above. *)
     type _ t =
       | Longhand : longhand t
       | Shorthand : shorthand t

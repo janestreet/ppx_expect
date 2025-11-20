@@ -1,7 +1,7 @@
 open! Base
 open! Portable
 open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
-open Basement.Blocking_sync [@@alert "-deprecated"]
+open Capsule.Blocking_sync [@@alert "-deprecated"]
 
 module Correction = struct
   type t =
@@ -93,8 +93,8 @@ module Correction = struct
       let main_correction = [ loc, diff ] in
       (* Additional corrections necessary for producing correct formatting *)
       let additional_corrections =
-        (* If deleting an [[@@expect.uncaught_exn]] attribute would
-           leave an empty line, delete that line. *)
+        (* If deleting an [[@@expect.uncaught_exn]] attribute would leave an empty line,
+           delete that line. *)
         let remove_empty_line_from_deleted_uncaught_exn =
           match correction with
           | Unreachable { on_incorrect_output = T { kind = Attribute; _ }; _ } ->
@@ -112,8 +112,8 @@ module Correction = struct
              | _ -> None)
           | _ -> None
         in
-        (* Include the semicolon needed at the end of the body
-           for a trailing [[%expect]] extension point. *)
+        (* Include the semicolon needed at the end of the body for a trailing [[%expect]]
+           extension point. *)
         let add_semicolon_before_trailing_expect =
           match correction with
           | New_payload
@@ -174,8 +174,8 @@ let to_correction
       | Reached_with_output output -> Second output)
   in
   let distinct_outputs =
-    (* Allow distinct raw outputs as long as their formatted [result]s
-       are considered equivalent according to [Payload_type]. *)
+    (* Allow distinct raw outputs as long as their formatted [result]s are considered
+       equivalent according to [Payload_type]. *)
     List.dedup_and_sort
       ~compare:
         (Comparable.lift ~f:(fun { result; _ } -> result) Output.Test_result.compare)
@@ -210,8 +210,8 @@ let to_correction
   | _ :: _ :: _, _ | _, (false, Must_reach) ->
     (* The test results were inconsistent because:
        - The test was reached multiple times with different outputs OR
-       - The test was sometimes reached and sometimes not, but the test rewrites to a
-         test marked as [Must_reach]
+       - The test was sometimes reached and sometimes not, but the test rewrites to a test
+         marked as [Must_reach]
     *)
     let outputs =
       results_list

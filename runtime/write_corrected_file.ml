@@ -90,12 +90,11 @@ let f ~use_color ~in_place ~diff_command ~diff_path_prefix ~filename ~with_ corr
             ()
         with
         | Ok _ ->
-          (* Even though this execution of the expect test ran without making
-             corrections, we should delete any old [.corrected] files that are left over
-             from previous builds. In particular, hydra relies on this behavior for
-             flaky tests; if the test fails the first time and passes the second, the
-             second run should make sure the [.corrected] file is not lingering in the
-             sandbox. *)
+          (* Even though this execution of the expect test ran without making corrections,
+             we should delete any old [.corrected] files that are left over from previous
+             builds. In particular, hydra relies on this behavior for flaky tests; if the
+             test fails the first time and passes the second, the second run should make
+             sure the [.corrected] file is not lingering in the sandbox. *)
           remove dot_corrected;
           remove tmp_corrected;
           Success

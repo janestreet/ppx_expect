@@ -1,5 +1,4 @@
-(*
-   In old versions of [ppx_expect], all of the tests below would pass.
+(* In old versions of [ppx_expect], all of the tests below would pass.
 
    Currently, [ppx_expect] instead enforces standardized formatting in [[%expect]] nodes,
    so we instead use this test to demonstrate that all of the below expectations are

@@ -1,6 +1,6 @@
-(* Show that, when compiling with [-expect-test-strict-indentation=true], test blocks
-   that match the output modulo indentation, but are not themselves formatted according to
-   the indentation rules, are corrected. *)
+(* Show that, when compiling with [-expect-test-strict-indentation=true], test blocks that
+   match the output modulo indentation, but are not themselves formatted according to the
+   indentation rules, are corrected. *)
 
 let%expect_test _ =
   let module _ = struct

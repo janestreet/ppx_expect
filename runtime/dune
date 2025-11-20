@@ -4,7 +4,7 @@
   (names ppx_expect_runtime_stubs))
  (name ppx_expect_runtime)
  (public_name ppx_expect.runtime)
- (libraries base basement expect_test_config expect_test_config_types
+ (libraries base basement capsule expect_test_config expect_test_config_types
    make_corrected_file portable ppx_expect_runtime_types
    ppx_inline_test.runtime-lib stdio)
  (js_of_ocaml
