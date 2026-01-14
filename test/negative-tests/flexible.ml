@@ -1,7 +1,6 @@
 open! Core
 
-(*
-   In old versions of [ppx_expect], the below tests would respect the formatting of the
+(* In old versions of [ppx_expect], the below tests would respect the formatting of the
    incorrect output present when possible.
 
    Currently, [ppx_expect] instead enforces standardized formatting in [[%expect]] nodes,

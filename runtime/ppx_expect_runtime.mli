@@ -108,3 +108,8 @@ module Write_corrected_file = Write_corrected_file
 module Make_test_block = Test_block.Make
 module For_external = Test_block.For_external
 module For_apply_style = Test_spec.For_apply_style
+
+module For_quick_test : sig
+  val file_has_expect_test_failures : filename_absolute:string -> bool
+  val absolute_path : filename_rel_to_cwd:string -> string
+end

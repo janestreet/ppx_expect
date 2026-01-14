@@ -35,3 +35,9 @@ module Write_corrected_file = Write_corrected_file
 module Make_test_block = Test_block.Make
 module For_external = Test_block.For_external
 module For_apply_style = Test_spec.For_apply_style
+
+module For_quick_test = struct
+  include Test_node.For_quick_test
+
+  let absolute_path = Current_file.absolute_path
+end

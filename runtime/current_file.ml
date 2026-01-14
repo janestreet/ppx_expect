@@ -32,10 +32,10 @@ let initial_dir =
   lazy (Or_error.ok_exn dir_or_error)
 ;;
 
-let absolute_path file =
-  if Stdlib.Filename.is_relative file
-  then Stdlib.Filename.concat (Lazy.force initial_dir) file
-  else file
+let absolute_path ~filename_rel_to_cwd =
+  if Stdlib.Filename.is_relative filename_rel_to_cwd
+  then Stdlib.Filename.concat (Lazy.force initial_dir) filename_rel_to_cwd
+  else filename_rel_to_cwd
 ;;
 
 let verify_that_file_is_current_exn ~line_number ~filename_rel_to_project_root =

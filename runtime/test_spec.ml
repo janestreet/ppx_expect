@@ -117,8 +117,8 @@ let formatter
          let first_line, indentation, last_line =
            match tag with
            | Quote ->
-             (* Since ocamlformat will split the string onto lines and indent them for
-                us, we shouldn't insert literal whitespace to indent the string. *)
+             (* Since ocamlformat will split the string onto lines and indent them for us,
+                we shouldn't insert literal whitespace to indent the string. *)
              " ", 1, " "
            | Tag _ -> "", location_indent, spaces location_indent
          in

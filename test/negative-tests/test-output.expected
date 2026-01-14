@@ -505,11 +505,10 @@ File "expectation.ml", line 5, characters 0-1:
  |    {|
 ------ flexible.ml
 ++++++ flexible.ml.corrected
-File "flexible.ml", line 16, characters 0-1:
+File "flexible.ml", line 15, characters 0-1:
  |open! Core
  |
- |(*
- |   In old versions of [ppx_expect], the below tests would respect the formatting of the
+ |(* In old versions of [ppx_expect], the below tests would respect the formatting of the
  |   incorrect output present when possible.
  |
  |   Currently, [ppx_expect] instead enforces standardized formatting in [[%expect]] nodes,
@@ -848,7 +847,7 @@ File "missing.ml", line 7, characters 0-1:
  |;;
 ------ nine.ml
 ++++++ nine.ml.corrected
-File "nine.ml", line 21, characters 0-1:
+File "nine.ml", line 20, characters 0-1:
  |   so we instead use this test to demonstrate that all of the below expectations are
  |   reformatted to the same thing.
  |*)
@@ -1073,8 +1072,8 @@ File "spacing.ml", line 8, characters 0-1:
 +|    two(no newline)
 +|    three
 +|    |}];
- |  (* take an integer tag to [text] help the different tests be distinguished somewhat in the
- |     .expected.patdiff *)
+ |  (* take an integer tag to [text] help the different tests be distinguished somewhat in
+ |     the .expected.patdiff *)
  |  let text n = Printf.printf "one\ntwo(%d)\nthree\n" n in
  |  text 1;
  |  [%expect
@@ -1180,9 +1179,8 @@ File "tag.ml", line 6, characters 0-1:
  |;;
 ------ three.ml
 ++++++ three.ml.corrected
-File "three.ml", line 14, characters 0-1:
- |(*
- |   In old versions of [ppx_expect], all of the tests below would pass.
+File "three.ml", line 13, characters 0-1:
+ |(* In old versions of [ppx_expect], all of the tests below would pass.
  |
  |   Currently, [ppx_expect] instead enforces standardized formatting in [[%expect]] nodes,
  |   so we instead use this test to demonstrate that all of the below expectations are
@@ -1268,10 +1266,15 @@ File "trailing.ml", line 8, characters 0-1:
  |;;
 ------ trailing_in_module.ml
 ++++++ trailing_in_module.ml.corrected
-File "trailing_in_module.ml", line 10, characters 0-1:
+File "trailing_in_module.ml", line 15, characters 0-1:
  |open! Core
  |
- |module M (X : Sexpable) = struct
+ |module M (X : sig
+ |    type t
+ |
+ |    include Sexpable with type t := t
+ |  end) =
+ |struct
  |  module N (Y : sig
  |      val x : X.t
  |    end) =

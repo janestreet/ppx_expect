@@ -15,7 +15,7 @@ val initial_dir : string Lazy.t
 (** Given a path relative to the initial working directory, returns an absolute path.
 
     Raises if the initial call to [Stdlib.Sys.getcwd] raised. *)
-val absolute_path : string -> string
+val absolute_path : filename_rel_to_cwd:string -> string
 
 (** Verifies that [filename_rel_to_project_root] was the last file set as [current].
 

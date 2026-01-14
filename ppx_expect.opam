@@ -13,6 +13,7 @@ depends: [
   "ocaml" {>= "5.1.0"}
   "base"
   "basement"
+  "capsule"
   "portable"
   "ppx_fuelproof"
   "ppx_here"

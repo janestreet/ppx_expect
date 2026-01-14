@@ -7,7 +7,4 @@
  (ppx_runtime_libraries ppx_expect.runtime ppx_inline_test.runtime-lib
    ppx_expect.config)
  (preprocess
-  (pps ppxlib.metaquot))
- (inline_tests.backend
-  (runner_libraries ppx_expect.evaluator)
-  (extends ppx_inline_test)))
+  (pps ppxlib.metaquot)))
