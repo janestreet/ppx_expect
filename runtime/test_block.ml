@@ -154,7 +154,8 @@ end = struct
       stderr there. *)
   let set_up_block src_filename =
     let output_file =
-      Current_file.absolute_path (Stdlib.Filename.temp_file "expect-test" "output")
+      Current_file.absolute_path
+        ~filename_rel_to_cwd:(Stdlib.Filename.temp_file "expect-test" "output")
     in
     let test_output_writer =
       Stdlib.open_out_gen [ Open_wronly; Open_creat; Open_binary ] 0o644 output_file
@@ -608,7 +609,9 @@ module Make (C : Expect_test_config_types.S) = struct
         Current_file.verify_that_file_is_current_exn
           ~line_number
           ~filename_rel_to_project_root;
-        let absolute_filename = Current_file.absolute_path basename in
+        let absolute_filename =
+          Current_file.absolute_path ~filename_rel_to_cwd:basename
+        in
         (* Create the tests for trailing output and uncaught exceptions *)
         let expectations =
           let trailing_test =

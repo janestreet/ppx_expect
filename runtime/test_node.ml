@@ -409,3 +409,17 @@ module For_mlt = struct
   let loc = loc
   let expectation_of_t = expectation_of_t
 end
+
+module For_quick_test = struct
+  let file_has_expect_test_failures ~filename_absolute:this_file =
+    Global_results_table.process_each_file ~f:(fun ~filename ~test_nodes ~postprocess:_ ->
+      String.equal filename this_file
+      && List.exists test_nodes ~f:(fun t ->
+        to_correction
+          ~expect_node_formatting:Expect_node_formatting.default
+          ~cr_for_multiple_outputs:(fun ~output_name:_ ~outputs:_ -> "cr")
+          t
+        |> Option.is_some))
+    |> List.exists ~f:Fn.id
+  ;;
+end

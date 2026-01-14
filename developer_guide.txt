@@ -15,10 +15,6 @@ ppx/ppx_expect
 │   │       overridable user-facing test configurations
 │   └── types: [Expect_test_config_types], which defines the interface
 │              for [Expect_test_config]
-└── evaluator: The [ppx_expect_evaluator] executable that jenga
-│              expects to exist when running tests; it is in fact
-│              unnecessary and therefore empty in this rewrite, and we
-│              hope to delete it soon
 └── runtime: [Ppx_expect_runtime], containing the logic used to
 │            evaluate expect tests at runtime
 └── src: [Ppx_expect], the ppx rewriter that replaces [ppx_expect]

@@ -310,7 +310,7 @@ let transform_let_expect
   let trailing_test_id = Expectation_id.lookup_or_mint Trailing body_loc in
   let exn_test_id = Expectation_id.lookup_or_mint Exception body_loc in
   [%expr
-    match Ppx_inline_test_lib.testing with
+    match Ppx_inline_test_lib.testing () with
     | `Not_testing -> ()
     | `Testing _ ->
       if Ppx_inline_test_lib.force_drop
@@ -436,7 +436,7 @@ let () =
         in
         let header =
           let loc = { loc with loc_end = loc.loc_start } in
-          Ppx_inline_test.maybe_drop
+          Ppx_inline_test.guard_toplevel_test_effects
             loc
             [%expr
               (Ppx_expect_runtime.Current_file.set [@alert "-ppx_expect_runtime"])
@@ -444,7 +444,7 @@ let () =
                   [%e estring ~loc filename_rel_to_project_root]]
         and footer =
           let loc = { loc with loc_start = loc.loc_end } in
-          Ppx_inline_test.maybe_drop
+          Ppx_inline_test.guard_toplevel_test_effects
             loc
             [%expr
               (Ppx_expect_runtime.Current_file.unset [@alert "-ppx_expect_runtime"]) ()]

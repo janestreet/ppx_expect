@@ -147,3 +147,7 @@ module For_mlt : sig
     -> t
     -> (Compact_loc.t * string) list
 end
+
+module For_quick_test : sig
+  val file_has_expect_test_failures : filename_absolute:string -> bool
+end

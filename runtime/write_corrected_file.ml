@@ -67,12 +67,12 @@ let f ~use_color ~in_place ~diff_command ~diff_path_prefix ~filename ~with_ corr
           2. B runs test T2 and generates next contents C2.
           3. A writes C1 to the .corrected file.
           4. B writes C2 to the .corrected file.
-          5. A diffs the .corrected file against the original file and reports the
-          result. It thinks it is reporting the diff produced by T1, but is in fact
-          reporting the diff produced by T2. The key aspect of using temporary files is
-          that even if in the above scenario the final contents of the .corrected file
-          are C2, the diff reported by A comes from its tmp file and will still be the
-          diff produced by T1. *)
+          5. A diffs the .corrected file against the original file and reports the result.
+             It thinks it is reporting the diff produced by T1, but is in fact reporting
+             the diff produced by T2. The key aspect of using temporary files is that even
+             if in the above scenario the final contents of the .corrected file are C2,
+             the diff reported by A comes from its tmp file and will still be the diff
+             produced by T1. *)
        let tmp_corrected =
          Stdlib.Filename.temp_file
            (Stdlib.Filename.basename filename)
