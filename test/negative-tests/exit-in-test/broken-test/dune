@@ -1,4 +1,4 @@
 (library
  (name expect_test_call_exit_in_test)
  (preprocess
-  (pps ppx_jane)))
+  (pps ppx_jane -compare-require-explicit-locality)))

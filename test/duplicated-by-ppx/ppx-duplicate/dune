@@ -3,4 +3,4 @@
  (kind ppx_rewriter)
  (libraries base ppxlib)
  (preprocess
-  (pps ppx_jane ppxlib.metaquot)))
+  (pps ppx_jane ppxlib.metaquot -compare-require-explicit-locality)))

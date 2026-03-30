@@ -2,5 +2,5 @@
  (name expect_test_if_unreachable_tests)
  (libraries core)
  (preprocess
-  (pps ppx_jane
+  (pps ppx_jane -compare-require-explicit-locality
     -expect-test-allow-output-block-to-suppress-reachability-check=true)))

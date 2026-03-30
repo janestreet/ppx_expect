@@ -2,7 +2,7 @@
  (name expect_test_negative_tests)
  (libraries core ppx_expect_runtime)
  (preprocess
-  (pps ppx_jane)))
+  (pps ppx_jane -compare-require-explicit-locality)))
 
 (alias
  (name test-runner-runtime-deps)

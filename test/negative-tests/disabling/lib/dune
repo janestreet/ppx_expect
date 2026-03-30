@@ -1,4 +1,4 @@
 (library
  (name expect_test_disabling_test_lib)
  (preprocess
-  (pps ppx_jane)))
+  (pps ppx_jane -compare-require-explicit-locality)))
