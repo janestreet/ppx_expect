@@ -17,6 +17,7 @@ val f
   -> ?use_color:bool (** default: [false] *)
   -> ?diff_command:string
   -> ?diff_path_prefix:string
+  -> ?error_message:string
   -> next_contents:string
   -> path:string
   -> unit

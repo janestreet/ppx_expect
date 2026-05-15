@@ -26,7 +26,8 @@ module Expr = struct
          match delimiter with
          | T Quote -> [%expr T Quote]
          | T (Tag tag) -> [%expr T (Tag [%e estring ~loc tag])]]
-       : (Ppx_expect_runtime.Delimiter.t[@alert "-ppx_expect_runtime"]))]
+       : (Ppx_expect_runtime.Delimiter.t[@alert "-ppx_expect_runtime"]))
+       [@warning "-40"]]
   ;;
 
   let id ~loc id =
@@ -40,11 +41,14 @@ module Expr = struct
       { start_bol = [%e eint ~loc start_bol]
       ; start_pos = [%e eint ~loc start_pos]
       ; end_pos = [%e eint ~loc end_pos]
-      }]
+      }
+      [@warning "-40"]]
   ;;
 
   let payload ~loc ({ contents; tag } : Payload.t) =
-    [%expr { contents = [%e estring ~loc contents]; tag = [%e delimiter ~loc tag] }]
+    [%expr
+      { contents = [%e estring ~loc contents]; tag = [%e delimiter ~loc tag] }
+      [@warning "-40"]]
   ;;
 
   let id_expr_alist ~loc alist =

@@ -8,6 +8,12 @@ let () =
     Stdlib.Sys.chdir (force Current_file.initial_dir);
     Test_node.Global_results_table.process_each_file
       ~f:(fun ~filename ~test_nodes ~postprocess ->
+        let filename =
+          match Ppx_inline_test_lib.source_tree_root () with
+          | None -> filename
+          | Some source_tree_root ->
+            Stdlib.Filename.concat source_tree_root (Stdlib.Filename.basename filename)
+        in
         Write_corrected_file.f
           test_nodes
           ~use_color:(Ppx_inline_test_lib.use_color ())

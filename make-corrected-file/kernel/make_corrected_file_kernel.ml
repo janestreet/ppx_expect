@@ -27,6 +27,7 @@ let f
   ?(use_color = false)
   ?diff_command
   ?diff_path_prefix
+  ?error_message
   ~next_contents
   ~path
   ()
@@ -61,6 +62,11 @@ let f
       in
       [ default_configs; alt_old; alt_new ] |> List.concat
     in
+    (match error_message with
+     | None | Some "" -> ()
+     | Some msg ->
+       Printf.eprintf "%s\n" msg;
+       Stdlib.flush Stdlib.stderr);
     Ppxlib_print_diff.print
       ?diff_command
       ~use_color
