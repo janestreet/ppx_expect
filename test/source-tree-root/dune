@@ -1,0 +1,5 @@
+(library
+ (name expect_test_source_tree_test)
+ (libraries)
+ (preprocess
+  (pps ppx_expect)))

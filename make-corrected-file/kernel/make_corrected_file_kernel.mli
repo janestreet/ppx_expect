@@ -6,6 +6,8 @@ val f
   -> ?use_color:bool
   -> ?diff_command:string
   -> ?diff_path_prefix:string
+  -> ?error_message:string
+       (** Printed to stderr before the diff when changes are found. Ignored on success. *)
   -> next_contents:string
   -> path:string
   -> unit

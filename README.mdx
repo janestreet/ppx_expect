@@ -7,10 +7,10 @@ expect-test - a Cram-like framework for OCaml
 Expect-test is a framework for writing tests in OCaml, similar to
 [Cram](https://bitheap.org/cram/).
 
-Expect-tests mimic the (now less idiomatic)
+Expect-tests are built on top of the
 [inline test](https://github.com/janestreet/ppx_inline_test)
-framework in providing a
-`let%expect_test` construct.
+framework, and provide a `let%expect_test` construct that parallels
+`let%inline_test`.
 
 The body of an expect-test can contain output-generating code, interleaved with
 `[%expect]` extension expressions to denote the expected output.
@@ -707,6 +707,10 @@ expect test, we use `require_does_raise` from
 to capture the error in a normal `[%expect]` block, where all normal
 censoring logic runs. `require_does_raise` additionally provides its
 own `hide_positions` and `show_backtrace` arguments.
+
+Configurations from the underlying
+[ppx\_inline\_test](https://github.com/janestreet/ppx_inline_test)
+framework also affect `let%expect_test`s.
 
 # Debugging deadlocks & hanging tests
 

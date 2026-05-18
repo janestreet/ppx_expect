@@ -6,6 +6,7 @@ let f
   ?use_color
   ?diff_command
   ?diff_path_prefix
+  ?error_message
   ~next_contents
   ~path
   ()
@@ -16,6 +17,7 @@ let f
     ?use_color
     ?diff_command
     ?diff_path_prefix
+    ?error_message
     ~next_contents
     ~path
     ()
