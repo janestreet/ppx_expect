@@ -12,7 +12,12 @@ let () =
           match Ppx_inline_test_lib.source_tree_root () with
           | None -> filename
           | Some source_tree_root ->
-            Stdlib.Filename.concat source_tree_root (Stdlib.Filename.basename filename)
+            let source_tree_filename =
+              Stdlib.Filename.concat source_tree_root (Stdlib.Filename.basename filename)
+            in
+            if Stdlib.Sys.file_exists source_tree_filename
+            then source_tree_filename
+            else filename
         in
         Write_corrected_file.f
           test_nodes
