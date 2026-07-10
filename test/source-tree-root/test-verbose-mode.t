@@ -4,7 +4,7 @@ files in its original location when the [-source-tree-root] flag is passed.
 Test relative path
 
   $ cd $TEST_DIR
-  $ dir=foo/bar/baz
+  $ dir=foo/bar/verbose-mode-test-dir
   $ mkdir -p $dir
   $ cd $dir
   $ cp $TEST_DIR/inline_tests_runner* .

@@ -56,7 +56,7 @@ module Definitions = struct
         It is either [`Expect] (indicating that both corrections for unexpected output and
         rewrites for unreachability are possible) or [`Unreachable] (indicating that only
         corrections for unexpected output are possible). *)
-    type%fuelproof _ t : immutable_data =
+    type _ t : immutable_data =
       | Expect :
           { payload : Payload.t
           ; on_unreachable : On_unreachable.t

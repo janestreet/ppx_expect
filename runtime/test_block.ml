@@ -95,7 +95,7 @@ end = struct
     let to_string t = String.concat (to_list t) [@nontail]
   end
 
-  type%fuelproof 'k inner : value mod contended portable =
+  type 'k inner : value mod contended portable =
     { src_filename : string
     ; output_file : string
     ; fail : bool Atomic.t
@@ -111,7 +111,7 @@ end = struct
     ; mutex : 'k Mutex.t
     }
 
-  type%fuelproof t : value mod contended portable = T : 'k inner -> t
+  type t : value mod contended portable = T : 'k inner -> t
 
   let src_filename (T { src_filename; _ }) = src_filename
   let output_file (T { output_file; _ }) = output_file
@@ -170,7 +170,7 @@ end = struct
       ~output_reader_for_stubs_do_not_read
       ~stdout:Stdlib.stdout
       ~stderr:Stdlib.stderr;
-    let (P key) = Capsule.Expert.create () in
+    let (P key) = Capsule.Prim.create () in
     let mutex = Mutex.create key in
     T
       { src_filename
@@ -241,7 +241,7 @@ end = struct
 
   let read_test_output_unsanitized (T t) =
     (Mutex.with_lock t.mutex ~f:(fun password ->
-       Capsule.Expert.access ~password ~f:(fun access ->
+       Capsule.Prim.access ~password ~f:(fun access ->
          { aliased = Rope.to_string (read_test_output_unsanitized_rope ~access t) })
        [@nontail]))
       .aliased
@@ -254,7 +254,7 @@ end = struct
 
   let push_output_onto_stack (T t) =
     Mutex.with_lock t.mutex ~f:(fun password ->
-      Capsule.Expert.access ~password ~f:(fun access ->
+      Capsule.Prim.access ~password ~f:(fun access ->
         let output = read_test_output_unsanitized_rope ~access t in
         let stack = Capsule.Data.unwrap ~access t.pushed_output in
         Stack.push stack output;
@@ -265,7 +265,7 @@ end = struct
 
   let pop_output_from_stack (T { pushed_output; popped_output; mutex; _ }) stack_frame =
     Mutex.with_lock mutex ~f:(fun password ->
-      Capsule.Expert.access ~password ~f:(fun access ->
+      Capsule.Prim.access ~password ~f:(fun access ->
         let pushed_output = Capsule.Data.unwrap ~access pushed_output in
         let popped_output = Capsule.Data.unwrap ~access popped_output in
         let matched : Match_or_mismatch.t =
@@ -292,7 +292,7 @@ end = struct
   let assert_stack_empty ~message (T { mutex; pushed_output; _ }) =
     match
       (Mutex.with_lock mutex ~f:(fun password ->
-         Capsule.Expert.access ~password ~f:(fun access ->
+         Capsule.Prim.access ~password ~f:(fun access ->
            let stack = Capsule.Data.unwrap ~access pushed_output in
            { aliased = Stack.to_list stack })
          [@nontail]))

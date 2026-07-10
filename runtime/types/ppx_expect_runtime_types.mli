@@ -162,11 +162,11 @@ module String_node_format : sig
 
   module Delimiter : sig
     (** Delimiter around string constant. *)
-    type%fuelproof _ unpacked : immutable_data =
+    type _ unpacked : immutable_data =
       | Quote : longhand unpacked (** Quoted strings, e.g. ["foo"]. *)
       | Tag : string -> _ unpacked (** Tagged strings, e.g. [{tag|foo|tag}]. *)
 
-    type%fuelproof t : immutable_data = T : _ unpacked -> t [@@unboxed]
+    type t : immutable_data = T : _ unpacked -> t [@@unboxed]
 
     (** Default delimiter: [T (Tag "")]. *)
     val default : t

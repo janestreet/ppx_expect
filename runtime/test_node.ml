@@ -143,7 +143,7 @@ type one_run =
   | Reached_with_output of one_output
   | Did_not_reach
 
-type%fuelproof 'behavior inner : value mod contended portable =
+type 'behavior inner : value mod contended portable =
   | Test :
       { expectation : ([< Test_spec.Behavior_type.t ] as 'behavior) Test_spec.t
       ; results : (one_run Queue.t, 'k) Capsule.Data.t
@@ -152,7 +152,7 @@ type%fuelproof 'behavior inner : value mod contended portable =
       }
       -> 'behavior inner
 
-type%fuelproof t : value mod contended portable = T : 'behavior inner -> t
+type t : value mod contended portable = T : 'behavior inner -> t
 
 let to_correction
   ~expect_node_formatting
@@ -162,7 +162,7 @@ let to_correction
   =
   let results_list =
     (Mutex.with_lock mutex ~f:(fun password ->
-       Capsule.Expert.access ~password ~f:(fun access ->
+       Capsule.Prim.access ~password ~f:(fun access ->
          let results = Capsule.Data.unwrap ~access results in
          { aliased = Queue.to_list results })
        [@nontail]))
@@ -255,14 +255,14 @@ let record_result
    | Fail _ -> Atomic.set failure_atomic true
    | Pass -> ());
   Mutex.with_lock t.mutex ~f:(fun password ->
-    Capsule.Expert.Data.iter t.results ~password ~f:(fun q ->
+    Capsule.Prim.Data.iter t.results ~password ~f:(fun q ->
       Queue.enqueue q (Reached_with_output { result; raw = test_output_raw }))
     [@nontail]);
   Atomic.set t.reached_this_run true
 ;;
 
 let of_expectation expectation =
-  let (P key) = Capsule.Expert.create () in
+  let (P key) = Capsule.Prim.create () in
   T
     (Test
        { expectation
@@ -290,8 +290,7 @@ let record_end_of_run t =
   if not (Atomic.get reached_this_run)
   then
     Mutex.with_lock mutex ~f:(fun password ->
-      Capsule.Expert.Data.iter results ~password ~f:(fun q ->
-        Queue.enqueue q Did_not_reach)
+      Capsule.Prim.Data.iter results ~password ~f:(fun q -> Queue.enqueue q Did_not_reach)
       [@nontail])
     [@nontail]
 ;;
