@@ -126,11 +126,11 @@ module String_node_format = struct
   end
 
   module Delimiter = struct
-    type%fuelproof _ unpacked =
+    type _ unpacked =
       | Quote : longhand unpacked
       | Tag : string -> _ unpacked
 
-    type%fuelproof t = T : _ unpacked -> t [@@unboxed]
+    type t = T : _ unpacked -> t [@@unboxed]
 
     let default = T (Tag "")
 

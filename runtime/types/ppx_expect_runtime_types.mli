@@ -162,11 +162,11 @@ module String_node_format : sig
 
   module Delimiter : sig
     (** Delimiter around string constant. *)
-    type%fuelproof _ unpacked =
+    type _ unpacked =
       | Quote : longhand unpacked (** Quoted strings, e.g. ["foo"]. *)
       | Tag : string -> _ unpacked (** Tagged strings, e.g. [{tag|foo|tag}]. *)
 
-    type%fuelproof t = T : _ unpacked -> t [@@unboxed]
+    type t = T : _ unpacked -> t [@@unboxed]
 
     (** Default delimiter: [T (Tag "")]. *)
     val default : t
