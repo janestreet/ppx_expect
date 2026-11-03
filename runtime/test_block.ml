@@ -309,25 +309,26 @@ end = struct
 end
 
 module Configured (C : Expect_test_config_types.S) = struct
-  let cr_prefix =
+  let cr_header reporter =
     match C.upon_unreleasable_issue with
-    | `CR -> "CR "
-    | `Warning_for_collector_testing -> ""
+    | `CR -> Printf.sprintf "CR %s" reporter
+    | `CR_for_child -> Printf.sprintf "CR %s for $child" reporter
+    | `Warning_for_collector_testing -> reporter
   ;;
 
   let cr_for_backtrace =
     Printf.sprintf
-      {|(* %sexpect_test_collector: This test expectation appears to contain a backtrace.
+      {|(* %s: This test expectation appears to contain a backtrace.
    This is strongly discouraged as backtraces are fragile.
    Please change this test to not include a backtrace. *)|}
-      cr_prefix
+      (cr_header "expect_test_collector")
   ;;
 
   let cr_for_multiple_outputs ~output_name ~outputs =
     let cr_body =
       Printf.sprintf "Test ran multiple times with different %ss" output_name
     in
-    let cr = Printf.sprintf "(* %sexpect_test: %s *)" cr_prefix cr_body in
+    let cr = Printf.sprintf "(* %s: %s *)" (cr_header "expect_test") cr_body in
     let num_outputs = List.length outputs in
     let header index =
       let header = Printf.sprintf "=== Output %d / %d ===" (index + 1) num_outputs in
@@ -579,10 +580,10 @@ module Make (C : Expect_test_config_types.S) = struct
     ~filename_rel_to_project_root
     ~line_number
     ~(location : Compact_loc.t)
-    ~(trailing_loc : Compact_loc.t)
     ~(body_loc : Compact_loc.t)
     ~formatting_flexibility
     ~expected_exn
+    ~trailing_expectation
     ~trailing_test_id
     ~exn_test_id
     ~description
@@ -615,22 +616,27 @@ module Make (C : Expect_test_config_types.S) = struct
         (* Create the tests for trailing output and uncaught exceptions *)
         let expectations =
           let trailing_test =
-            Test_spec.expect_trailing
-              ~insert_loc:
-                { loc = { trailing_loc with end_pos = trailing_loc.start_pos }; body_loc }
+            (match trailing_expectation with
+             | Some expect_node_info ->
+               Test_spec.expect_trailing_attribute
+                 ~formatting_flexibility
+                 ~expect_node_info
+             | None ->
+               Test_spec.expect_trailing
+                 ~insert_loc:
+                   { loc = { location with start_pos = location.end_pos }; body_loc }
+                 ~trailing_output_syntax:C.trailing_output_syntax)
             |> Test_node.of_expectation
           in
           let exn_test =
             match expected_exn with
-            | Some _ ->
-              Test_spec.expect_uncaught_exn
-                ~formatting_flexibility
-                ~located_payload:expected_exn
-                ~node_loc:trailing_loc
+            | Some expect_node_info ->
+              Test_spec.expect_uncaught_exn ~formatting_flexibility ~expect_node_info
               |> Test_node.of_expectation
             | None ->
               Test_spec.expect_no_uncaught_exn
-                ~insert_loc:{ loc = trailing_loc; body_loc }
+                ~insert_loc:
+                  { loc = { location with start_pos = location.end_pos }; body_loc }
               |> Test_node.of_expectation
           in
           (exn_test_id, exn_test) :: (trailing_test_id, trailing_test) :: expectations
@@ -686,8 +692,12 @@ module Make (C : Expect_test_config_types.S) = struct
           | [] -> None
           | exns -> Some (String.concat ~sep:"\n" exns)
         in
-        (* Run the trailing output and uncaught exn test *)
-        let test_output, test_to_run =
+        (* Run the trailing output and uncaught exn tests. The trailing expectation only
+           captures output from a test that _finished_: when the test raises, the trailing
+           node is not reached (so an explicit [[@@expect.trailing]] attribute becomes
+           unreachable and is deleted), and the trailing output is folded into the
+           uncaught-exn expectation instead, as it always has been. *)
+        let tests_to_run =
           let trailing_output =
             let trailing_raw = read_test_output_sanitized_and_checked () in
             match String.strip trailing_raw with
@@ -695,7 +705,7 @@ module Make (C : Expect_test_config_types.S) = struct
             | _ -> Some trailing_raw
           in
           match test_exn with
-          | None -> Option.value trailing_output ~default:"", trailing_test_id
+          | None -> [ Option.value trailing_output ~default:"", trailing_test_id ]
           | Some test_exn ->
             let test_output =
               match trailing_output with
@@ -705,16 +715,17 @@ module Make (C : Expect_test_config_types.S) = struct
                   ~sep:"\n"
                   [ test_exn; "Trailing output"; "---------------"; trailing_output ]
             in
-            test_output, exn_test_id
+            [ test_output, exn_test_id ]
         in
-        run_test_inner
-          test_block
-          ~skip_expectation_check:true
-            (* We have left the part of the test that catches exceptions, and so do not
-               wish to re-raise if the test raised without finishing an [[%expectation]]
-            *)
-          ~test_output_raw:test_output
-          ~test_id:test_to_run;
+        List.iter tests_to_run ~f:(fun (test_output, test_to_run) ->
+          run_test_inner
+            test_block
+            ~skip_expectation_check:true
+              (* We have left the part of the test that catches exceptions, and so do not
+                 wish to re-raise if the test raised without finishing an [[%expectation]]
+              *)
+            ~test_output_raw:test_output
+            ~test_id:test_to_run);
         (* Perform the per-test reachability check *)
         List.iter expectations ~f:(fun (_, test_node) ->
           Test_node.record_end_of_run test_node);

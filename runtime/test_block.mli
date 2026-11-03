@@ -56,14 +56,14 @@ module Make (C : Expect_test_config_types.S) : sig
     -> line_number:int (** Line number of the start of the test *)
     -> location:Compact_loc.t
          (** Range of characters of the entire test; printed if program exits unexpectedly *)
-    -> trailing_loc:Compact_loc.t
-         (** Where to insert the [[%expect]] for trailing output *)
     -> body_loc:Compact_loc.t
          (** Range of characters of the RHS of the [let%expect_test] binding. *)
     -> formatting_flexibility:Expect_node_formatting.Flexibility.t
          (** The formatting flexibility to use for the uncaught exn test. *)
-    -> expected_exn:(Payload.t * Compact_loc.t) option
+    -> expected_exn:Expect_node_info.t option
          (** Contents of the [[@@expect.uncaught_exn]] node, if any. *)
+    -> trailing_expectation:Expect_node_info.t option
+         (** Contents of the [[@@expect.trailing]] node, if any. *)
     -> trailing_test_id:Expectation_id.t
          (** ID to use for the test checking that there is no trailing output. *)
     -> exn_test_id:Expectation_id.t

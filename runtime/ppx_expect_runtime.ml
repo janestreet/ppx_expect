@@ -35,6 +35,7 @@ module Compact_loc = Compact_loc
 module Expectation_id = Expectation_id
 module Delimiter = String_node_format.Delimiter
 module Payload = Payload
+module Expect_node_info = Expect_node_info
 module Current_file = Current_file
 module Test_node = Test_node
 module Write_corrected_file = Write_corrected_file

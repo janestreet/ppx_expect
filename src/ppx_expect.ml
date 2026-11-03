@@ -1,4 +1,4 @@
-open! Base
+open! Ppx_helpers.Base_lite
 open Ppxlib
 open Ast_builder.Default
 open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
@@ -68,6 +68,14 @@ module Expr = struct
           Ppx_expect_runtime.Expect_node_formatting.default
         [@alert "-ppx_expect_runtime"]]
   ;;
+
+  let expect_node_info ~loc ({ node_loc; located_payload } : Expect_node_info.t) =
+    [%expr
+      { Ppx_expect_runtime.Expect_node_info.node_loc = [%e compact_loc ~loc node_loc]
+      ; located_payload = [%e option ~loc (pair payload compact_loc) located_payload]
+      }
+      [@alert "-ppx_expect_runtime"]]
+  ;;
 end
 
 let compact_loc_of_ppxlib_location { loc_start; loc_end; loc_ghost = _ } : Compact_loc.t =
@@ -78,17 +86,12 @@ let compact_loc_of_ppxlib_location { loc_start; loc_end; loc_ghost = _ } : Compa
 ;;
 
 module Expectation_node = struct
-  type expect_node_info =
-    { located_payload : (Payload.t * Compact_loc.t) option
-    ; node_loc : Compact_loc.t
-    }
-
   type t =
-    | Expect of expect_node_info
-    | Expect_exact of expect_node_info
-    | Expect_if_reached of expect_node_info
+    | Expect of Expect_node_info.t
+    | Expect_exact of Expect_node_info.t
+    | Expect_if_reached of Expect_node_info.t
     | Expect_unreachable of Compact_loc.t
-    | Expectation of expect_node_info
+    | Expectation of Expect_node_info.t
     | Expectation_never_committed of Compact_loc.t
 
   let id t ~loc =
@@ -116,13 +119,11 @@ module Expectation_node = struct
   ;;
 
   let to_expr ~loc t =
-    let make_expect_node node_expr { located_payload; node_loc } =
+    let make_expect_node node_expr expect_node_info =
       [%expr
         [%e node_expr]
           ~formatting_flexibility:[%e Expr.flexibility_of_strictness ~loc]
-          ~located_payload:
-            [%e Expr.(option ~loc (pair payload compact_loc)) located_payload]
-          ~node_loc:[%e Expr.compact_loc ~loc node_loc]]
+          ~expect_node_info:[%e Expr.expect_node_info ~loc expect_node_info]]
     in
     match t with
     | Expect expect_node_info
@@ -182,25 +183,21 @@ module Parsed_node = struct
         Expression
         (Pattern.maybe_string ())
         (fun ~located_payload node_loc ->
+           let expect_node_info : Expect_node_info.t = { node_loc; located_payload } in
            Expectation_node
-             ( Expectation_id.lookup_or_mint Parsed node_loc
-             , constructor located_payload node_loc ))
+             (Expectation_id.lookup_or_mint Parsed node_loc, constructor expect_node_info))
     ;;
   end
 
-  let expect =
-    declare_expect "expect" (fun located_payload node_loc ->
-      Expect { located_payload; node_loc })
-  ;;
+  let expect = declare_expect "expect" (fun expect_node_info -> Expect expect_node_info)
 
   let expect_exact =
-    declare_expect "expect_exact" (fun located_payload node_loc ->
-      Expect_exact { located_payload; node_loc })
+    declare_expect "expect_exact" (fun expect_node_info -> Expect_exact expect_node_info)
   ;;
 
   let expect_if_reached =
-    declare_expect "expect.if_reached" (fun located_payload node_loc ->
-      Expect_if_reached { located_payload; node_loc })
+    declare_expect "expect.if_reached" (fun expect_node_info ->
+      Expect_if_reached expect_node_info)
   ;;
 
   let expectation =
@@ -209,9 +206,9 @@ module Parsed_node = struct
       Expression
       (Pattern.maybe_string ())
       (fun ~located_payload node_loc ->
+         let expect_node_info : Expect_node_info.t = { node_loc; located_payload } in
          Expectation_result_node
-           ( Expectation_id.lookup_or_mint Parsed node_loc
-           , Expectation { located_payload; node_loc } ))
+           (Expectation_id.lookup_or_mint Parsed node_loc, Expectation expect_node_info))
   ;;
 
   let expect_output =
@@ -287,8 +284,8 @@ let replace_and_collect_expects =
 ;;
 
 let transform_let_expect
-  ~trailing_location
   ~tags
+  ~trailing_expectation
   ~expected_exn
   ~description
   ~loc
@@ -306,7 +303,6 @@ let transform_let_expect
   let filename_rel_to_project_root =
     Ppx_here_expander.expand_filename loc.loc_start.pos_fname
   in
-  let trailing_location = compact_loc_of_ppxlib_location trailing_location in
   let body_loc =
     compact_loc_of_ppxlib_location
       { loc_start = loc.loc_start; loc_end = body.pexp_loc.loc_end; loc_ghost = true }
@@ -328,10 +324,11 @@ let transform_let_expect
           ~filename_rel_to_project_root:[%e estring ~loc filename_rel_to_project_root]
           ~line_number:[%e eint ~loc loc.loc_start.pos_lnum]
           ~location:[%e Expr.compact_loc ~loc (compact_loc_of_ppxlib_location loc)]
-          ~trailing_loc:[%e Expr.compact_loc ~loc trailing_location]
           ~body_loc:[%e Expr.compact_loc ~loc body_loc]
           ~formatting_flexibility:[%e Expr.flexibility_of_strictness ~loc]
-          ~expected_exn:[%e Expr.(option ~loc (pair payload compact_loc)) expected_exn]
+          ~expected_exn:[%e Expr.option ~loc Expr.expect_node_info expected_exn]
+          ~trailing_expectation:
+            [%e Expr.option ~loc Expr.expect_node_info trailing_expectation]
           ~trailing_test_id:[%e Expr.id ~loc trailing_test_id]
           ~exn_test_id:[%e Expr.id ~loc exn_test_id]
           ~description:[%e Expr.option estring ~loc description]
@@ -349,7 +346,16 @@ let let_expect_pat =
       "@expect.uncaught_exn"
       Attribute.Context.value_binding
       (Pattern.string ())
-      (fun ~attr_loc ~located_payload -> attr_loc, located_payload)
+      (fun ~attr_loc ~located_payload : Expect_node_info.t ->
+         { node_loc = compact_loc_of_ppxlib_location attr_loc; located_payload })
+  in
+  let trailing_expectation =
+    Attribute.declare_with_attr_loc
+      "@expect.trailing"
+      Attribute.Context.value_binding
+      (Pattern.maybe_string ())
+      (fun ~attr_loc ~located_payload : Expect_node_info.t ->
+         { node_loc = compact_loc_of_ppxlib_location attr_loc; located_payload })
   in
   let opt_name =
     map (pstring __) ~f:(fun f x -> f ~name:(Some x))
@@ -359,16 +365,19 @@ let let_expect_pat =
     (pstr_value
        nonrecursive
        (Attribute.pattern
-          uncaught_exn
-          (value_binding_attributes
-             __
-             (value_binding
-                ~pat:
-                  (map
-                     (Attribute.pattern Ppx_inline_test.tags opt_name)
-                     ~f:(fun f attributes ->
-                       f ~tags:(Option.value ~default:[] attributes)))
-                ~expr:__))
+          trailing_expectation
+          (Attribute.pattern
+             uncaught_exn
+             (value_binding_attributes
+                __
+                (value_binding
+                   ~pat:
+                     (map
+                        (Attribute.pattern Ppx_inline_test.tags opt_name)
+                        ~f:(fun f attributes ->
+                          f ~tags:(Option.value ~default:[] attributes)))
+                   ~expr:__
+                   ~constraint_:drop)))
         ^:: nil)
      ^:: nil)
 ;;
@@ -378,21 +387,16 @@ let expect_test =
     "expect_test"
     Structure_item
     let_expect_pat
-    (fun ~ctxt trailing attrs ~tags ~name code ->
+    (fun ~ctxt trailing_expectation expected_exn attrs ~tags ~name code ->
        let loc = Ppxlib.Expansion_context.Extension.extension_point_loc ctxt in
        let loc = { loc with loc_ghost = true } in
-       let trailing_location, expected_exn =
-         match trailing with
-         | Some (attr_loc, expected_exn) -> attr_loc, expected_exn
-         | None -> { loc with loc_start = loc.loc_end }, None
-       in
        Ppx_inline_test.validate_extension_point_exn
          ~name_of_ppx_rewriter:"ppx_expect"
          ~loc
          ~tags;
        transform_let_expect
-         ~trailing_location
          ~tags
+         ~trailing_expectation
          ~expected_exn
          ~description:name
          ~loc

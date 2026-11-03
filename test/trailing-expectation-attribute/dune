@@ -1,0 +1,4 @@
+(library
+ (name expect_test_trailing_expectation_attribute)
+ (preprocess
+  (pps ppx_jane -compare-require-explicit-locality)))

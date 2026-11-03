@@ -1,0 +1,33 @@
+(library
+ (name expect_test_trailing_expectation_attribute_negative)
+ (preprocess
+  (pps ppx_expect ppx_let)))
+
+(alias
+ (name test-runner-runtime-deps)
+ (deps
+  ./inline_tests_runner
+  (glob_files *.ml)
+  ./inline_tests_runner.exe))
+
+(rule
+ (deps
+  (alias test-runner-runtime-deps)
+  %{workspace_root}/bin/apply-style
+  jbuild)
+ (targets trailing.ml.corrected test-output._)
+ (action
+  (bash
+    "\nrm -f *.ml.corrected 2>/dev/null\n! ./inline_tests_runner -no-color > test-output._ 2>&1\nfor f in %{targets}\ndo\n  if [[ $f == *.corrected ]]\n  then\n    if [[ -e $f ]]\n    then\n      %{workspace_root}/bin/apply-style -directory-config jbuild -original-file $(basename $f .corrected) - < $f > $f.tmp\n      mv $f.tmp $f\n    else\n      echo \"=== Failed to generate corrected file ===\" > $f\n    fi\n  fi\ndone\n")))
+
+(rule
+ (alias runtest)
+ (deps trailing.ml.corrected.expected trailing.ml.corrected)
+ (action
+  (bash "diff -a %{deps}")))
+
+(rule
+ (alias runtest)
+ (deps test-output.expected test-output._)
+ (action
+  (bash "diff -a %{deps}")))

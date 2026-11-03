@@ -324,3 +324,16 @@ let%expect_test "sanitization in exceptions" =
 ;;
 
 (* $MDX part-end *)
+
+(* $MDX part-begin=async_trailing *)
+open Async
+
+let%expect_test "trailing output" =
+  print_endline "Hello";
+  [%expect {| Hello |}];
+  print_endline "world";
+  return ()
+[@@expect.trailing {| world |}]
+;;
+
+(* $MDX part-end *)

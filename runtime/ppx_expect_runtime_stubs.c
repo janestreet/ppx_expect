@@ -3,8 +3,24 @@
 #include <caml/mlvalues.h>
 #include <caml/signals.h>
 
+/* Start of duplicated code from caml/sys.h */
+#define NO_ARG Val_int(0)
+CAMLextern void caml_sys_error(value);
+/* End of duplicated code from caml/sys.h */
+
+#define SYSCALL(var, expr)                                                               \
+  {                                                                                      \
+    var = expr;                                                                          \
+    if (var == -1)                                                                       \
+      caml_sys_error(NO_ARG);                                                            \
+  }
+
 #ifdef __linux__
 #include <sys/wait.h>
+#include <fcntl.h>
+#define DUP(old, new) SYSCALL(old, fcntl((new), F_DUPFD_CLOEXEC, 0));
+#else
+#define DUP(old, new) SYSCALL(old, dup(new));
 #endif
 
 #ifndef _MSC_VER
@@ -48,20 +64,8 @@ struct channel {
 
 /* End of duplicated code from caml/io.h */
 
-/* Start of duplicated code from caml/sys.h */
-#define NO_ARG Val_int(0)
-CAMLextern void caml_sys_error(value);
-/* End of duplicated code from caml/sys.h */
-
 static int ppx_expect_runtime_saved_stdout;
 static int ppx_expect_runtime_saved_stderr;
-
-#define SYSCALL(var, expr)                                                               \
-  {                                                                                      \
-    var = expr;                                                                          \
-    if (var == -1)                                                                       \
-      caml_sys_error(NO_ARG);                                                            \
-  }
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
@@ -133,9 +137,9 @@ CAMLprim value ppx_expect_runtime_before_test(value voutputw, value voutputr_opt
   struct channel *cstdout = Channel(vstdout);
   struct channel *cstderr = Channel(vstderr);
   int fd, ret;
-  SYSCALL(fd, dup(cstdout->fd))
+  DUP(fd, cstdout->fd);
   ppx_expect_runtime_saved_stdout = fd;
-  SYSCALL(fd, dup(cstderr->fd))
+  DUP(fd, cstderr->fd);
   ppx_expect_runtime_saved_stderr = fd;
   ppx_expect_runtime_maybe_init_tee_mode(voutputr_opt);
   SYSCALL(ret, dup2(outputw->fd, cstdout->fd))
@@ -162,6 +166,7 @@ CAMLprim value ppx_expect_runtime_out_channel_position(value vchan) {
   ret = lseek(chan->fd, 0, SEEK_CUR);
   caml_leave_blocking_section();
   if (ret == -1)
+
     caml_sys_error(NO_ARG);
   if (ret > Max_long)
     caml_failwith("ppx_expect_runtime_out_channel_position: overflow");

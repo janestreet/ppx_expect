@@ -202,3 +202,14 @@ module Payload : sig
   (** The source-code representation of a payload. *)
   val to_source_code_string : t -> string
 end
+
+module Expect_node_info : sig
+  (** The location and payload of an extension point or attribute from the [expect] family *)
+
+  type t =
+    { node_loc : Compact_loc.t
+    (** Location of the [[%expect... _]] or [[@@expect...]] node *)
+    ; located_payload : (Payload.t * Compact_loc.t) option
+    (** The string payload and its location, if there is one *)
+    }
+end

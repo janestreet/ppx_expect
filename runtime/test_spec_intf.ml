@@ -119,8 +119,7 @@ module type Test_spec = sig
 
   type expect_creator :=
     formatting_flexibility:Expect_node_formatting.Flexibility.t
-    -> node_loc:Compact_loc.t
-    -> located_payload:(Payload.t * Compact_loc.t) option
+    -> expect_node_info:Expect_node_info.t
     -> [ `Expect ] t
 
   (** [[%expect _]] *)
@@ -144,9 +143,15 @@ module type Test_spec = sig
   (** [[@@expect.uncaught_exn _]] *)
   val expect_uncaught_exn : expect_creator
 
+  (** [[@@expect.trailing _]] *)
+  val expect_trailing_attribute : expect_creator
+
   (** Runtime representation of the implicit [[%expect {||}]] at the end of every expect
       test. *)
-  val expect_trailing : insert_loc:Virtual_loc.t -> [ `Expect ] t
+  val expect_trailing
+    :  insert_loc:Virtual_loc.t
+    -> trailing_output_syntax:[ `Attribute | `Extension ]
+    -> [ `Expect ] t
 
   (** Runtime representation of the assertion that a test does not produce uncaught
       exceptions, which a user implicitly makes by omitting an [[@@expect.uncaught_exn _]]
