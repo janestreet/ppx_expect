@@ -16,9 +16,7 @@ module Create : sig
     formatting_flexibility:Expect_node_formatting.Flexibility.t
       (** If tests should be flexible about formatting rules, the formatting rules that
           define this flexibility *)
-    -> node_loc:Compact_loc.t (** Location of the [[%expect... _]] node *)
-    -> located_payload:(Payload.t * Compact_loc.t) option
-         (** The string payload and its location, if there is one *)
+    -> expect_node_info:Expect_node_info.t
     -> t
 
   (** [[%expect _]] *)

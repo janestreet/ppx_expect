@@ -1,4 +1,4 @@
-open! Base
+open! Ppx_helpers.Base_lite
 open Ppxlib
 open Ppx_expect_runtime_types [@@alert "-ppx_expect_runtime_types"]
 

@@ -1,7 +1,7 @@
 type t =
   | Init
   | Set_by_inline_test
-[@@deriving sexp, compare ~localize]
+[@@deriving sexp, compare]
 
 let inner = ref Init
 

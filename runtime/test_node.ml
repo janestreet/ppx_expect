@@ -350,23 +350,20 @@ module Global_results_table = struct
 end
 
 module Create = struct
-  let expect ~formatting_flexibility ~node_loc ~located_payload =
-    of_expectation (Test_spec.expect ~formatting_flexibility ~node_loc ~located_payload)
+  let expect ~formatting_flexibility ~expect_node_info =
+    of_expectation (Test_spec.expect ~formatting_flexibility ~expect_node_info)
   ;;
 
-  let expect_exact ~formatting_flexibility ~node_loc ~located_payload =
-    of_expectation
-      (Test_spec.expect_exact ~formatting_flexibility ~node_loc ~located_payload)
+  let expect_exact ~formatting_flexibility ~expect_node_info =
+    of_expectation (Test_spec.expect_exact ~formatting_flexibility ~expect_node_info)
   ;;
 
-  let expect_if_reached ~formatting_flexibility ~node_loc ~located_payload =
-    of_expectation
-      (Test_spec.expect_if_reached ~formatting_flexibility ~node_loc ~located_payload)
+  let expect_if_reached ~formatting_flexibility ~expect_node_info =
+    of_expectation (Test_spec.expect_if_reached ~formatting_flexibility ~expect_node_info)
   ;;
 
-  let expectation ~formatting_flexibility ~node_loc ~located_payload =
-    of_expectation
-      (Test_spec.expectation ~formatting_flexibility ~node_loc ~located_payload)
+  let expectation ~formatting_flexibility ~expect_node_info =
+    of_expectation (Test_spec.expectation ~formatting_flexibility ~expect_node_info)
   ;;
 
   let expect_unreachable ~node_loc =

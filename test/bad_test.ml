@@ -26,7 +26,7 @@ let print_slot trace n =
      | Some str -> print_endline str)
 ;;
 
-let%expect_test (_ [@tags "no-js"]) =
+let%expect_test (_ [@tags "64-bits-only"]) =
   (* We create a backtrace with 10 identical slots and then only print the 5th slot.
      Otherwise flambda and non-flambda compilers create slightly different backtraces. *)
   let trace = get_a_trace () in

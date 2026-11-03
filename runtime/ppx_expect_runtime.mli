@@ -91,6 +91,7 @@ module Compact_loc = Ppx_expect_runtime_types.Compact_loc
 module Expectation_id = Ppx_expect_runtime_types.Expectation_id
 module Delimiter = Ppx_expect_runtime_types.String_node_format.Delimiter
 module Payload = Ppx_expect_runtime_types.Payload
+module Expect_node_info = Ppx_expect_runtime_types.Expect_node_info
 
 module Current_file : sig
   val set : filename_rel_to_project_root:string -> unit

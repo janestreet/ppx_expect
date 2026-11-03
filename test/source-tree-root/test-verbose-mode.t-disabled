@@ -1,3 +1,4 @@
+
 Check that a test executable copied to a new location can still run against the
 files in its original location when the [-source-tree-root] flag is passed.
 

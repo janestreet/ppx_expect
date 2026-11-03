@@ -1,0 +1,4 @@
+(library
+ (name expect_test_unreleasable_issue)
+ (preprocess
+  (pps ppx_expect)))

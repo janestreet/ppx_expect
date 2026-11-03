@@ -172,7 +172,10 @@ let expected_string_and_payload_loc = function
   | None -> Payload.default "", None
 ;;
 
-let expect ~formatting_flexibility ~node_loc ~located_payload =
+let expect
+  ~formatting_flexibility
+  ~expect_node_info:({ node_loc; located_payload } : Expect_node_info.t)
+  =
   let payload, payload_loc = expected_string_and_payload_loc located_payload in
   { position = Overwrite { whole_node = node_loc; payload = payload_loc }
   ; behavior =
@@ -188,7 +191,10 @@ let expect ~formatting_flexibility ~node_loc ~located_payload =
   |> possibly_relax_strictness ~formatting_flexibility
 ;;
 
-let expect_if_reached ~formatting_flexibility ~node_loc ~located_payload =
+let expect_if_reached
+  ~formatting_flexibility
+  ~expect_node_info:({ node_loc; located_payload } : Expect_node_info.t)
+  =
   let payload, payload_loc = expected_string_and_payload_loc located_payload in
   { position = Overwrite { whole_node = node_loc; payload = payload_loc }
   ; behavior = Expect { payload; on_unreachable = Silent; reachability = Can_reach }
@@ -199,7 +205,10 @@ let expect_if_reached ~formatting_flexibility ~node_loc ~located_payload =
   |> possibly_relax_strictness ~formatting_flexibility
 ;;
 
-let expect_exact ~formatting_flexibility ~node_loc ~located_payload =
+let expect_exact
+  ~formatting_flexibility
+  ~expect_node_info:({ node_loc; located_payload } : Expect_node_info.t)
+  =
   let payload, payload_loc = expected_string_and_payload_loc located_payload in
   { position = Overwrite { whole_node = node_loc; payload = payload_loc }
   ; behavior =
@@ -215,7 +224,10 @@ let expect_exact ~formatting_flexibility ~node_loc ~located_payload =
   |> possibly_relax_strictness ~formatting_flexibility
 ;;
 
-let expectation ~formatting_flexibility ~node_loc ~located_payload =
+let expectation
+  ~formatting_flexibility
+  ~expect_node_info:({ node_loc; located_payload } : Expect_node_info.t)
+  =
   let payload, payload_loc = expected_string_and_payload_loc located_payload in
   { position = Overwrite { whole_node = node_loc; payload = payload_loc }
   ; behavior =
@@ -249,7 +261,10 @@ let expectation_never_committed ~node_loc =
   }
 ;;
 
-let expect_uncaught_exn ~formatting_flexibility ~node_loc ~located_payload =
+let expect_uncaught_exn
+  ~formatting_flexibility
+  ~expect_node_info:({ node_loc; located_payload } : Expect_node_info.t)
+  =
   let payload, payload_loc = expected_string_and_payload_loc located_payload in
   { position = Overwrite { whole_node = node_loc; payload = payload_loc }
   ; behavior = Expect { payload; on_unreachable = Delete; reachability = Must_reach }
@@ -261,7 +276,32 @@ let expect_uncaught_exn ~formatting_flexibility ~node_loc ~located_payload =
   |> possibly_relax_strictness ~formatting_flexibility
 ;;
 
-let expect_trailing ~insert_loc =
+let expect_trailing_attribute
+  ~formatting_flexibility
+  ~expect_node_info:({ node_loc; located_payload } : Expect_node_info.t)
+  =
+  let payload, payload_loc = expected_string_and_payload_loc located_payload in
+  { position = Overwrite { whole_node = node_loc; payload = payload_loc }
+  ; behavior =
+      Expect
+        { payload
+        ; on_unreachable =
+            (* When the test raises before finishing, the trailing node is never reached,
+               so an explicit [[@@expect.trailing]] attribute becomes unreachable. In that
+               case we delete it (the trailing output is folded into the uncaught-exn
+               expectation instead). *)
+            Delete
+        ; reachability = Can_reach
+        }
+  ; payload_type = Pretty
+  ; on_incorrect_output =
+      T { name = "expect.trailing"; kind = Attribute; hand = Longhand }
+  ; inconsistent_outputs_message = "trailing output"
+  }
+  |> possibly_relax_strictness ~formatting_flexibility
+;;
+
+let expect_trailing ~insert_loc ~trailing_output_syntax =
   { position = Insert insert_loc
   ; behavior =
       Expect
@@ -270,7 +310,10 @@ let expect_trailing ~insert_loc =
         ; reachability = Can_reach
         }
   ; payload_type = Pretty
-  ; on_incorrect_output = T { name = "expect"; kind = Extension; hand = Longhand }
+  ; on_incorrect_output =
+      (match trailing_output_syntax with
+       | `Attribute -> T { name = "expect.trailing"; kind = Attribute; hand = Longhand }
+       | `Extension -> T { name = "expect"; kind = Extension; hand = Longhand })
   ; inconsistent_outputs_message = "trailing output"
   }
 ;;
@@ -292,8 +335,10 @@ module For_apply_style = struct
     let node =
       mk_node
         ~formatting_flexibility:(Exactly_formatted : Expect_node_formatting.Flexibility.t)
-        ~node_loc
-        ~located_payload:(Some (({ tag; contents } : Payload.t), payload_loc))
+        ~expect_node_info:
+          { Expect_node_info.node_loc
+          ; located_payload = Some (({ tag; contents } : Payload.t), payload_loc)
+          }
     in
     let formatted_contents =
       Output.Formatter.apply (formatter ~expect_node_formatting node) contents

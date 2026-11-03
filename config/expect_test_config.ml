@@ -7,3 +7,4 @@ end
 let sanitize s = s
 let run f = f ()
 let upon_unreleasable_issue = `CR
+let trailing_output_syntax = `Extension

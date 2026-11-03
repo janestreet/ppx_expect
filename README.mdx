@@ -1,5 +1,4 @@
-expect-test - a Cram-like framework for OCaml
-=============================================
+# expect-test - a Cram-like framework for OCaml
 
 
 # Introduction
@@ -107,8 +106,8 @@ let%expect_test "interleaved" =
 ```
 
 When there is "trailing" output at the end of a `let%expect_test` (output that has yet to
-be matched by some `[%expect]` block), a new `[%expect]` block is appended to the test
-with the trailing output:
+be matched by some `[%expect]` block), by default a new `[%expect]` block is appended to
+the test with the trailing output:
 
 <!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml,part=trailing -->
 ```ocaml
@@ -128,6 +127,36 @@ let%expect_test "trailing output" =
   [%expect {| Hello |}];
   print_endline "world";
   [%expect {| world |}]
+;;
+```
+
+In some contexts, such as `Async` expect tests, trailing output behaves differently.
+Since the code usually ends in `return ()`, adding `; [%expect {||}]` wouldn't compile.
+
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml,part=async_trailing -->
+```ocaml
+open Async
+
+let%expect_test "trailing output" =
+  print_endline "Hello";
+  [%expect {| Hello |}];
+  print_endline "world";
+  return ()
+;;
+```
+
+Instead, an `@@expect.trailing` attribute is added:
+
+<!-- $MDX file=./test/negative-tests/for-mdx/mdx_cases.ml.corrected.expected,part=async_trailing -->
+```ocaml
+open Async
+
+let%expect_test "trailing output" =
+  print_endline "Hello";
+  [%expect {| Hello |}];
+  print_endline "world";
+  return ()
+[@@expect.trailing {| world |}]
 ;;
 ```
 
@@ -641,8 +670,12 @@ module type Expect_test_config = sig
   (** [sanitize] can be used to map all output strings, e.g. for cleansing. *)
   val sanitize : string -> string
 
-  (** This module type actually contains other definitions, but they
-      are for internal testing of [ppx_expect] only. *)
+  (** Whether trailing output is added as [[@@expect.trailing]] or [[%expect]]. *)
+  val trailing_output_syntax : [ `Attribute | `Extension ]
+
+  (** How to report backtraces or inconsistent outputs across runs. *)
+  val upon_unreleasable_issue :
+    [ `CR | `CR_for_child | `Warning_for_collector_testing ]
 end
 ```
 
@@ -655,8 +688,24 @@ module Expect_test_config = struct
   module IO = Async_kernel.Deferred
 
   let run f = Async_unix.Thread_safe.block_on_async_exn f
+
+  let trailing_output_syntax = `Attribute
 end
 ```
+
+To assign generated CRs to a child feature, override `upon_unreleasable_issue`:
+
+```ocaml skip
+module Expect_test_config = struct
+  include Expect_test_config
+
+  let upon_unreleasable_issue = `CR_for_child
+end
+```
+
+This produces `CR expect_test for $child:` (or `CR expect_test_collector for $child:`
+for backtraces) instead of the default CR. This changes the CR assignment, not how test
+output is compared.
 
 If we want to consistently apply the same sanitization to all of the output in our expect
 test, like we did in the timestamp example above, we can override

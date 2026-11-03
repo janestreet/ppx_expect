@@ -1,0 +1,64 @@
+------ trailing.ml
+++++++ trailing.ml.corrected
+File "trailing.ml", line 13, characters 0-1:
+ |let () = Printexc.record_backtrace false
+ |
+ |open struct
+ |  module Expect_test_config = struct
+ |    include Expect_test_config
+ |
+ |    let trailing_output_syntax = `Attribute
+ |  end
+ |end
+ |
+ |let%expect_test "implicit trailing output uses attribute correction" =
+ |  print_string "hello"
++|[@@expect.trailing {| hello |}]
+ |;;
+ |
+ |let%expect_test "explicit trailing attribute is checked" = print_string "goodbye"
+-|[@@expect.trailing {| wrong |}]
++|[@@expect.trailing {| goodbye |}]
+ |;;
+ |
+ |let%expect_test "trailing attribute with uncaught exn" =
+ |  print_endline "before exception";
+ |  raise_notrace Exit
+-|[@@expect.trailing {| wrong trailing |}] [@@expect.uncaught_exn {| wrong exn |}]
++| [@@expect.uncaught_exn {|
++|                                           Exit
++|                                           Trailing output
++|                                           ---------------
++|                                           before exception
++|                                           |}]
+ |;;
+ |
+ |let%expect_test "implicit, with uncaught exn" =
+ |  print_endline "before exception";
+ |  raise_notrace Exit
++|[@@expect.uncaught_exn {|
++|  Exit
++|  Trailing output
++|  ---------------
++|  before exception
++|  |}]
+ |;;
+ |
+ |open struct
+ |  module Expect_test_config = struct
+ |    include Expect_test_config
+ |
+ |    let trailing_output_syntax = `Extension
+ |  end
+ |end
+ |
+ |let%expect_test "implicit trailing output uses attribute correction" =
+-|  print_string "hello"
++|  print_string "hello";
++|  [%expect {| hello |}]
+ |;;
+ |
+ |let%expect_test "explicit trailing attribute is checked" = print_string "goodbye"
+-|[@@expect.trailing {| wrong |}]
++|[@@expect.trailing {| goodbye |}]
+ |;;
